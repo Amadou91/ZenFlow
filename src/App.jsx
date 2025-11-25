@@ -216,7 +216,8 @@ export default function YogaRandomizer() {
   };
 
   const getDifficultyColor = (diff) => {
-    if (diff === 1) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200';
+    // Changed: <= 1 captures both Level 1 and Level 0 (Savasana)
+    if (diff <= 1) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200';
     if (diff === 2) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
     return 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200';
   };
@@ -435,9 +436,10 @@ export default function YogaRandomizer() {
                   <div key={pose.uniqueId} className="relative pl-16 group break-inside-avoid print:pl-10 print:mb-4">
                     
                     {/* TIMELINE DOT */}
+                    {/* Changed: Standardized to always be teal (filled) to look consistent */}
                     <div className={`
                       absolute left-[26px] top-6 w-4 h-4 rounded-full border-4 border-white dark:border-stone-900 print:left-[10px]
-                      ${['Centering', 'Savasana'].includes(pose.category) ? 'bg-teal-500' : 'bg-stone-300 dark:bg-stone-600'}
+                      bg-teal-500
                     `}></div>
 
                     {/* POSE CARD */}
