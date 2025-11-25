@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Menu, X, Play, RefreshCw, Settings, Heart, Copy, Printer, 
-  Sun, Moon, Music, Wind, Activity, Trash2, Search, BookOpen, 
-  Shuffle, SkipForward, Pause, Circle, Headphones, ChevronRight,
-  Info, PlayCircle
+  Sun, Moon, Music, Wind, Activity, Trash2, Search, 
+  Shuffle, SkipForward, Pause, PlayCircle, Info, Download, Check, Headphones
 } from 'lucide-react';
 
 /**
@@ -26,57 +25,232 @@ const POSE_CATEGORIES = {
 
 const POSE_LIBRARY = [
   // CENTERING
-  { id: 'suc', name: 'Easy Pose', sanskrit: 'Sukhasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Sit tall, ground sit bones, hands on knees.', types: ['grounding'] },
-  { id: 'vir', name: 'Hero Pose', sanskrit: 'Virasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Knees together, feet apart, sit between heels.', types: ['grounding'] },
-  { id: 'chi', name: 'Child\'s Pose', sanskrit: 'Balasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: true, pregnant: true, cues: 'Knees wide, big toes touch, forehead to mat.', types: ['grounding', 'hip-opener'] },
+  { 
+    id: 'suc', name: 'Easy Pose', sanskrit: 'Sukhasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Sit tall, ground sit bones, hands on knees.', 
+    benefits: ['Calms the brain', 'Strengthens the back', 'Stretches knees and ankles'],
+    types: ['grounding'] 
+  },
+  { 
+    id: 'vir', name: 'Hero Pose', sanskrit: 'Virasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Knees together, feet apart, sit between heels.', 
+    benefits: ['Stretches thighs and knees', 'Improves digestion', 'Relieves tired legs'],
+    types: ['grounding'] 
+  },
+  { 
+    id: 'chi', name: 'Child\'s Pose', sanskrit: 'Balasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: true, pregnant: true, 
+    cues: 'Knees wide, big toes touch, forehead to mat.', 
+    benefits: ['Gently stretches hips and thighs', 'Calms the mind', 'Relieves back and neck pain'],
+    types: ['grounding', 'hip-opener'] 
+  },
 
   // WARMUP
-  { id: 'cat', name: 'Cat Pose', sanskrit: 'Marjaryasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, cues: 'Exhale, round spine to ceiling, chin to chest.', types: ['spine'] },
-  { id: 'cow', name: 'Cow Pose', sanskrit: 'Bitilasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, cues: 'Inhale, drop belly, lift gaze.', types: ['spine'] },
-  { id: 'thread', name: 'Thread the Needle', sanskrit: 'Parsva Balasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, cues: 'Slide arm under chest, rest shoulder on mat.', types: ['twist', 'shoulder'] },
-  { id: 'dd', name: 'Downward Facing Dog', sanskrit: 'Adho Mukha Svanasana', category: POSE_CATEGORIES.WARMUP, difficulty: 2, wrist: true, knee: false, pregnant: true, cues: 'Hips high, heels down, press into knuckles.', types: ['hamstring', 'inversion'] },
-  { id: 'rag', name: 'Ragdoll Fold', sanskrit: 'Uttanasana Variation', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Hold opposite elbows, sway gently side to side.', types: ['hamstring'] },
+  { 
+    id: 'cat', name: 'Cat Pose', sanskrit: 'Marjaryasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
+    cues: 'Exhale, round spine to ceiling, chin to chest.', 
+    benefits: ['Increases spine flexibility', 'Stretches back torso and neck', 'Stimulates abdominal organs'],
+    types: ['spine'] 
+  },
+  { 
+    id: 'cow', name: 'Cow Pose', sanskrit: 'Bitilasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
+    cues: 'Inhale, drop belly, lift gaze.', 
+    benefits: ['Stretches front torso and neck', 'Massages spine', 'Calms the mind'],
+    types: ['spine'] 
+  },
+  { 
+    id: 'thread', name: 'Thread the Needle', sanskrit: 'Parsva Balasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
+    cues: 'Slide arm under chest, rest shoulder on mat.', 
+    benefits: ['Opens shoulders', 'Gentle spinal twist', 'Relieves tension in upper back'],
+    types: ['twist', 'shoulder'] 
+  },
+  { 
+    id: 'dd', name: 'Downward Facing Dog', sanskrit: 'Adho Mukha Svanasana', category: POSE_CATEGORIES.WARMUP, difficulty: 2, wrist: true, knee: false, pregnant: true, 
+    cues: 'Hips high, heels down, press into knuckles.', 
+    benefits: ['Energizes the body', 'Stretches shoulders, hamstrings, calves', 'Strengthens arms and legs'],
+    types: ['hamstring', 'inversion'] 
+  },
+  { 
+    id: 'rag', name: 'Ragdoll Fold', sanskrit: 'Uttanasana Variation', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Hold opposite elbows, sway gently side to side.', 
+    benefits: ['Releases lower back', 'Calms the nervous system', 'Stretches hamstrings'],
+    types: ['hamstring'] 
+  },
 
   // SUN SALUTATION
-  { id: 'mtn', name: 'Mountain Pose', sanskrit: 'Tadasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Feet grounded, palms forward, crown lifts.', types: ['standing'] },
-  { id: 'plk', name: 'Plank Pose', sanskrit: 'Phalakasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, cues: 'Core engaged, heels press back, dome upper back.', types: ['core', 'strength'] },
-  { id: 'chat', name: 'Chaturanga', sanskrit: 'Chaturanga Dandasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 3, wrist: true, knee: false, pregnant: false, cues: 'Lower halfway, elbows hug ribs.', types: ['strength'] },
-  { id: 'cobra', name: 'Cobra Pose', sanskrit: 'Bhujangasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: true, knee: false, pregnant: false, cues: 'Lift chest, little weight in hands, press tops of feet.', types: ['backbend'] },
-  { id: 'updog', name: 'Upward Facing Dog', sanskrit: 'Urdhva Mukha Svanasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, cues: 'Thighs lifted, chest open, shoulders down.', types: ['backbend'] },
+  { 
+    id: 'mtn', name: 'Mountain Pose', sanskrit: 'Tadasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Feet grounded, palms forward, crown lifts.', 
+    benefits: ['Improves posture', 'Strengthens thighs, knees, and ankles', 'Firms abdomen and buttocks'],
+    types: ['standing'] 
+  },
+  { 
+    id: 'plk', name: 'Plank Pose', sanskrit: 'Phalakasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, 
+    cues: 'Core engaged, heels press back, dome upper back.', 
+    benefits: ['Strengthens arms, wrists, and spine', 'Tones abdomen', 'Prepares body for advanced arm balances'],
+    types: ['core', 'strength'] 
+  },
+  { 
+    id: 'chat', name: 'Chaturanga', sanskrit: 'Chaturanga Dandasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
+    cues: 'Lower halfway, elbows hug ribs.', 
+    benefits: ['Develops core stability', 'Strengthens arms and wrists', 'Tones abdomen'],
+    types: ['strength'] 
+  },
+  { 
+    id: 'cobra', name: 'Cobra Pose', sanskrit: 'Bhujangasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: true, knee: false, pregnant: false, 
+    cues: 'Lift chest, little weight in hands, press tops of feet.', 
+    benefits: ['Strengthens the spine', 'Stretches chest and lungs, shoulders, and abdomen', 'Stimulates abdominal organs'],
+    types: ['backbend'] 
+  },
+  { 
+    id: 'updog', name: 'Upward Facing Dog', sanskrit: 'Urdhva Mukha Svanasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, 
+    cues: 'Thighs lifted, chest open, shoulders down.', 
+    benefits: ['Improves posture', 'Strengthens spine, arms, wrists', 'Stretches chest and lungs'],
+    types: ['backbend'] 
+  },
 
   // STANDING
-  { id: 'w1', name: 'Warrior I', sanskrit: 'Virabhadrasana I', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, cues: 'Back heel down 45 degrees, hips square to front.', types: ['strength', 'hip-opener'] },
-  { id: 'w2', name: 'Warrior II', sanskrit: 'Virabhadrasana II', category: POSE_CATEGORIES.STANDING, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Front knee over ankle, gaze over front middle finger.', types: ['strength', 'hip-opener'] },
-  { id: 'tri', name: 'Triangle Pose', sanskrit: 'Trikonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, cues: 'Lengthen side body, hand to shin or block.', types: ['hamstring', 'hip-opener'] },
-  { id: 'extside', name: 'Extended Side Angle', sanskrit: 'Utthita Parsvakonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, cues: 'Forearm to thigh or hand to floor, long diagonal line.', types: ['strength', 'side-stretch'] },
-  { id: 'lunge', name: 'High Lunge', sanskrit: 'Ashta Chandrasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, cues: 'Back heel lifted, hips square, arms reach up.', types: ['strength', 'balance'] },
-  { id: 'goddess', name: 'Goddess Pose', sanskrit: 'Utkata Konasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, cues: 'Toes out, heels in, sink hips, cactus arms.', types: ['strength', 'hip-opener'] },
-  { id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, cues: 'Sit back into heels, lift chest, tuck tailbone slightly.', types: ['strength'] },
+  { 
+    id: 'w1', name: 'Warrior I', sanskrit: 'Virabhadrasana I', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
+    cues: 'Back heel down 45 degrees, hips square to front.', 
+    benefits: ['Stretches chest and lungs', 'Strengthens shoulders and arms', 'Strengthens and stretches thighs and calves'],
+    types: ['strength', 'hip-opener'] 
+  },
+  { 
+    id: 'w2', name: 'Warrior II', sanskrit: 'Virabhadrasana II', category: POSE_CATEGORIES.STANDING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Front knee over ankle, gaze over front middle finger.', 
+    benefits: ['Increases stamina', 'Strengthens legs and ankles', 'Stretches groins, chest and shoulders'],
+    types: ['strength', 'hip-opener'] 
+  },
+  { 
+    id: 'tri', name: 'Triangle Pose', sanskrit: 'Trikonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
+    cues: 'Lengthen side body, hand to shin or block.', 
+    benefits: ['Stretches hips, groins, hamstrings', 'Opens chest and shoulders', 'Relieves backache'],
+    types: ['hamstring', 'hip-opener'] 
+  },
+  { 
+    id: 'extside', name: 'Extended Side Angle', sanskrit: 'Utthita Parsvakonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
+    cues: 'Forearm to thigh or hand to floor, long diagonal line.', 
+    benefits: ['Strengthens legs, knees, and ankles', 'Stretches groins, spine, waist', 'Stimulates abdominal organs'],
+    types: ['strength', 'side-stretch'] 
+  },
+  { 
+    id: 'lunge', name: 'High Lunge', sanskrit: 'Ashta Chandrasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
+    cues: 'Back heel lifted, hips square, arms reach up.', 
+    benefits: ['Strengthens legs and arms', 'Stretches hip flexors', 'Develops balance and stability'],
+    types: ['strength', 'balance'] 
+  },
+  { 
+    id: 'goddess', name: 'Goddess Pose', sanskrit: 'Utkata Konasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
+    cues: 'Toes out, heels in, sink hips, cactus arms.', 
+    benefits: ['Opens hips and chest', 'Strengthens legs and glutes', 'Builds heat'],
+    types: ['strength', 'hip-opener'] 
+  },
+  { 
+    id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
+    cues: 'Sit back into heels, lift chest, tuck tailbone slightly.', 
+    benefits: ['Strengthens ankles, thighs, calves, and spine', 'Stretches shoulders and chest', 'Stimulates heart and diaphragm'],
+    types: ['strength'] 
+  },
 
   // BALANCE
-  { id: 'tree', name: 'Tree Pose', sanskrit: 'Vrksasana', category: POSE_CATEGORIES.BALANCE, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Foot to calf or thigh (not knee), hands to heart.', types: ['balance', 'hip-opener'] },
-  { id: 'eagle', name: 'Eagle Pose', sanskrit: 'Garudasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, cues: 'Wrap right leg over left, right arm under left.', types: ['balance', 'twist'] },
-  { id: 'w3', name: 'Warrior III', sanskrit: 'Virabhadrasana III', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, cues: 'T-shape body, hips square to floor.', types: ['balance', 'strength'] },
-  { id: 'dancer', name: 'Dancer Pose', sanskrit: 'Natarajasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, cues: 'Catch inside of back foot, kick into hand.', types: ['balance', 'backbend'] },
+  { 
+    id: 'tree', name: 'Tree Pose', sanskrit: 'Vrksasana', category: POSE_CATEGORIES.BALANCE, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Foot to calf or thigh (not knee), hands to heart.', 
+    benefits: ['Strengthens thighs, calves, ankles, and spine', 'Stretches groins and inner thighs', 'Improves balance'],
+    types: ['balance', 'hip-opener'] 
+  },
+  { 
+    id: 'eagle', name: 'Eagle Pose', sanskrit: 'Garudasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
+    cues: 'Wrap right leg over left, right arm under left.', 
+    benefits: ['Strengthens and stretches ankles and calves', 'Stretches thighs, hips, shoulders, and upper back', 'Improves concentration'],
+    types: ['balance', 'twist'] 
+  },
+  { 
+    id: 'w3', name: 'Warrior III', sanskrit: 'Virabhadrasana III', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
+    cues: 'T-shape body, hips square to floor.', 
+    benefits: ['Strengthens ankles and legs', 'Strengthens shoulders and muscles of the back', 'Tones the abdomen'],
+    types: ['balance', 'strength'] 
+  },
+  { 
+    id: 'dancer', name: 'Dancer Pose', sanskrit: 'Natarajasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
+    cues: 'Catch inside of back foot, kick into hand.', 
+    benefits: ['Stretches shoulders, chest, thighs, groins, and abdomen', 'Strengthens legs and ankles', 'Improves balance'],
+    types: ['balance', 'backbend'] 
+  },
 
   // FLOOR / STRETCH / PEAK
-  { id: 'pigeon', name: 'Half Pigeon', sanskrit: 'Eka Pada Rajakapotasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 2, wrist: true, knee: true, pregnant: true, cues: 'Right knee to right wrist, shin diagonal.', types: ['hip-opener'] },
-  { id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Lift hips, interlace fingers under back.', types: ['backbend'] },
-  { id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Dhanurasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 3, wrist: true, knee: false, pregnant: false, cues: 'Press into hands and feet, lift entire body.', types: ['backbend', 'peak'] },
-  { id: 'boat', name: 'Boat Pose', sanskrit: 'Navasana', category: POSE_CATEGORIES.CORE, difficulty: 2, wrist: false, knee: false, pregnant: false, cues: 'Lift feet, balance on sit bones, chest open.', types: ['core'] },
-  { id: 'crow', name: 'Crow Pose', sanskrit: 'Bakasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: true, knee: false, pregnant: false, cues: 'Knees to armpits, lean forward, float feet.', types: ['arm-balance', 'peak'] },
-  { id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: true, knee: false, pregnant: false, cues: 'Forearms down, interlace fingers, crown of head lightly down.', types: ['inversion', 'peak'] },
+  { 
+    id: 'pigeon', name: 'Half Pigeon', sanskrit: 'Eka Pada Rajakapotasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 2, wrist: true, knee: true, pregnant: true, 
+    cues: 'Right knee to right wrist, shin diagonal.', 
+    benefits: ['Stretches thighs, groins and psoas', 'Opens hips', 'Stimulates abdominal organs'],
+    types: ['hip-opener'] 
+  },
+  { 
+    id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Lift hips, interlace fingers under back.', 
+    benefits: ['Stretches chest, neck, and spine', 'Calms the brain', 'Rejuvenates tired legs'],
+    types: ['backbend'] 
+  },
+  { 
+    id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Dhanurasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 3, wrist: true, knee: false, pregnant: false, 
+    cues: 'Press into hands and feet, lift entire body.', 
+    benefits: ['Strengthens arms, wrists, legs, buttocks, abdomen, and spine', 'Stimulates thyroid and pituitary', 'Increases energy'],
+    types: ['backbend', 'peak'] 
+  },
+  { 
+    id: 'boat', name: 'Boat Pose', sanskrit: 'Navasana', category: POSE_CATEGORIES.CORE, difficulty: 2, wrist: false, knee: false, pregnant: false, 
+    cues: 'Lift feet, balance on sit bones, chest open.', 
+    benefits: ['Strengthens abdomen, hip flexors, and spine', 'Stimulates kidneys', 'Improves digestion'],
+    types: ['core'] 
+  },
+  { 
+    id: 'crow', name: 'Crow Pose', sanskrit: 'Bakasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: true, knee: false, pregnant: false, 
+    cues: 'Knees to armpits, lean forward, float feet.', 
+    benefits: ['Strengthens arms and wrists', 'Stretches upper back', 'Strengthens abdominal muscles'],
+    types: ['arm-balance', 'peak'] 
+  },
+  { 
+    id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
+    cues: 'Forearms down, interlace fingers, crown of head lightly down.', 
+    benefits: ['Calms the brain', 'Strengthens arms, legs and spine', 'Improves digestion'],
+    types: ['inversion', 'peak'] 
+  },
   
   // RESTORATIVE / COOL DOWN
-  { id: 'paschi', name: 'Seated Forward Fold', sanskrit: 'Paschimottanasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Lengthen spine then fold, keep feet flexed.', types: ['hamstring'] },
-  { id: 'janu', name: 'Head to Knee', sanskrit: 'Janu Sirsasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: true, pregnant: true, cues: 'One leg straight, one foot to inner thigh, fold.', types: ['hamstring', 'hip-opener'] },
-  { id: 'twist', name: 'Supine Twist', sanskrit: 'Supta Matsyendrasana', category: POSE_CATEGORIES.TWIST, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Knees to one side, gaze opposite.', types: ['twist', 'spine'] },
-  { id: 'happy', name: 'Happy Baby', sanskrit: 'Ananda Balasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 1, wrist: false, knee: false, pregnant: true, cues: 'Grab outer feet, pull knees toward armpits.', types: ['hip-opener'] },
-  { id: 'sava', name: 'Corpse Pose', sanskrit: 'Savasana', category: POSE_CATEGORIES.SAVASANA, difficulty: 0, wrist: false, knee: false, pregnant: true, cues: 'Complete relaxation. Let go of breath control.', types: ['rest'] },
+  { 
+    id: 'paschi', name: 'Seated Forward Fold', sanskrit: 'Paschimottanasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Lengthen spine then fold, keep feet flexed.', 
+    benefits: ['Calms the brain', 'Stretches the spine, shoulders and hamstrings', 'Stimulates liver and kidneys'],
+    types: ['hamstring'] 
+  },
+  { 
+    id: 'janu', name: 'Head to Knee', sanskrit: 'Janu Sirsasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: true, pregnant: true, 
+    cues: 'One leg straight, one foot to inner thigh, fold.', 
+    benefits: ['Calms the brain', 'Stretches spine, shoulders, hamstrings, and groins', 'Stimulates liver and kidneys'],
+    types: ['hamstring', 'hip-opener'] 
+  },
+  { 
+    id: 'twist', name: 'Supine Twist', sanskrit: 'Supta Matsyendrasana', category: POSE_CATEGORIES.TWIST, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Knees to one side, gaze opposite.', 
+    benefits: ['Stretches the back muscles and glutes', 'Massages back and hips', 'Helps hydrate spinal disks'],
+    types: ['twist', 'spine'] 
+  },
+  { 
+    id: 'happy', name: 'Happy Baby', sanskrit: 'Ananda Balasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    cues: 'Grab outer feet, pull knees toward armpits.', 
+    benefits: ['Gently releases hips', 'Calms the brain', 'Relieves lower back pain'],
+    types: ['hip-opener'] 
+  },
+  { 
+    id: 'sava', name: 'Corpse Pose', sanskrit: 'Savasana', category: POSE_CATEGORIES.SAVASANA, difficulty: 0, wrist: false, knee: false, pregnant: true, 
+    cues: 'Complete relaxation. Let go of breath control.', 
+    benefits: ['Calms the brain', 'Relieves stress', 'Relaxes the body'],
+    types: ['rest'] 
+  },
 ];
 
 /**
- * MUSIC THEMES
+ * MUSIC THEMES (EXPANDED)
  */
 const MUSIC_THEMES = [
   { id: 'electronic', name: 'Tribal / Deep House', icon: <Activity size={16}/>, description: 'Upbeat rhythm for Power & Vinyasa flows.' },
@@ -84,6 +258,8 @@ const MUSIC_THEMES = [
   { id: 'nature', name: 'Rain & Forest', icon: <Sun size={16}/>, description: 'Grounding natural textures.' },
   { id: 'lofi', name: 'Lo-Fi Beats', icon: <Headphones size={16}/>, description: 'Chill hop for a relaxed groove.' },
   { id: 'indian', name: 'Indian Flute', icon: <Music size={16}/>, description: 'Traditional atmosphere with Sitar & Flute.' },
+  { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.' },
+  { id: 'binaural', name: 'Binaural Theta', icon: <Wind size={16}/>, description: 'Brainwave entrainment for deep meditation.' },
   { id: 'silence', name: 'Breath Only', icon: <Moon size={16}/>, description: 'Pure silence to focus on Ujjayi breath.' },
 ];
 
@@ -110,6 +286,9 @@ export default function YogaApp() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
 
+  // Pose Modal State
+  const [selectedPose, setSelectedPose] = useState(null);
+
   // Load Preferences
   useEffect(() => {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -129,6 +308,88 @@ export default function YogaApp() {
     }
     return () => clearInterval(interval);
   }, [isTimerRunning, timerSeconds]);
+
+  // --- HELPER COMPONENTS ---
+
+  const PoseDetailModal = ({ pose, onClose }) => {
+    if (!pose) return null;
+
+    // Fallback image generator using simple placeholder service if local file missing
+    // In production, you would check if the image exists, but for now we point to where the script WILL save them.
+    // The onError handler switches to a placeholder text image.
+    const imagePath = `/poses/${pose.id}.png`; 
+    const fallbackImage = `https://placehold.co/600x400/teal/white?text=${encodeURIComponent(pose.name)}`;
+
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+        <div className="bg-white dark:bg-stone-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+          
+          {/* Header Image Area */}
+          <div className="h-64 bg-stone-100 dark:bg-stone-900 relative flex items-center justify-center overflow-hidden group">
+            <img 
+              src={imagePath} 
+              alt={pose.name} 
+              className="w-full h-full object-contain p-8 mix-blend-multiply dark:mix-blend-normal transition-transform group-hover:scale-105"
+              onError={(e) => { e.target.onerror = null; e.target.src = fallbackImage; }} 
+            />
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md">
+              <X size={20} />
+            </button>
+            <div className="absolute bottom-4 right-4 flex gap-2">
+               <a 
+                 href={imagePath} 
+                 download={`${pose.id}.png`}
+                 onClick={(e) => e.stopPropagation()}
+                 className="p-2 bg-white/90 dark:bg-black/50 text-stone-700 dark:text-stone-200 rounded-lg hover:text-teal-600 text-xs font-bold flex items-center gap-1 shadow-sm"
+               >
+                 <Download size={14} /> Save Image
+               </a>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-8 overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <span className="text-teal-600 font-bold uppercase tracking-widest text-xs mb-1 block">{pose.category}</span>
+                <h2 className="text-3xl font-serif text-stone-900 dark:text-white mb-1">{pose.name}</h2>
+                <p className="text-stone-500 italic font-serif text-lg">{pose.sanskrit}</p>
+              </div>
+              <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${pose.difficulty <= 1 ? 'bg-emerald-100 text-emerald-800' : pose.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' : 'bg-rose-100 text-rose-800'}`}>
+                Level {pose.difficulty}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200">
+                  <Info size={18} className="text-teal-500" /> Instructions
+                </h3>
+                <p className="text-stone-600 dark:text-stone-400 leading-relaxed bg-stone-50 dark:bg-stone-900/50 p-4 rounded-lg">
+                  {pose.cues}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200">
+                  <Check size={18} className="text-teal-500" /> Key Benefits
+                </h3>
+                <ul className="space-y-2">
+                  {pose.benefits && pose.benefits.map((benefit, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-stone-600 dark:text-stone-400">
+                      <div className="w-1.5 h-1.5 rounded-full bg-teal-400 mt-1.5 shrink-0" />
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  };
 
   // --- CORE FUNCTIONS ---
 
@@ -248,21 +509,28 @@ export default function YogaApp() {
 
   const PoseCard = ({ pose, index, onSwap }) => (
     <div className="relative pl-16 group break-inside-avoid print:pl-10 print:mb-4">
-      {/* Timeline Dot (Uniform Teal) */}
+      {/* Timeline Dot */}
       <div className="absolute left-[26px] top-6 w-4 h-4 rounded-full border-4 border-white dark:border-stone-900 bg-teal-500 print:left-[10px]"></div>
 
-      <div className="bg-white dark:bg-stone-800 p-5 rounded-xl border border-stone-100 dark:border-stone-700 hover:shadow-md transition-shadow group relative">
+      <div 
+        onClick={() => setSelectedPose(pose)}
+        className="cursor-pointer bg-white dark:bg-stone-800 p-5 rounded-xl border border-stone-100 dark:border-stone-700 hover:shadow-md hover:border-teal-200 dark:hover:border-teal-800 transition-all group relative"
+      >
         <div className="flex justify-between items-start mb-1">
           <div>
             <span className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-1 block">{pose.category}</span>
-            <h3 className="font-bold text-lg text-stone-800 dark:text-stone-100 leading-tight">{pose.name}</h3>
+            <h3 className="font-bold text-lg text-stone-800 dark:text-stone-100 leading-tight group-hover:text-teal-600 transition-colors">{pose.name}</h3>
             <p className="text-stone-500 dark:text-stone-400 italic text-sm font-serif">{pose.sanskrit}</p>
           </div>
           <div className="flex flex-col items-end gap-2">
              <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wide ${pose.difficulty <= 1 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' : pose.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' : 'bg-rose-100 text-rose-800'}`}>
               Level {pose.difficulty}
             </span>
-            <button onClick={() => onSwap(index)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-stone-400 hover:text-teal-600" title="Swap Pose">
+            <button 
+              onClick={(e) => { e.stopPropagation(); onSwap(index); }} 
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-stone-400 hover:text-teal-600" 
+              title="Swap Pose"
+            >
               <Shuffle size={14} />
             </button>
           </div>
@@ -295,7 +563,7 @@ export default function YogaApp() {
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div>
             <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100">Pose Lab</h2>
-            <p className="text-stone-500">Explore the encyclopedia of movement.</p>
+            <p className="text-stone-500">Explore the encyclopedia of movement. Click any pose for details.</p>
           </div>
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-3 text-stone-400" size={18} />
@@ -308,13 +576,16 @@ export default function YogaApp() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(pose => (
-            <div key={pose.id} className="bg-white dark:bg-stone-800 p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-teal-500 transition-colors">
+            <div 
+              key={pose.id} 
+              onClick={() => setSelectedPose(pose)}
+              className="bg-white dark:bg-stone-800 p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-teal-500 transition-colors cursor-pointer group"
+            >
               <div className="flex justify-between">
-                <h3 className="font-bold text-lg">{pose.name}</h3>
-                <span className="text-xs bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded">{pose.category}</span>
+                <h3 className="font-bold text-lg group-hover:text-teal-600 transition-colors">{pose.name}</h3>
+                <span className="text-xs bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded h-fit">{pose.category}</span>
               </div>
               <p className="text-sm italic text-stone-500 mb-3">{pose.sanskrit}</p>
-              <p className="text-sm opacity-80 mb-2">{pose.cues}</p>
               <div className="flex gap-2 mt-3">
                  {pose.types.map(t => <span key={t} className="text-[10px] uppercase font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-2 py-1 rounded">{t}</span>)}
               </div>
@@ -329,6 +600,11 @@ export default function YogaApp() {
     const current = sequence[practiceIndex];
     const next = sequence[practiceIndex + 1];
 
+    // Auto-pause timer when Practice Mode mounts
+    useEffect(() => {
+        setIsTimerRunning(false);
+    }, []);
+
     return (
       <div className="fixed inset-0 z-[60] bg-stone-900 text-stone-100 flex flex-col">
         {/* Header */}
@@ -341,23 +617,28 @@ export default function YogaApp() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <span className="text-teal-400 font-bold uppercase tracking-widest mb-4">{current.category}</span>
-          <h1 className="text-5xl md:text-7xl font-serif mb-2">{current.name}</h1>
-          <p className="text-2xl text-stone-400 italic font-serif mb-12">{current.sanskrit}</p>
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+          {/* Background image effect */}
+          <div className="absolute inset-0 opacity-10 blur-xl pointer-events-none">
+             <img src={`/poses/${current.id}.png`} className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
+          </div>
+
+          <span className="text-teal-400 font-bold uppercase tracking-widest mb-4 relative z-10">{current.category}</span>
+          <h1 className="text-5xl md:text-7xl font-serif mb-2 relative z-10">{current.name}</h1>
+          <p className="text-2xl text-stone-400 italic font-serif mb-12 relative z-10">{current.sanskrit}</p>
           
           {/* Timer Ring */}
-          <div className="relative w-48 h-48 flex items-center justify-center mb-12">
+          <div className="relative w-48 h-48 flex items-center justify-center mb-12 z-10">
             <div className={`absolute inset-0 rounded-full border-4 ${isTimerRunning ? 'border-teal-500 animate-pulse' : 'border-stone-700'}`}></div>
             <div className="text-6xl font-mono font-bold">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</div>
           </div>
 
           {/* Cues */}
-          <p className="text-xl max-w-2xl leading-relaxed opacity-90">{current.cues}</p>
+          <p className="text-xl max-w-2xl leading-relaxed opacity-90 relative z-10">{current.cues}</p>
         </div>
 
         {/* Footer Controls */}
-        <div className="bg-stone-800 p-6 flex items-center justify-between">
+        <div className="bg-stone-800 p-6 flex items-center justify-between relative z-10">
           <div className="w-1/3">
             {next && (
               <div className="hidden md:block opacity-60">
@@ -406,9 +687,9 @@ export default function YogaApp() {
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg lg:hidden">
             <Menu size={24} />
           </button>
-          <div className="flex items-center gap-2" onClick={() => setActiveTab('generator')}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('generator')}>
             <Activity className="text-teal-600 dark:text-teal-400" />
-            <h1 className="text-xl font-bold tracking-tight text-teal-900 dark:text-teal-100 cursor-pointer">ZenFlow</h1>
+            <h1 className="text-xl font-bold tracking-tight text-teal-900 dark:text-teal-100">ZenFlow</h1>
           </div>
         </div>
 
@@ -424,6 +705,9 @@ export default function YogaApp() {
           </button>
         </div>
       </header>
+
+      {/* OVERLAY: POSE DETAIL MODAL */}
+      {selectedPose && <PoseDetailModal pose={selectedPose} onClose={() => setSelectedPose(null)} />}
 
       {/* OVERLAY: PRACTICE MODE */}
       {activeTab === 'practice' && <PracticeMode />}
@@ -541,20 +825,20 @@ export default function YogaApp() {
                   </div>
                 </div>
 
-                {/* SOUNDSCAPE SELECTOR */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 print:hidden">
+                {/* SOUNDSCAPE SELECTOR (8 options now) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
                   {MUSIC_THEMES.map(theme => (
                     <button 
                       key={theme.id}
                       onClick={() => setMusicTheme(theme)}
                       className={`p-3 rounded-lg flex items-center gap-3 text-left transition-all border ${musicTheme.id === theme.id ? 'bg-teal-50 border-teal-200 dark:bg-teal-900/30 dark:border-teal-800 ring-1 ring-teal-500' : 'bg-stone-50 dark:bg-stone-900 border-transparent hover:bg-stone-100 dark:hover:bg-stone-800'}`}
                     >
-                      <div className={`p-2 rounded-full ${musicTheme.id === theme.id ? 'bg-teal-100 text-teal-700 dark:bg-teal-800 dark:text-teal-200' : 'bg-stone-200 dark:bg-stone-700 text-stone-500'}`}>
+                      <div className={`p-2 rounded-full shrink-0 ${musicTheme.id === theme.id ? 'bg-teal-100 text-teal-700 dark:bg-teal-800 dark:text-teal-200' : 'bg-stone-200 dark:bg-stone-700 text-stone-500'}`}>
                         {theme.icon}
                       </div>
-                      <div>
-                        <span className="block text-sm font-bold">{theme.name}</span>
-                        <span className="block text-xs opacity-60 truncate w-32">{theme.description}</span>
+                      <div className="overflow-hidden">
+                        <span className="block text-sm font-bold truncate">{theme.name}</span>
+                        <span className="block text-xs opacity-60 truncate">{theme.description}</span>
                       </div>
                     </button>
                   ))}
