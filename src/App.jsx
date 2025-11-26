@@ -293,14 +293,12 @@ const CLIENT_ID = '4de853bd5af346d5bd03ad30dfa84bff';
 const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
 
 // MODIFIED: Robust redirect URI handling
+// Automatically adds trailing slash if missing, which is critical for exact matching in Spotify Dashboard
 const getRedirectUri = () => {
   if (typeof window === 'undefined') return '';
-  // Ensure we have a trailing slash, as Spotify cares about exact string matching
   const uri = window.location.origin;
   return uri.endsWith('/') ? uri : `${uri}/`;
 };
-
-const REDIRECT_URI = getRedirectUri();
 
 const SCOPES = [
   'streaming',               // Required for Web Playback SDK
@@ -311,19 +309,8 @@ const SCOPES = [
 ];
 
 const getLoginUrl = () => {
+  const REDIRECT_URI = getRedirectUri();
   return `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES.join(' '))}&response_type=token&show_dialog=true`;
-};
-
-const getTokenFromUrl = () => {
-  if (typeof window === 'undefined') return {};
-  return window.location.hash
-    .substring(1)
-    .split('&')
-    .reduce((initial, item) => {
-      let parts = item.split('=');
-      initial[parts[0]] = decodeURIComponent(parts[1]);
-      return initial;
-    }, {});
 };
 
 const parseSpotifyUri = (link) => {
@@ -645,7 +632,8 @@ const PracticeMode = ({
     musicTheme,
     spotifyToken,
     player,
-    deviceId
+    deviceId,
+    playerError
 }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
@@ -771,7 +759,9 @@ const PracticeMode = ({
              </div>
            ) : (
               <div className="text-stone-500 text-sm italic flex items-center gap-2">
-                 {spotifyToken ? "Player Connecting..." : "Music configured but player disconnected"}
+                 {!spotifyToken && "Music configured but player disconnected (Log in)"}
+                 {spotifyToken && !deviceId && !playerError && "Player Connecting..."}
+                 {spotifyToken && playerError && `Player Error: ${playerError}`}
               </div>
            )}
         </div>
@@ -908,26 +898,31 @@ export default function YogaApp() {
 
   // --- SPOTIFY INTEGRATION ---
   // Initialize with lazy state to check local storage immediately on mount (prevents re-render)
-  const [spotifyToken, setSpotifyToken] = useState(() => {
-    if (typeof window === 'undefined') return null;
+  const [spotifyToken, setSpotifyToken] = useState(null);
+
+  useEffect(() => {
+    // Check for hash first (redirect back from Spotify)
+    const hash = window.location.hash;
     
-    // Check URL first to avoid effect update
-    const hash = getTokenFromUrl();
-    if (hash.access_token) {
-      return hash.access_token;
+    if (hash && hash.includes('access_token')) {
+      try {
+        const params = new URLSearchParams(hash.substring(1)); // remove #
+        const token = params.get('access_token');
+        if (token) {
+          localStorage.setItem('spotify_token', token);
+          setSpotifyToken(token);
+          window.location.hash = ''; // Clear hash
+          return; // Exit early, we found the token
+        }
+      } catch (e) {
+        console.error("Error parsing hash", e);
+      }
     }
 
-    return localStorage.getItem('spotify_token');
-  });
-  
-  // Handle Auth Redirect Side Effects (Cleanup URL, Sync Storage)
-  useEffect(() => {
-    const hash = getTokenFromUrl();
-    const _token = hash.access_token;
-
-    if (_token) {
-      window.location.hash = ""; // Clear hash for cleanliness
-      localStorage.setItem('spotify_token', _token);
+    // Fallback to local storage
+    const storedToken = localStorage.getItem('spotify_token');
+    if (storedToken) {
+      setSpotifyToken(storedToken);
     }
   }, []);
 
@@ -1215,6 +1210,7 @@ export default function YogaApp() {
           spotifyToken={spotifyToken}
           player={player}
           deviceId={deviceId}
+          playerError={playerError}
         />
       )}
 
