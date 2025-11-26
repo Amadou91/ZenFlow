@@ -579,8 +579,8 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300">
-      <div className="flex justify-between items-center p-4 sm:p-6 border-b border-stone-800">
+    <div className="fixed inset-0 z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300 overflow-y-auto">
+      <div className="flex justify-between items-center p-4 sm:p-6 border-b border-stone-800 sticky top-0 bg-stone-900/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur z-20">
         <div className="flex items-center gap-3">
           <div className="bg-teal-900/30 p-2 rounded-lg"><Activity className="text-teal-400" size={20} /></div>
           <div><span className="font-bold tracking-widest uppercase text-sm block text-teal-400">Live Session</span><span className="text-xs text-stone-400">Pose {practiceIndex + 1} of {sequence.length}</span></div>
@@ -589,23 +589,28 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
       </div>
       <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center"><PoseIcon category={current.category} className="w-[120%] h-[120%] text-teal-500" /></div>
-        <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto w-full">
-           <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 mb-6 sm:mb-8 md:mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl"><PoseIcon category={current.category} className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24" /></div>
-           <h1 className="text-3xl sm:text-4xl md:text-6xl font-serif mb-2 sm:mb-3 text-white tracking-tight">{current.name}</h1>
-           <p className="text-lg sm:text-xl md:text-2xl text-stone-400 italic font-serif mb-6 sm:mb-8 md:mb-10">{current.sanskrit}</p>
-           <div className="flex items-center gap-4 mb-8 md:mb-10">
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 flex items-center justify-center">
+        <div className="relative z-10 flex flex-col items-center max-w-5xl mx-auto w-full gap-4 sm:gap-6 md:gap-8 lg:gap-10">
+           <div className="w-[clamp(5.5rem,16vw,12rem)] h-[clamp(5.5rem,16vw,12rem)] bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
+             <PoseIcon category={current.category} className="w-[clamp(2.75rem,9vw,6rem)] h-[clamp(2.75rem,9vw,6rem)]" />
+           </div>
+           <h1 className="text-[clamp(1.875rem,5vw,3.5rem)] font-serif text-white tracking-tight leading-tight">{current.name}</h1>
+           <p className="text-[clamp(1.1rem,3.5vw,2rem)] text-stone-400 italic font-serif">{current.sanskrit}</p>
+           <div className="flex items-center justify-center gap-4">
+              <div className="relative w-[clamp(7rem,22vw,11rem)] h-[clamp(7rem,22vw,11rem)] flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" /><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} /></svg>
-                <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-white">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</div>
+                <div className="absolute inset-0 flex items-center justify-center text-[clamp(1.5rem,4vw,2.5rem)] font-mono font-bold text-white">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</div>
               </div>
            </div>
-           <div className="bg-stone-800/80 backdrop-blur-md p-6 sm:p-8 rounded-2xl border border-stone-700/50 max-w-2xl shadow-xl w-full"><p className="text-lg sm:text-xl leading-relaxed text-stone-200 font-medium">{current.cues}</p></div>
+           <div className="bg-stone-800/80 backdrop-blur-md p-5 sm:p-7 rounded-2xl border border-stone-700/50 max-w-3xl shadow-xl w-full text-left sm:text-center">
+             <p className="text-[clamp(1rem,3.2vw,1.35rem)] leading-relaxed text-stone-200 font-medium">{current.cues}</p>
+           </div>
         </div>
       </div>
-      <div className="bg-stone-900 border-t border-stone-800 p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-center relative z-10">
-        <div className="md:hidden">{next && (<div className="flex items-center gap-3 rounded-xl bg-stone-800/80 border border-stone-700 p-3"><div className="w-10 h-10 bg-stone-900 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700"><PoseIcon category={next.category} className="w-5 h-5" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
-        <div className="hidden md:block">{next && (<div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group"><div className="w-12 h-12 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50"><PoseIcon category={next.category} className="w-6 h-6" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
-        <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap"><button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 sm:w-20 sm:h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">{isTimerRunning ? <Pause className="w-7 h-7 sm:w-8 sm:h-8" /> : <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5 sm:ml-1" />}</button><button onClick={nextPracticePose} className="p-3 sm:p-4 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white"><SkipForward size={32} /></button></div>
+      <div className="bg-stone-900 border-t border-stone-800 p-4 sm:p-6 relative z-10">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-center">
+          <div className="md:hidden">{next && (<div className="flex items-center gap-3 rounded-xl bg-stone-800/80 border border-stone-700 p-3"><div className="w-10 h-10 bg-stone-900 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700"><PoseIcon category={next.category} className="w-5 h-5" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
+          <div className="hidden md:block">{next && (<div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group"><div className="w-12 h-12 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50"><PoseIcon category={next.category} className="w-6 h-6" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
+          <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap"><button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 sm:w-20 sm:h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">{isTimerRunning ? <Pause className="w-7 h-7 sm:w-8 sm:h-8" /> : <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5 sm:ml-1" />}</button><button onClick={nextPracticePose} className="p-3 sm:p-4 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white"><SkipForward size={32} /></button></div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-sm">
            {spotifyToken && deviceId ? (
              <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full">
