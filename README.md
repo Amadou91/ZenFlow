@@ -7,21 +7,23 @@ A Vite + React yoga sequence builder with integrated Spotify Web Playback SDK su
 - A Spotify Developer application with a Premium account for playback
 
 ## Environment
-Copy `.env.example` to `.env` and set the values from your Spotify app:
+Copy `.env.example` to `.env` and set the values from your Spotify app (the `.env` file lives next to the `package.json` and is loaded by the backend server):
 
 ```
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-SPOTIFY_REDIRECT_URI=http://localhost:5174/api/spotify/callback
-FRONTEND_URI=http://localhost:5173/
+SPOTIFY_REDIRECT_URI=https://yoga.johnnyautomates.com/api/spotify/callback
+FRONTEND_URI=https://yoga.johnnyautomates.com/
 SPOTIFY_SCOPES=streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state
-ALLOWED_ORIGIN=http://localhost:5173
+ALLOWED_ORIGIN=https://yoga.johnnyautomates.com
 PORT=5174
 ```
 
+Why both the client ID **and** client secret? The backend exchanges the Spotify authorization code for access/refresh tokens, and that exchange requires the secret. Keep the secret in the server-only `.env` file shown above; it is never sent to the browser.
+
 Key Spotify dashboard settings:
-- **Redirect URI** must exactly match `SPOTIFY_REDIRECT_URI` (including trailing slash rules). Add `http://localhost:5174/api/spotify/callback` for local dev.
-- **Allowed front-end origin** should include `http://localhost:5173/` (ensure the trailing slash if you use one when registering URIs).
+- **Redirect URI** must exactly match `SPOTIFY_REDIRECT_URI` (including trailing slash rules). Add `https://yoga.johnnyautomates.com/api/spotify/callback` when registering the app.
+- **Allowed front-end origin** should include `https://yoga.johnnyautomates.com/` (ensure the trailing slash if you use one when registering URIs).
 - Scopes required: `streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state`.
 
 ## Running locally
