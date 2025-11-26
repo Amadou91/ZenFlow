@@ -3,13 +3,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency definitions
-COPY package.json package-lock.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy the rest of the code
+# Copy the project (including vendored node_modules) to avoid external registry access
 COPY . .
 
 # Build the app (creates the /dist folder)
