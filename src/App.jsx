@@ -897,32 +897,33 @@ export default function YogaApp() {
   const [selectedPose, setSelectedPose] = useState(null);
 
   // --- SPOTIFY INTEGRATION ---
-  // Initialize with lazy state to check local storage immediately on mount (prevents re-render)
-  const [spotifyToken, setSpotifyToken] = useState(null);
+  // Initialize with lazy state to check URL/local storage immediately (avoids cascading renders)
+  const [spotifyToken, setSpotifyToken] = useState(() => {
+    if (typeof window === 'undefined') return null;
 
-  useEffect(() => {
-    // Check for hash first (redirect back from Spotify)
+    // 1. Check for hash (redirect back from Spotify)
     const hash = window.location.hash;
-    
     if (hash && hash.includes('access_token')) {
       try {
-        const params = new URLSearchParams(hash.substring(1)); // remove #
+        const params = new URLSearchParams(hash.substring(1));
         const token = params.get('access_token');
         if (token) {
           localStorage.setItem('spotify_token', token);
-          setSpotifyToken(token);
-          window.location.hash = ''; // Clear hash
-          return; // Exit early, we found the token
+          return token;
         }
       } catch (e) {
         console.error("Error parsing hash", e);
       }
     }
 
-    // Fallback to local storage
-    const storedToken = localStorage.getItem('spotify_token');
-    if (storedToken) {
-      setSpotifyToken(storedToken);
+    // 2. Fallback to local storage
+    return localStorage.getItem('spotify_token');
+  });
+
+  // Clear the hash after mount if we just logged in
+  useEffect(() => {
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      window.location.hash = '';
     }
   }, []);
 
