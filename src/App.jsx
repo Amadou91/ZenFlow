@@ -1019,12 +1019,12 @@ export default function YogaApp() {
     }
   }, [API_BASE, clearStoredToken, storeToken, useDirectSpotifyAuth]);
 
-  const bootstrapTokenFromHash = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const searchParams = new URLSearchParams(window.location.search);
-    const token = searchParams.get('access_token') || hashParams.get('access_token');
-    const expiresIn = Number(searchParams.get('expires_in') || hashParams.get('expires_in') || '0');
+const bootstrapTokenFromHash = useCallback(async () => {
+  if (typeof window === 'undefined') return;
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(window.location.search);
+  const token = searchParams.get('access_token') || hashParams.get('access_token');
+  const expiresIn = Number(searchParams.get('expires_in') || hashParams.get('expires_in') || '0');
 
     if (token) {
       const expiresAt = Date.now() + (expiresIn || 3600) * 1000;
@@ -1039,12 +1039,19 @@ export default function YogaApp() {
 
     if (storedToken && storedExpiry > Date.now()) {
       setTokenError(null);
-      setSpotifyToken(storedToken);
-      setTokenExpiry(storedExpiry);
-    } else {
-      clearStoredToken();
-    }
-  }, [clearStoredToken, storeToken]);
+    setSpotifyToken(storedToken);
+    setTokenExpiry(storedExpiry);
+  } else {
+    clearStoredToken();
+  }
+
+  // If we're using the backend (authorization code flow) and the user has a
+  // refresh token cookie, pull a fresh access token automatically so they can
+  // resume playback without clicking Connect again.
+  if (!useDirectSpotifyAuth && (!token || expiresIn === 0) && !storedToken) {
+    await refreshAccessToken();
+  }
+}, [clearStoredToken, refreshAccessToken, storeToken, useDirectSpotifyAuth]);
 
   const ensureAccessToken = useCallback(async () => {
     if (spotifyToken && (!tokenExpiry || tokenExpiry > Date.now())) return spotifyToken;
