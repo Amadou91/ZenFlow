@@ -656,6 +656,33 @@ export default function YogaApp() {
     return pool;
   };
 
+  // Helper to bundle Cat/Cow if selected
+  const ensureCatCow = (selectedPoses, pool) => {
+    const hasCat = selectedPoses.some(p => p.id === 'cat');
+    const hasCow = selectedPoses.some(p => p.id === 'cow');
+    
+    // If neither is present, return as is
+    if (!hasCat && !hasCow) return selectedPoses;
+
+    // Filter out existing instances to re-insert them as a pair
+    let newPoses = selectedPoses.filter(p => p.id !== 'cat' && p.id !== 'cow');
+    
+    const catPose = pool.find(p => p.id === 'cat');
+    const cowPose = pool.find(p => p.id === 'cow');
+
+    // Only add the pair if BOTH are available in the filtered pool (respecting wrist/knee filters)
+    if (catPose && cowPose) {
+      // Insert them together at the beginning of the set
+      newPoses.unshift(catPose, cowPose);
+    } else {
+      // If only one is available (e.g. due to filters), just put back what we had
+      if (hasCat && catPose) newPoses.push(catPose);
+      if (hasCow && cowPose) newPoses.push(cowPose);
+    }
+    
+    return newPoses;
+  };
+
   const pick = (pool, category, count, filterFn = null) => {
     let candidates = pool.filter(p => p.category === category);
     if (filterFn) candidates = candidates.filter(filterFn);
@@ -676,7 +703,10 @@ export default function YogaApp() {
 
     let newSequence = [];
     newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, counts.centering));
-    newSequence.push(...pick(pool, POSE_CATEGORIES.WARMUP, counts.warmup));
+    
+    // Warmup with Cat/Cow check
+    let warmups = pick(pool, POSE_CATEGORIES.WARMUP, counts.warmup);
+    newSequence.push(...ensureCatCow(warmups, pool));
 
     if (counts.sunSal > 0) {
       const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
@@ -707,7 +737,10 @@ export default function YogaApp() {
 
     let newSequence = [];
     newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
-    newSequence.push(...pick(pool, POSE_CATEGORIES.WARMUP, 3));
+    
+    // Warmup with Cat/Cow check
+    let warmups = pick(pool, POSE_CATEGORIES.WARMUP, 3);
+    newSequence.push(...ensureCatCow(warmups, pool));
 
     // Sun Salutations
     const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
@@ -759,7 +792,10 @@ export default function YogaApp() {
 
     let newSequence = [];
     newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
-    newSequence.push(...smartPick(POSE_CATEGORIES.WARMUP, 3));
+    
+    // Warmup with Cat/Cow check
+    let warmups = smartPick(POSE_CATEGORIES.WARMUP, 3);
+    newSequence.push(...ensureCatCow(warmups, pool));
     
     // Sun Sal only if appropriate for theme (skip for 'Rest')
     if (theme.id !== 'rest') {
@@ -797,7 +833,10 @@ export default function YogaApp() {
 
     let newSequence = [];
     newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
-    newSequence.push(...smartPick(POSE_CATEGORIES.WARMUP, 3));
+    
+    // Warmup with Cat/Cow check
+    let warmups = smartPick(POSE_CATEGORIES.WARMUP, 3);
+    newSequence.push(...ensureCatCow(warmups, pool));
     
     // Sun Sal
     const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
@@ -829,7 +868,10 @@ export default function YogaApp() {
     
     // Warmup
     newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
-    newSequence.push(...pick(pool, POSE_CATEGORIES.WARMUP, 2));
+    
+    // Warmup with Cat/Cow check
+    let warmups = pick(pool, POSE_CATEGORIES.WARMUP, 2);
+    newSequence.push(...ensureCatCow(warmups, pool));
 
     // Sun Sal A (Once)
     const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
@@ -1012,6 +1054,7 @@ export default function YogaApp() {
             absolute lg:relative z-40 w-full lg:w-80 h-[calc(100vh-64px)] 
             bg-white dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 
             transform transition-transform duration-300 overflow-y-auto print:hidden
+            [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-stone-200 dark:[&::-webkit-scrollbar-thumb]:bg-stone-700
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-none lg:overflow-hidden'}
           `}>
             <div className="p-6 space-y-8 pb-32">
@@ -1127,7 +1170,7 @@ export default function YogaApp() {
         )}
 
         {/* CONTENT AREA */}
-        <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative">
+        <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-stone-200 dark:[&::-webkit-scrollbar-thumb]:bg-stone-700">
           
           {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
 
