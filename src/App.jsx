@@ -291,7 +291,8 @@ const DEFAULT_MUSIC_THEMES = [
 const CLIENT_ID = '4de853bd5af346d5bd03ad30dfa84bff'; 
 
 const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-const REDIRECT_URI = typeof window !== 'undefined' ? window.location.origin + '/' : ''; 
+// MODIFIED: Append /callback to the redirect URI
+const REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/callback` : ''; 
 
 const SCOPES = [
   'streaming',               // Required for Web Playback SDK
@@ -324,6 +325,17 @@ const parseSpotifyUri = (link) => {
   if (match) {
     const [, type, id] = match;
     return `spotify:${type}:${id}`;
+  }
+  return null;
+};
+
+const getEmbedUrl = (link) => {
+  if (!link) return null;
+  // Parses standard spotify links to create an embed URL
+  const match = link.match(/(playlist|album|track)[/:]([a-zA-Z0-9]+)/);
+  if (match) {
+    const [, type, id] = match;
+    return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
   }
   return null;
 };
@@ -740,16 +752,16 @@ const PracticeMode = ({
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3">
-           {/* Custom Spotify Player */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-sm">
+           {/* Custom Spotify Player with Iframe Fallback */}
            {spotifyToken && deviceId ? (
-             <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700">
+             <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full">
                 <div className="p-2 bg-[#1DB954] text-white rounded-lg">
                   <Music size={20} />
                 </div>
-                <div className="text-left">
+                <div className="text-left flex-1 min-w-0">
                    <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Music Player</p>
-                   <button onClick={handlePlayMusic} className="text-sm font-bold text-white hover:text-[#1DB954] flex items-center gap-1">
+                   <button onClick={handlePlayMusic} className="text-sm font-bold text-white hover:text-[#1DB954] flex items-center gap-1 truncate w-full">
                      Start Playlist <Play size={12} fill="currentColor" />
                    </button>
                 </div>
@@ -761,10 +773,23 @@ const PracticeMode = ({
                 )}
              </div>
            ) : (
-              // Fallback if not logged in
-              <div className="text-stone-500 text-sm italic flex items-center gap-2">
-                 {!musicTheme.link && 'No music configured'}
-              </div>
+              // Fallback to Standard Spotify Embed if SDK not ready
+              musicTheme.link ? (
+                <iframe 
+                  src={getEmbedUrl(musicTheme.link)} 
+                  width="100%" 
+                  height="80" 
+                  frameBorder="0" 
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                  loading="lazy"
+                  className="rounded-xl bg-black/50"
+                  title="Spotify Player"
+                ></iframe>
+              ) : (
+                <div className="text-stone-500 text-sm italic flex items-center gap-2">
+                   No music configured
+                </div>
+              )
            )}
         </div>
       </div>
@@ -1201,7 +1226,7 @@ export default function YogaApp() {
           timerSeconds={timerSeconds}
           isTimerRunning={isTimerRunning}
           setIsTimerRunning={setIsTimerRunning}
-          nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[practiceIndex + 1].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }}
+          nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[0].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }}
           onClose={() => setActiveTab('generator')}
           musicTheme={musicThemes.find(t => t.id === selectedMusicId)}
           spotifyToken={spotifyToken}
