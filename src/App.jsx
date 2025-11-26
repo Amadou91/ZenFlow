@@ -444,7 +444,7 @@ const MusicConfig = ({ themes, onUpdateTheme }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
+    <div className="max-w-2xl mx-auto p-4 md:p-8">
       <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-2">Music Configuration</h2>
       <p className="text-stone-600 dark:text-stone-400 mb-8">Link your Spotify playlists to each mood.</p>
 
@@ -1228,7 +1228,7 @@ export default function YogaApp() {
               </div>
 
               {/* SEQUENCE LIST */}
-              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : "space-y-1 relative before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-700 print:before:hidden"}>
+              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : `space-y-1 ${sequence.length > 0 ? "relative before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-700 print:before:hidden" : ""}`}>
                 {sequence.length === 0 ? (
                   <div className="text-center py-20 opacity-40 text-stone-600 dark:text-stone-400 px-4">
                     <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
