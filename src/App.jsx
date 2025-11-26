@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Menu, X, Play, RefreshCw, Settings, Heart, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
-  Shuffle, SkipForward, Pause, PlayCircle, Info, Check, Headphones,
+  Shuffle, SkipForward, SkipBack, Pause, PlayCircle, Info, Check, Headphones,
   Layers, Target, Zap, Anchor, BookOpen, User, Feather, ExternalLink,
-  LogOut, LogIn, Edit3
+  LogOut, LogIn, Edit3, Clock
 } from 'lucide-react';
 
 // --- 1. DATA & CONSTANTS ---
@@ -24,23 +24,52 @@ const POSE_CATEGORIES = {
   SAVASANA: 'Savasana'
 };
 
+// Dynamic Timing Configuration
+const TIMING_CONFIG = {
+  [POSE_CATEGORIES.WARMUP]: { label: '3–5 breaths', seconds: 30 },
+  [POSE_CATEGORIES.SUN_SALUTATION]: { label: '1 breath', seconds: 10 }, // Fast flow
+  [POSE_CATEGORIES.STANDING]: { label: '5–8 breaths', seconds: 45 },
+  [POSE_CATEGORIES.BALANCE]: { label: '3–6 breaths', seconds: 40 },
+  [POSE_CATEGORIES.INVERSION]: { label: '5–10 breaths', seconds: 60 },
+  [POSE_CATEGORIES.BACKBEND]: { label: '5–8 breaths', seconds: 45 },
+  [POSE_CATEGORIES.TWIST]: { label: '5–8 breaths', seconds: 45 },
+  [POSE_CATEGORIES.HIP_OPENER]: { label: '8–10 breaths', seconds: 60 },
+  [POSE_CATEGORIES.CORE]: { label: '30 seconds', seconds: 30 },
+  [POSE_CATEGORIES.RESTORATIVE]: { label: '2–5 minutes', seconds: 180 },
+  [POSE_CATEGORIES.CENTERING]: { label: '1–2 minutes', seconds: 90 },
+  [POSE_CATEGORIES.SAVASANA]: { label: '5 minutes', seconds: 300 },
+};
+
+const getLevelColor = (level) => {
+  switch(level) {
+    case 0: return 'bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-300'; // Grey/Neutral
+    case 1: return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'; // Green
+    case 2: return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'; // Yellow
+    case 3: return 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300'; // Red
+    default: return 'bg-stone-100 text-stone-600';
+  }
+};
+
 const POSE_LIBRARY = [
   // CENTERING
   { 
-    id: 'suc', name: 'Easy Pose', sanskrit: 'Sukhasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    id: 'suc', name: 'Easy Pose', sanskrit: 'Sukhasana', category: POSE_CATEGORIES.CENTERING, difficulty: 0, wrist: false, knee: false, pregnant: true, 
     cues: 'Sit tall, ground sit bones, hands on knees.', 
+    teachingCue: 'Find a comfortable seat. Root down through your sit bones and lengthen through the crown of your head. Soften your shoulders.',
     benefits: ['Calms the brain', 'Strengthens the back', 'Stretches knees and ankles'],
     types: ['grounding', 'meditation']
   },
   { 
     id: 'vir', name: 'Hero Pose', sanskrit: 'Virasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Knees together, feet apart, sit between heels.', 
+    teachingCue: 'Kneel with knees touching and feet wider than hips. Lower your seat between your heels, using a block if needed.',
     benefits: ['Stretches thighs and knees', 'Improves digestion', 'Relieves tired legs'],
     types: ['grounding', 'knees']
   },
   { 
-    id: 'chi', name: 'Child\'s Pose', sanskrit: 'Balasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: true, pregnant: true, 
+    id: 'chi', name: 'Child\'s Pose', sanskrit: 'Balasana', category: POSE_CATEGORIES.CENTERING, difficulty: 0, wrist: false, knee: true, pregnant: true, 
     cues: 'Knees wide, big toes touch, forehead to mat.', 
+    teachingCue: 'Bring big toes to touch, knees wide. Sink your hips back to your heels and extend arms forward, resting forehead on the mat.',
     benefits: ['Gently stretches hips and thighs', 'Calms the mind', 'Relieves back and neck pain'],
     types: ['grounding', 'hip-opener', 'rest']
   },
@@ -49,62 +78,72 @@ const POSE_LIBRARY = [
   { 
     id: 'cat', name: 'Cat Pose', sanskrit: 'Marjaryasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Exhale, round spine to ceiling, chin to chest.', 
+    teachingCue: 'On an exhale, press into your palms, round your back like a halloween cat, and tuck your chin to your chest.',
     benefits: ['Increases spine flexibility', 'Stretches back torso and neck', 'Stimulates abdominal organs'],
     types: ['spine', 'warmup']
   },
   { 
     id: 'cow', name: 'Cow Pose', sanskrit: 'Bitilasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Inhale, drop belly, lift gaze.', 
+    teachingCue: 'Inhale to drop the belly low, lift the gaze and tailbone, drawing the heart forward through the gates of the arms.',
     benefits: ['Stretches front torso and neck', 'Massages spine', 'Calms the mind'],
     types: ['spine', 'warmup']
   },
   { 
     id: 'thread', name: 'Thread the Needle', sanskrit: 'Parsva Balasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Slide arm under chest, rest shoulder on mat.', 
+    teachingCue: 'From Table Top, slide one arm underneath the other, lowering your shoulder and cheek to the mat for a gentle twist.',
     benefits: ['Opens shoulders', 'Gentle spinal twist', 'Relieves tension in upper back'],
     types: ['twist', 'shoulder']
   },
   { 
     id: 'dd', name: 'Downward Facing Dog', sanskrit: 'Adho Mukha Svanasana', category: POSE_CATEGORIES.WARMUP, difficulty: 2, wrist: true, knee: false, pregnant: true, 
     cues: 'Hips high, heels down, press into knuckles.', 
+    teachingCue: 'Tuck your toes and lift your hips up and back. Press firmly into your hands and lengthen your spine, melting heels toward the earth.',
     benefits: ['Energizes the body', 'Stretches shoulders, hamstrings, calves', 'Strengthens arms and legs'],
     types: ['hamstring', 'inversion', 'strength']
   },
   { 
     id: 'rag', name: 'Ragdoll Fold', sanskrit: 'Uttanasana Variation', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Hold opposite elbows, sway gently side to side.', 
+    teachingCue: 'Step feet hip-width apart. Hinge at the hips, bend knees deeply, and grab opposite elbows. Let the head hang heavy.',
     benefits: ['Releases lower back', 'Calms the nervous system', 'Stretches hamstrings'],
     types: ['hamstring', 'spine']
   },
 
   // SUN SALUTATION
   { 
-    id: 'mtn', name: 'Mountain Pose', sanskrit: 'Tadasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: false, knee: false, pregnant: true, 
+    id: 'mtn', name: 'Mountain Pose', sanskrit: 'Tadasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 0, wrist: false, knee: false, pregnant: true, 
     cues: 'Feet grounded, palms forward, crown lifts.', 
+    teachingCue: 'Stand tall with feet together or hip-width. Engage quads, draw navel in, and roll shoulders back. Palms face forward.',
     benefits: ['Improves posture', 'Strengthens thighs, knees, and ankles', 'Firms abdomen and buttocks'],
     types: ['standing', 'grounding']
   },
   { 
     id: 'plk', name: 'Plank Pose', sanskrit: 'Phalakasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, 
     cues: 'Core engaged, heels press back, dome upper back.', 
+    teachingCue: 'Plant hands shoulder-width. Step back to a high push-up. Engage core, press heels back, and create a long line from crown to heels.',
     benefits: ['Strengthens arms, wrists, and spine', 'Tones abdomen', 'Prepares body for advanced arm balances'],
     types: ['core', 'strength']
   },
   { 
     id: 'chat', name: 'Chaturanga', sanskrit: 'Chaturanga Dandasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Lower halfway, elbows hug ribs.', 
+    teachingCue: 'Shift forward, bend elbows straight back to lower halfway. Keep elbows hugged in to ribs and body in one straight line.',
     benefits: ['Develops core stability', 'Strengthens arms and wrists', 'Tones abdomen'],
     types: ['strength', 'arm-balance']
   },
   { 
     id: 'cobra', name: 'Cobra Pose', sanskrit: 'Bhujangasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: true, knee: false, pregnant: false, 
     cues: 'Lift chest, little weight in hands, press tops of feet.', 
+    teachingCue: 'Lower to belly. Press tops of feet down. Peel chest off the floor using back strength, keeping little to no weight in the hands.',
     benefits: ['Strengthens the spine', 'Stretches chest and lungs, shoulders, and abdomen', 'Stimulates abdominal organs'],
     types: ['backbend', 'spine']
   },
   { 
     id: 'updog', name: 'Upward Facing Dog', sanskrit: 'Urdhva Mukha Svanasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, 
     cues: 'Thighs lifted, chest open, shoulders down.', 
+    teachingCue: 'Press into hands and tops of feet to lift thighs off the mat. Draw chest forward and shoulders down away from ears.',
     benefits: ['Improves posture', 'Strengthens spine, arms, wrists', 'Stretches chest and lungs'],
     types: ['backbend', 'strength']
   },
@@ -113,42 +152,49 @@ const POSE_LIBRARY = [
   { 
     id: 'w1', name: 'Warrior I', sanskrit: 'Virabhadrasana I', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Back heel down 45 degrees, hips square to front.', 
+    teachingCue: 'Step one foot back, heel down at 45 degrees. Bend front knee over ankle. Reach arms high and square hips forward.',
     benefits: ['Stretches chest and lungs', 'Strengthens shoulders and arms', 'Strengthens and stretches thighs and calves'],
     types: ['strength', 'hip-opener', 'standing']
   },
   { 
     id: 'w2', name: 'Warrior II', sanskrit: 'Virabhadrasana II', category: POSE_CATEGORIES.STANDING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Front knee over ankle, gaze over front middle finger.', 
+    teachingCue: 'Open hips to the side. Front heel aligns with back arch. Arms reach wide parallel to floor. Gaze over front fingers.',
     benefits: ['Increases stamina', 'Strengthens legs and ankles', 'Stretches groins, chest and shoulders'],
     types: ['strength', 'hip-opener', 'standing']
   },
   { 
     id: 'tri', name: 'Triangle Pose', sanskrit: 'Trikonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Lengthen side body, hand to shin or block.', 
+    teachingCue: 'Straighten front leg. Reach forward then down, placing hand on shin or block. Extend top arm high, stacking shoulders.',
     benefits: ['Stretches hips, groins, hamstrings', 'Opens chest and shoulders', 'Relieves backache'],
     types: ['hamstring', 'hip-opener', 'standing']
   },
   { 
     id: 'extside', name: 'Extended Side Angle', sanskrit: 'Utthita Parsvakonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Forearm to thigh or hand to floor, long diagonal line.', 
+    teachingCue: 'Bend front knee. Rest forearm on thigh or hand on floor. Reach top arm overhead to create a long diagonal line from heel to fingertips.',
     benefits: ['Strengthens legs, knees, and ankles', 'Stretches groins, spine, waist', 'Stimulates abdominal organs'],
     types: ['strength', 'side-stretch', 'standing']
   },
   { 
     id: 'lunge', name: 'High Lunge', sanskrit: 'Ashta Chandrasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Back heel lifted, hips square, arms reach up.', 
+    teachingCue: 'Step back, keeping back heel lifted. Bend front knee to 90 degrees. Sweep arms up, engaging core and lifting chest.',
     benefits: ['Strengthens legs and arms', 'Stretches hip flexors', 'Develops balance and stability'],
     types: ['strength', 'balance', 'standing']
   },
   { 
     id: 'goddess', name: 'Goddess Pose', sanskrit: 'Utkata Konasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Toes out, heels in, sink hips, cactus arms.', 
+    teachingCue: 'Step feet wide, toes turned out. Sink hips low into a squat. Cactus the arms, drawing elbows back to open the chest.',
     benefits: ['Opens hips and chest', 'Strengthens legs and glutes', 'Builds heat'],
     types: ['strength', 'hip-opener', 'standing']
   },
   { 
     id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Sit back into heels, lift chest, tuck tailbone slightly.', 
+    teachingCue: 'Feet together or hip-width. Bend knees and sink hips back as if sitting in a chair. Reach arms high, keeping chest lifted.',
     benefits: ['Strengthens ankles, thighs, calves, and spine', 'Stretches shoulders and chest', 'Stimulates heart and diaphragm'],
     types: ['strength', 'standing']
   },
@@ -157,24 +203,28 @@ const POSE_LIBRARY = [
   { 
     id: 'tree', name: 'Tree Pose', sanskrit: 'Vrksasana', category: POSE_CATEGORIES.BALANCE, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Foot to calf or thigh (not knee), hands to heart.', 
+    teachingCue: 'Ground through standing leg. Place sole of opposite foot on calf or inner thigh. Bring hands to heart center or reach up.',
     benefits: ['Strengthens thighs, calves, ankles, and spine', 'Stretches groins and inner thighs', 'Improves balance'],
     types: ['balance', 'hip-opener']
   },
   { 
     id: 'eagle', name: 'Eagle Pose', sanskrit: 'Garudasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'Wrap right leg over left, right arm under left.', 
+    teachingCue: 'Wrap one leg over the other, sinking hips low. Wrap corresponding arm under the other. Lift elbows to shoulder height.',
     benefits: ['Strengthens and stretches ankles and calves', 'Stretches thighs, hips, shoulders, and upper back', 'Improves concentration'],
     types: ['balance', 'twist', 'peak']
   },
   { 
     id: 'w3', name: 'Warrior III', sanskrit: 'Virabhadrasana III', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'T-shape body, hips square to floor.', 
+    teachingCue: 'Shift weight to standing leg. Hinge forward, lifting back leg until body and leg are parallel to floor in a T-shape.',
     benefits: ['Strengthens ankles and legs', 'Strengthens shoulders and muscles of the back', 'Tones the abdomen'],
     types: ['balance', 'strength', 'hamstring']
   },
   { 
     id: 'dancer', name: 'Dancer Pose', sanskrit: 'Natarajasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'Catch inside of back foot, kick into hand.', 
+    teachingCue: 'Catch inside edge of back foot. Kick foot into hand to lift leg high while reaching opposite arm forward.',
     benefits: ['Stretches shoulders, chest, thighs, groins, and abdomen', 'Strengthens legs and ankles', 'Improves balance'],
     types: ['balance', 'backbend', 'peak']
   },
@@ -183,36 +233,42 @@ const POSE_LIBRARY = [
   { 
     id: 'pigeon', name: 'Half Pigeon', sanskrit: 'Eka Pada Rajakapotasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 2, wrist: true, knee: true, pregnant: true, 
     cues: 'Right knee to right wrist, shin diagonal.', 
+    teachingCue: 'Bring front knee behind wrist. Extend back leg long. Square hips and fold forward over the front leg if accessible.',
     benefits: ['Stretches thighs, groins and psoas', 'Opens hips', 'Stimulates abdominal organs'],
     types: ['hip-opener', 'rest']
   },
   { 
     id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Lift hips, interlace fingers under back.', 
+    teachingCue: 'Lie on back, knees bent, feet flat. Press into feet to lift hips. Interlace fingers underneath you and roll shoulders under.',
     benefits: ['Stretches chest, neck, and spine', 'Calms the brain', 'Rejuvenates tired legs'],
     types: ['backbend', 'spine']
   },
   { 
     id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Dhanurasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Press into hands and feet, lift entire body.', 
+    teachingCue: 'Hands by ears, fingers facing shoulders. Press into hands and feet to lift head and body off floor, arching spine.',
     benefits: ['Strengthens arms, wrists, legs, buttocks, abdomen, and spine', 'Stimulates thyroid and pituitary', 'Increases energy'],
     types: ['backbend', 'peak', 'strength']
   },
   { 
     id: 'boat', name: 'Boat Pose', sanskrit: 'Navasana', category: POSE_CATEGORIES.CORE, difficulty: 2, wrist: false, knee: false, pregnant: false, 
     cues: 'Lift feet, balance on sit bones, chest open.', 
+    teachingCue: 'Balance on sit bones. Lift legs, bent or straight. Reach arms forward. Keep spine long and chest broad.',
     benefits: ['Strengthens abdomen, hip flexors, and spine', 'Stimulates kidneys', 'Improves digestion'],
     types: ['core', 'strength']
   },
   { 
     id: 'crow', name: 'Crow Pose', sanskrit: 'Bakasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Knees to armpits, lean forward, float feet.', 
+    teachingCue: 'Plant hands. Place knees high on triceps. Lean forward until feet float off the floor. Engage core and round upper back.',
     benefits: ['Strengthens arms and wrists', 'Stretches upper back', 'Strengthens abdominal muscles'],
     types: ['arm-balance', 'peak', 'core']
   },
   { 
     id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Forearms down, interlace fingers, crown of head lightly down.', 
+    teachingCue: 'Interlace fingers, place forearms down. Set crown of head on mat. Walk feet in, lift hips, and float legs up vertically.',
     benefits: ['Calms the brain', 'Strengthens arms, legs and spine', 'Improves digestion'],
     types: ['inversion', 'peak', 'core']
   },
@@ -221,30 +277,35 @@ const POSE_LIBRARY = [
   { 
     id: 'paschi', name: 'Seated Forward Fold', sanskrit: 'Paschimottanasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Lengthen spine then fold, keep feet flexed.', 
+    teachingCue: 'Sit with legs extended. Inhale to lengthen spine, exhale to fold forward from hips, reaching for feet or shins.',
     benefits: ['Calms the brain', 'Stretches the spine, shoulders and hamstrings', 'Stimulates liver and kidneys'],
     types: ['hamstring', 'spine', 'rest']
   },
   { 
     id: 'janu', name: 'Head to Knee', sanskrit: 'Janu Sirsasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: true, pregnant: true, 
     cues: 'One leg straight, one foot to inner thigh, fold.', 
+    teachingCue: 'Extend one leg, place other foot to inner thigh. Rotate torso over extended leg and fold forward, keeping spine long.',
     benefits: ['Calms the brain', 'Stretches spine, shoulders, hamstrings, and groins', 'Stimulates liver and kidneys'],
     types: ['hamstring', 'hip-opener', 'rest']
   },
   { 
     id: 'twist', name: 'Supine Twist', sanskrit: 'Supta Matsyendrasana', category: POSE_CATEGORIES.TWIST, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Knees to one side, gaze opposite.', 
+    teachingCue: 'Lie on back. Draw knees to chest, then drop them to one side. Open arms wide and gaze in the opposite direction.',
     benefits: ['Stretches the back muscles and glutes', 'Massages back and hips', 'Helps hydrate spinal disks'],
     types: ['twist', 'spine', 'rest']
   },
   { 
     id: 'happy', name: 'Happy Baby', sanskrit: 'Ananda Balasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Grab outer feet, pull knees toward armpits.', 
+    teachingCue: 'Lie on back. Grab outer edges of feet. Pull knees toward armpits while keeping tailbone grounded on the mat.',
     benefits: ['Gently releases hips', 'Calms the brain', 'Relieves lower back pain'],
     types: ['hip-opener', 'rest']
   },
   { 
     id: 'sava', name: 'Corpse Pose', sanskrit: 'Savasana', category: POSE_CATEGORIES.SAVASANA, difficulty: 0, wrist: false, knee: false, pregnant: true, 
     cues: 'Complete relaxation. Let go of breath control.', 
+    teachingCue: 'Lie flat on your back, arms by sides, palms up. Close eyes. Release all tension and rest completely.',
     benefits: ['Calms the brain', 'Relieves stress', 'Relaxes the body'],
     types: ['rest', 'grounding']
   },
@@ -287,12 +348,9 @@ const DEFAULT_MUSIC_THEMES = [
 
 // --- 2. SPOTIFY AUTH CONFIGURATION ---
 
-// PRODUCTION: Leave VITE_API_BASE_URL empty. Requests go to /api/spotify/... (Reverse Proxy)
-// LOCAL DEV: Set VITE_API_BASE_URL to http://127.0.0.1:5174 in your startup script
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 const getLoginUrl = () => {
-  // Uses relative path for prod, or absolute for dev if API_BASE is set
   return `${API_BASE}/api/spotify/login`;
 };
 
@@ -471,7 +529,7 @@ const PoseDetailModal = ({ pose, onClose }) => {
   );
 };
 
-const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
+const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode, isLast }) => {
   if (isTeacherMode) {
     return (
       <div className="flex items-center gap-4 p-3 border-b border-stone-200 dark:border-stone-700 break-inside-avoid hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors">
@@ -481,12 +539,19 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
           <h4 className="font-bold text-stone-900 dark:text-stone-100 text-sm">{pose.name}</h4>
           <p className="text-xs text-stone-500 dark:text-stone-400 italic">{pose.sanskrit}</p>
         </div>
-        <div className="text-xs text-stone-600 dark:text-stone-400 font-medium uppercase tracking-wide">{pose.duration}</div>
+        <div className="flex items-center gap-3">
+          <span className={`text-xs font-bold px-2 py-0.5 rounded ${getLevelColor(pose.difficulty)}`}>Lvl {pose.difficulty}</span>
+          <div className="text-xs text-stone-600 dark:text-stone-400 font-medium uppercase tracking-wide">{pose.duration}</div>
+        </div>
       </div>
     );
   }
   return (
     <div className="relative pl-8 md:pl-12 group break-inside-avoid mb-4">
+      {/* Connector Line */}
+      {!isLast && (
+        <div className="absolute left-[15px] md:left-[23px] top-10 bottom-[-16px] w-0.5 bg-stone-200 dark:bg-stone-700 -z-10" />
+      )}
       <div className="absolute left-[9px] md:left-[17px] top-6 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-stone-900 bg-teal-500 shadow-sm z-10"></div>
       <div
         onClick={() => setSelectedPose(pose)}
@@ -499,9 +564,13 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
           </div>
           <button onClick={(e) => { e.stopPropagation(); onSwap(index); }} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-stone-400 hover:text-teal-600 bg-stone-50 dark:bg-stone-700 rounded-lg"><Shuffle size={16} /></button>
         </div>
-        <div className="mt-3 flex items-center gap-4 text-xs text-stone-500 dark:text-stone-400">
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-stone-500 dark:text-stone-400">
           <span className="flex items-center gap-1 bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded font-medium">{pose.category}</span>
-          <span className="flex items-center gap-1"><Wind size={12} /> {pose.duration}</span>
+          <span className={`flex items-center gap-1 px-2 py-1 rounded font-bold ${getLevelColor(pose.difficulty)}`}>Level {pose.difficulty}</span>
+          <span className="flex items-center gap-1 font-mono"><Clock size={12} /> {pose.duration}</span>
+        </div>
+        <div className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-700">
+           <p className="text-xs text-stone-500 dark:text-stone-400 italic leading-relaxed">"{pose.teachingCue}"</p>
         </div>
       </div>
     </div>
@@ -558,7 +627,7 @@ const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, getLoginUrl, isPremi
   );
 };
 
-const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
+const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, prevPracticePose, autoContinue, setAutoContinue, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
 
@@ -578,62 +647,123 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300 overflow-y-auto">
-      <div className="flex justify-between items-center p-4 sm:p-6 border-b border-stone-800 sticky top-0 bg-stone-900/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur z-20">
+    <div className="fixed inset-0 z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300 overflow-hidden">
+      {/* Header - Fixed */}
+      <div className="flex justify-between items-center p-4 sm:p-6 border-b border-stone-800 bg-stone-900 shrink-0 z-20">
         <div className="flex items-center gap-3">
           <div className="bg-teal-900/30 p-2 rounded-lg"><Activity className="text-teal-400" size={20} /></div>
           <div><span className="font-bold tracking-widest uppercase text-sm block text-teal-400">Live Session</span><span className="text-xs text-stone-400">Pose {practiceIndex + 1} of {sequence.length}</span></div>
         </div>
         <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full text-stone-400 hover:text-white"><X /></button>
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 text-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center"><PoseIcon category={current.category} className="w-[120%] h-[120%] text-teal-500" /></div>
-        <div className="relative z-10 flex flex-col items-center max-w-5xl mx-auto w-full gap-4 sm:gap-6 md:gap-8 lg:gap-10">
-           <div className="w-[clamp(5.5rem,16vw,12rem)] h-[clamp(5.5rem,16vw,12rem)] bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
-             <PoseIcon category={current.category} className="w-[clamp(2.75rem,9vw,6rem)] h-[clamp(2.75rem,9vw,6rem)]" />
+      
+      {/* Main Content - Scaled Flex Column (No Scroll) */}
+      <div className="flex-1 flex flex-col items-center justify-evenly p-4 text-center relative overflow-hidden w-full min-h-0">
+        <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center"><PoseIcon category={current.category} className="w-[80%] h-[80%] text-teal-500" /></div>
+        
+        {/* Top Section: Icon & Name */}
+        <div className="relative z-10 flex flex-col items-center gap-2 shrink-0">
+           <div className="w-[clamp(4rem,12vh,8rem)] h-[clamp(4rem,12vh,8rem)] bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
+             <PoseIcon category={current.category} className="w-[60%] h-[60%]" />
            </div>
-           <h1 className="text-[clamp(1.875rem,5vw,3.5rem)] font-serif text-white tracking-tight leading-tight">{current.name}</h1>
-           <p className="text-[clamp(1.1rem,3.5vw,2rem)] text-stone-400 italic font-serif">{current.sanskrit}</p>
-           <div className="flex items-center justify-center gap-4">
-              <div className="relative w-[clamp(7rem,22vw,11rem)] h-[clamp(7rem,22vw,11rem)] flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" /><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} /></svg>
-                <div className="absolute inset-0 flex items-center justify-center text-[clamp(1.5rem,4vw,2.5rem)] font-mono font-bold text-white">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</div>
-              </div>
-           </div>
-           <div className="bg-stone-800/80 backdrop-blur-md p-5 sm:p-7 rounded-2xl border border-stone-700/50 max-w-3xl shadow-xl w-full text-left sm:text-center">
-             <p className="text-[clamp(1rem,3.2vw,1.35rem)] leading-relaxed text-stone-200 font-medium">{current.cues}</p>
+           <div className="flex flex-col items-center">
+             <h1 className="text-[clamp(1.5rem,4vh,3rem)] font-serif text-white tracking-tight leading-tight">{current.name}</h1>
+             <p className="text-[clamp(1rem,2vh,1.25rem)] text-stone-400 italic font-serif">{current.sanskrit}</p>
            </div>
         </div>
+
+        {/* Middle Section: Timer */}
+        <div className="relative z-10 shrink-0 my-2">
+            <div className="relative w-[clamp(6rem,16vh,10rem)] h-[clamp(6rem,16vh,10rem)] flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" /><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} /></svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-[clamp(1.5rem,4vh,2.5rem)] font-mono font-bold text-white leading-none">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</span>
+                <span className="text-[10px] uppercase tracking-widest text-teal-500 font-bold mt-1">{current.duration}</span>
+              </div>
+            </div>
+        </div>
+
+        {/* Bottom Section: Teaching Cues */}
+        <div className="relative z-10 w-full max-w-2xl bg-stone-800/60 backdrop-blur-sm rounded-xl border border-stone-700/50 p-4 shrink-0">
+           <div className="text-[10px] font-bold uppercase tracking-widest text-teal-500 mb-2">Teaching Cues</div>
+           <p className="text-[clamp(0.875rem,2vh,1.15rem)] leading-relaxed text-stone-200 font-medium">
+             {current.teachingCue}
+           </p>
+        </div>
       </div>
-      <div className="bg-stone-900 border-t border-stone-800 p-4 sm:p-6 relative z-10">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-center">
-          <div className="md:hidden">{next && (<div className="flex items-center gap-3 rounded-xl bg-stone-800/80 border border-stone-700 p-3"><div className="w-10 h-10 bg-stone-900 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700"><PoseIcon category={next.category} className="w-5 h-5" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
-          <div className="hidden md:block">{next && (<div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group"><div className="w-12 h-12 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50"><PoseIcon category={next.category} className="w-6 h-6" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
-          <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap"><button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 sm:w-20 sm:h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">{isTimerRunning ? <Pause className="w-7 h-7 sm:w-8 sm:h-8" /> : <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5 sm:ml-1" />}</button><button onClick={nextPracticePose} className="p-3 sm:p-4 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white"><SkipForward size={32} /></button></div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-sm">
-           {spotifyToken && deviceId ? (
-             <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full">
-                {currentTrack?.album?.images?.[0]?.url ? (
-                  <img src={currentTrack.album.images[0].url} alt={currentTrack.name} className="w-14 h-14 rounded-lg object-cover border border-stone-700" />
-                ) : (
-                  <div className="p-3 bg-[#1DB954] text-white rounded-lg"><Music size={24} /></div>
-                )}
-                <div className="text-left flex-1 min-w-0">
-                  <p className="text-[11px] text-stone-400 font-bold uppercase tracking-wider">Now Playing</p>
-                  <p className="text-sm font-bold text-white truncate" title={currentTrack?.name || 'Start Playlist'}>{currentTrack?.name || 'Start Playlist'}</p>
-                  <p className="text-xs text-stone-400 truncate" title={currentTrack?.artists?.map(a => a.name).join(', ') || 'Artist'}>{currentTrack?.artists?.map(a => a.name).join(', ') || 'Artist'}</p>
-                  <button onClick={handlePlayMusic} className="mt-1 text-xs font-semibold text-[#1DB954] hover:text-white flex items-center gap-1">{currentTrack ? 'Resume Playlist' : 'Start Playlist'} <Play size={12} fill="currentColor" /></button>
-                </div>
-                {player && (
-                  <div className="flex gap-2 ml-2 items-center">
-                    <button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full" title="Play/Pause">
-                      {isPaused ? <Play size={16} fill="currentColor" className="ml-0.5" /> : <Pause size={16} />}
-                    </button>
-                    <button onClick={() => player.nextTrack()} className="p-2 hover:bg-white/10 rounded-full" title="Next Track"><SkipForward size={16} /></button>
+
+      {/* Footer - Fixed */}
+      <div className="bg-stone-900 border-t border-stone-800 p-4 sm:p-6 relative z-10 shrink-0">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+          
+          {/* Left: Music Player */}
+          <div className="order-3 md:order-1 flex justify-center md:justify-start">
+             {spotifyToken && deviceId ? (
+               <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full max-w-xs">
+                  {currentTrack?.album?.images?.[0]?.url ? (
+                    <img src={currentTrack.album.images[0].url} alt={currentTrack.name} className="w-10 h-10 rounded-lg object-cover border border-stone-700" />
+                  ) : (
+                    <div className="p-2 bg-[#1DB954] text-white rounded-lg"><Music size={16} /></div>
+                  )}
+                  <div className="text-left flex-1 min-w-0 overflow-hidden">
+                    <p className="text-xs font-bold text-white truncate">{currentTrack?.name || 'Start Playlist'}</p>
+                    <button onClick={handlePlayMusic} className="text-[10px] font-semibold text-[#1DB954] hover:text-white flex items-center gap-1">{currentTrack ? 'Resume' : 'Start'} <Play size={8} fill="currentColor" /></button>
                   </div>
-                )}
-             </div>
-           ) : (<div className="text-stone-500 text-sm italic flex items-center gap-2">{!spotifyToken ? "Music configured but disconnected" : (spotifyToken && playerError ? `Player Error: ${playerError}` : "Player Connecting...")}</div>)}
+                  {player && (
+                    <button onClick={() => player.togglePlay()} className="p-1.5 hover:bg-white/10 rounded-full">
+                      {isPaused ? <Play size={14} fill="currentColor" className="ml-0.5" /> : <Pause size={14} />}
+                    </button>
+                  )}
+               </div>
+             ) : (
+               <div className="text-stone-600 text-xs italic hidden md:block">
+                 {!spotifyToken ? "Music Ready" : (playerError ? `Error: ${playerError}` : (playbackStatus || "Connecting..."))}
+               </div>
+             )}
+          </div>
+
+          {/* Center: Controls */}
+          <div className="order-1 md:order-2 flex flex-col items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-6">
+                <button onClick={prevPracticePose} disabled={practiceIndex === 0} className={`p-3 rounded-full transition-colors ${practiceIndex === 0 ? 'text-stone-600 cursor-not-allowed' : 'hover:bg-stone-800 text-stone-400 hover:text-white'}`}>
+                  <SkipBack size={28} />
+                </button>
+                <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">
+                  {isTimerRunning ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+                </button>
+                <button onClick={nextPracticePose} className="p-3 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white">
+                  <SkipForward size={28} />
+                </button>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-stone-400 cursor-pointer hover:text-white transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={autoContinue} 
+                  onChange={(e) => setAutoContinue(e.target.checked)} 
+                  className="w-3.5 h-3.5 rounded accent-teal-500 bg-stone-700 border-stone-600 focus:ring-teal-500 focus:ring-offset-stone-900"
+                />
+                Auto Continue
+            </label>
+          </div>
+
+          {/* Right: Up Next */}
+          <div className="order-2 md:order-3 flex justify-center md:justify-end w-full">
+            {next ? (
+              <div className="flex items-center gap-3 text-right opacity-80 hover:opacity-100 transition-opacity group cursor-pointer max-w-[200px] sm:max-w-[250px]" onClick={nextPracticePose}>
+                <div className="hidden sm:block flex-1 min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span>
+                  <span className="font-bold text-sm text-white block truncate">{next.name}</span>
+                  <span className="text-xs text-stone-400 italic block leading-tight line-clamp-2">{next.cues}</span>
+                </div>
+                <div className="w-10 h-10 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50 shrink-0">
+                  <PoseIcon category={next.category} className="w-5 h-5" />
+                </div>
+              </div>
+            ) : (
+              <div className="text-stone-500 text-sm italic">Namaste</div>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
@@ -653,7 +783,14 @@ const PoseLibrary = ({ setSelectedPose }) => {
         {filtered.map(pose => (
           <div key={pose.id} onClick={() => setSelectedPose(pose)} className="bg-white dark:bg-stone-800 p-5 rounded-2xl border border-stone-200 dark:border-stone-700 hover:border-teal-500 hover:shadow-md transition-all cursor-pointer group flex items-start gap-4">
             <div className="w-16 h-16 bg-stone-50 dark:bg-stone-900 rounded-xl flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0"><PoseIcon category={pose.category} className="w-8 h-8" /></div>
-            <div><h3 className="font-bold text-lg text-stone-900 dark:text-stone-100">{pose.name}</h3><p className="text-sm italic text-stone-500 dark:text-stone-400 mb-3 font-serif">{pose.sanskrit}</p><span className="text-xs bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 px-2.5 py-1 rounded-md font-medium">{pose.category}</span></div>
+            <div>
+              <h3 className="font-bold text-lg text-stone-900 dark:text-stone-100">{pose.name}</h3>
+              <p className="text-sm italic text-stone-500 dark:text-stone-400 mb-3 font-serif">{pose.sanskrit}</p>
+              <div className="flex gap-2">
+                <span className="text-xs bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 px-2.5 py-1 rounded-md font-medium">{pose.category}</span>
+                <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${getLevelColor(pose.difficulty)}`}>Level {pose.difficulty}</span>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -665,22 +802,82 @@ const PoseLibrary = ({ setSelectedPose }) => {
 
 export default function YogaApp() {
   const [activeTab, setActiveTab] = useState('generator'); 
-  const [params, setParams] = useState({ duration: 60, difficulty: 'Intermediate', style: 'Vinyasa', filters: { noWrists: false, kneeFriendly: false, pregnancySafe: false }, method: SEQUENCE_METHODS.STANDARD, selectedPeakPose: PEAK_POSES[0]?.id || '', selectedTheme: THEMES[0].id, selectedTarget: TARGET_AREAS[0].id });
-  const [sequence, setSequence] = useState([]);
+  
+  // Theme State
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('zenflow_theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false; // Default light
+  });
+
+  // Persist theme
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zenflow_theme', darkMode ? 'dark' : 'light');
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [darkMode]);
+
+  // Initialize sequence from local storage if available
+  const [sequence, setSequence] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('yoga_in_progress');
+    return saved ? JSON.parse(saved).poses : [];
+  });
+
+  // Initialize params from local storage if available
+  const [params, setParams] = useState(() => {
+    const defaultParams = { duration: 60, difficulty: 'Intermediate', style: 'Vinyasa', filters: { noWrists: false, kneeFriendly: false, pregnancySafe: false }, method: SEQUENCE_METHODS.STANDARD, selectedPeakPose: PEAK_POSES[0]?.id || '', selectedTheme: THEMES[0].id, selectedTarget: TARGET_AREAS[0].id };
+    if (typeof window === 'undefined') return defaultParams;
+    const saved = localStorage.getItem('yoga_in_progress');
+    return saved ? JSON.parse(saved).params : defaultParams;
+  });
+
   const [savedSequences, setSavedSequences] = useState(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('yoga_saved_sequences'); return saved ? JSON.parse(saved) : []; } return []; });
+  
+  // Track ongoing practice state
   const [inProgress, setInProgress] = useState(() => {
     if (typeof window === 'undefined') return null;
     const saved = localStorage.getItem('yoga_in_progress');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Auto Continue State
+  const [autoContinue, setAutoContinue] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('zenflow_auto_continue');
+      return saved === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zenflow_auto_continue', autoContinue);
+    }
+  }, [autoContinue]);
+
   const [musicThemes, setMusicThemes] = useState(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('yoga_music_themes'); if (saved) { const parsed = JSON.parse(saved); return DEFAULT_MUSIC_THEMES.map(def => { const savedTheme = parsed.find(s => s.id === def.id); return savedTheme ? { ...def, link: savedTheme.link } : def; }); } } return DEFAULT_MUSIC_THEMES; });
   const updateMusicTheme = (id, newLink) => { const updated = musicThemes.map(t => t.id === id ? { ...t, link: newLink } : t); setMusicThemes(updated); localStorage.setItem('yoga_music_themes', JSON.stringify(updated.map(({ id, link }) => ({ id, link })))); };
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
   const [isTeacherMode, setIsTeacherMode] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [selectedMusicId, setSelectedMusicId] = useState(musicThemes[0].id);
   const [spotifyStatus, setSpotifyStatus] = useState('');
-  const [practiceIndex, setPracticeIndex] = useState(0);
+  
+  // Practice State - initialized from storage
+  const [practiceIndex, setPracticeIndex] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = localStorage.getItem('yoga_in_progress');
+    return saved ? (JSON.parse(saved).currentIndex || 0) : 0;
+  });
+  
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [selectedPose, setSelectedPose] = useState(null);
@@ -710,7 +907,7 @@ export default function YogaApp() {
     }
   }, []);
 
-  // 1. Refresh Token: Uses HttpOnly cookie via backend
+  // 1. Refresh Token
   const refreshAccessToken = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/spotify/refresh`, { credentials: 'include' });
@@ -728,10 +925,9 @@ export default function YogaApp() {
     }
   }, [clearStoredToken, storeToken]);
 
-  // 2. Initial Load: Check URL params (callback) or localStorage
+  // 2. Initial Load
   useEffect(() => {
     const initAuth = async () => {
-      // A. Check for Callback URL parameters
       const searchParams = new URLSearchParams(window.location.search);
       const tokenFromUrl = searchParams.get('access_token');
       const expiresInFromUrl = searchParams.get('expires_in');
@@ -750,7 +946,6 @@ export default function YogaApp() {
         return;
       }
 
-      // B. Check LocalStorage
       const storedToken = localStorage.getItem('spotify_access_token');
       const storedExpiry = Number(localStorage.getItem('spotify_token_expiry') || '0');
 
@@ -758,7 +953,6 @@ export default function YogaApp() {
         setSpotifyToken(storedToken);
         setTokenExpiry(storedExpiry);
       } else {
-        // C. Try silent refresh (if we have a cookie)
         await refreshAccessToken();
       }
     };
@@ -796,19 +990,53 @@ export default function YogaApp() {
     }
   }, [spotifyToken, deviceId]);
 
-  // --- APP LOGIC (Timers, Generation) ---
+  // --- APP LOGIC ---
+  
+  // Handle Initial Flow Logic
+  useEffect(() => {
+    // If no sequence, open sidebar to prompt generation.
+    if (sequence.length === 0) {
+       setIsSidebarOpen(true);
+    }
+  }, [sequence.length]);
+
   useEffect(() => {
     let interval = null;
     if (isTimerRunning) {
       interval = setInterval(() => {
         setTimerSeconds(prev => {
-          if (prev <= 1) { setIsTimerRunning(false); return 0; }
+          if (prev <= 1) { 
+             // Timer Done
+             if (autoContinue) {
+                // We'll handle auto-next in a separate effect to avoid state loop here, 
+                // or we let it sit at 0 and the effect below catches it.
+                // But to be safe, just let it hit 0.
+                return 0;
+             }
+             setIsTimerRunning(false); 
+             return 0; 
+          }
           return prev - 1;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTimerRunning]);
+  }, [isTimerRunning, autoContinue]);
+
+  // Auto-Continue Trigger
+  useEffect(() => {
+    if (isTimerRunning && timerSeconds === 0 && autoContinue) {
+       if (practiceIndex < sequence.length - 1) {
+          const nextIndex = practiceIndex + 1;
+          setPracticeIndex(nextIndex);
+          setTimerSeconds(sequence[nextIndex].timerVal);
+          // Keep timer running
+       } else {
+          setIsTimerRunning(false); // End of sequence
+       }
+    }
+  }, [timerSeconds, isTimerRunning, autoContinue, practiceIndex, sequence]);
+
 
   const getFilteredPool = () => { 
     let pool = [...POSE_LIBRARY]; 
@@ -823,11 +1051,9 @@ export default function YogaApp() {
   const ensureCatCow = (selectedPoses, pool) => {
     const hasCat = selectedPoses.some(p => p.id === 'cat');
     const hasCow = selectedPoses.some(p => p.id === 'cow');
-    
     if (!hasCat && !hasCow) return selectedPoses;
 
     let newPoses = selectedPoses.filter(p => p.id !== 'cat' && p.id !== 'cow');
-    
     const catPose = pool.find(p => p.id === 'cat');
     const cowPose = pool.find(p => p.id === 'cow');
 
@@ -837,7 +1063,6 @@ export default function YogaApp() {
       if (hasCat && catPose) newPoses.push(catPose);
       if (hasCow && cowPose) newPoses.push(cowPose);
     }
-    
     return newPoses;
   };
 
@@ -855,45 +1080,33 @@ export default function YogaApp() {
     const strategies = {
       [SEQUENCE_METHODS.STANDARD]: () => {
         const counts = params.style === 'Yin' ? { centering: 3, warmup: 2, standing: 0, floor: 5 } : { centering: 2, warmup: 3, standing: 5, floor: 3 };
-        
         newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, counts.centering));
-        
         let warmups = pick(pool, POSE_CATEGORIES.WARMUP, counts.warmup);
         newSequence.push(...ensureCatCow(warmups, pool));
-
         if (params.style !== 'Yin') {
            const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
            if (sunFlow.length === 5) newSequence.push(...sunFlow);
-           
            newSequence.push(...pick(pool, POSE_CATEGORIES.STANDING, counts.standing));
            newSequence.push(...pick(pool, POSE_CATEGORIES.BALANCE, 2));
         }
-        
         newSequence.push(...pick(pool, POSE_CATEGORIES.HIP_OPENER, counts.floor));
       },
       [SEQUENCE_METHODS.PEAK]: () => {
         const peak = pool.find(p => p.id === params.selectedPeakPose);
         if (!peak) return strategies[SEQUENCE_METHODS.STANDARD]();
-
         newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
-        
         let warmups = pick(pool, POSE_CATEGORIES.WARMUP, 3);
         newSequence.push(...ensureCatCow(warmups, pool));
-
         const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
         newSequence.push(...sunFlow);
-
         const related = peak.types ? peak.types.filter(t => t !== 'peak') : [];
         newSequence.push(...pick(pool, POSE_CATEGORIES.STANDING, 4, p => p.types && p.types.some(t => related.includes(t))));
-
         newSequence.push(peak); 
-
         newSequence.push(...pick(pool, POSE_CATEGORIES.RESTORATIVE, 2));
       },
       [SEQUENCE_METHODS.THEME]: () => {
         const theme = THEMES.find(t => t.id === params.selectedTheme);
         if (!theme) return strategies[SEQUENCE_METHODS.STANDARD]();
-        
         const smartPick = (category, count) => {
           let candidates = pool.filter(p => p.category === category);
           candidates.sort((a, b) => {
@@ -903,22 +1116,18 @@ export default function YogaApp() {
           });
           return candidates.slice(0, Math.max(1, count));
         };
-
         newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
         newSequence.push(...ensureCatCow(smartPick(POSE_CATEGORIES.WARMUP, 3), pool));
-        
         if (theme.id !== 'rest') {
            const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
            newSequence.push(...sunFlow);
         }
-        
         newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, 4));
         newSequence.push(...smartPick(POSE_CATEGORIES.HIP_OPENER, 3));
       },
       [SEQUENCE_METHODS.TARGET]: () => {
          const target = TARGET_AREAS.find(t => t.id === params.selectedTarget);
          if (!target) return strategies[SEQUENCE_METHODS.STANDARD]();
-
          const smartPick = (category, count) => {
             let candidates = pool.filter(p => p.category === category);
             candidates.sort((a, b) => {
@@ -928,7 +1137,6 @@ export default function YogaApp() {
             });
             return candidates.slice(0, Math.max(1, count));
          };
-
          newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
          newSequence.push(...ensureCatCow(smartPick(POSE_CATEGORIES.WARMUP, 3), pool));
          newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, 5));
@@ -937,27 +1145,20 @@ export default function YogaApp() {
       [SEQUENCE_METHODS.LADDER]: () => {
          const ladderPoses = pick(pool, POSE_CATEGORIES.STANDING, 3);
          if (ladderPoses.length < 3) return strategies[SEQUENCE_METHODS.STANDARD]();
-
          newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
          newSequence.push(...ensureCatCow(pick(pool, POSE_CATEGORIES.WARMUP, 2), pool));
-
          const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
          newSequence.push(...sunFlow);
-
          const vinyasa = [pool.find(p => p.id === 'plk'), pool.find(p => p.id === 'dd')].filter(Boolean);
-         
          newSequence.push(ladderPoses[0]);
          newSequence.push(...vinyasa);
-         
          newSequence.push(ladderPoses[0]);
          newSequence.push(ladderPoses[1]);
          newSequence.push(...vinyasa);
-
          newSequence.push(ladderPoses[0]);
          newSequence.push(ladderPoses[1]);
          newSequence.push(ladderPoses[2]);
          newSequence.push(...vinyasa);
-
          newSequence.push(...pick(pool, POSE_CATEGORIES.HIP_OPENER, 2));
       }
     };
@@ -968,20 +1169,18 @@ export default function YogaApp() {
     const sava = POSE_LIBRARY.find(p => p.id === 'sava');
     if (sava && !newSequence.find(p => p.id === 'sava')) newSequence.push(sava);
 
-    const totalSeconds = params.duration * 60;
-    const savasanaSeconds = 300; 
-    const activeSeconds = Math.max(0, totalSeconds - savasanaSeconds);
-    const activePoseCount = newSequence.length - 1; // Exclude Savasana
-    const secondsPerPose = activePoseCount > 0 ? Math.floor(activeSeconds / activePoseCount) : 60;
-
-    const finalSequence = newSequence.map((pose, idx) => ({
-      ...pose,
-      uniqueId: `${pose.id}-${idx}-${Date.now()}`,
-      duration: pose.id === 'sava' ? '5-10 min' : `${Math.floor(secondsPerPose/60)}m ${secondsPerPose%60}s`, 
-      timerVal: pose.id === 'sava' ? savasanaSeconds : secondsPerPose, 
-    }));
+    const finalSequence = newSequence.map((pose, idx) => {
+      const config = TIMING_CONFIG[pose.category] || { label: '1 min', seconds: 60 };
+      return {
+        ...pose,
+        uniqueId: `${pose.id}-${idx}-${Date.now()}`,
+        duration: config.label, 
+        timerVal: config.seconds, 
+      };
+    });
 
     setSequence(finalSequence);
+    setPracticeIndex(0); // Reset practice index on new generation
     setActiveTab('generator');
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
@@ -1012,6 +1211,7 @@ export default function YogaApp() {
     }
   }, []);
 
+  // Update inProgress whenever sequence, params OR practiceIndex changes
   useEffect(() => {
     if (sequence.length === 0) return;
 
@@ -1020,14 +1220,52 @@ export default function YogaApp() {
       name: 'In Progress Flow',
       updatedAt: new Date().toISOString(),
       params,
-      poses: sequence
+      poses: sequence,
+      currentIndex: practiceIndex // Track the current pose index
     };
 
     setInProgress(snapshot);
     if (typeof window !== 'undefined') {
       localStorage.setItem('yoga_in_progress', JSON.stringify(snapshot));
     }
-  }, [params, sequence]);
+  }, [params, sequence, practiceIndex]);
+
+  const resumePractice = (session) => {
+    setParams(session.params);
+    setSequence(session.poses);
+    
+    // Resume at stored index or 0
+    const resumeIdx = session.currentIndex || 0;
+    setPracticeIndex(resumeIdx);
+    
+    // Set timer to that specific pose's time
+    if(session.poses && session.poses[resumeIdx]) {
+      setTimerSeconds(session.poses[resumeIdx].timerVal);
+    }
+    
+    setIsTimerRunning(true);
+    setActiveTab('practice');
+  };
+
+  const nextPracticePose = () => { 
+    if (practiceIndex < sequence.length - 1) { 
+      const nextIndex = practiceIndex + 1;
+      setPracticeIndex(nextIndex); 
+      setTimerSeconds(sequence[nextIndex].timerVal); 
+      setIsTimerRunning(true); 
+    } else { 
+      setActiveTab('generator'); 
+    } 
+  };
+
+  const prevPracticePose = () => {
+    if (practiceIndex > 0) {
+      const prevIndex = practiceIndex - 1;
+      setPracticeIndex(prevIndex);
+      setTimerSeconds(sequence[prevIndex].timerVal);
+      setIsTimerRunning(true);
+    }
+  };
 
   const handleLogout = async () => {
     try { await fetch(`${API_BASE}/api/spotify/logout`, { method: 'POST', credentials: 'include' }); } catch (err) { console.warn('Logout failed', err); }
@@ -1052,7 +1290,32 @@ export default function YogaApp() {
       </header>
 
       {selectedPose && <PoseDetailModal pose={selectedPose} onClose={() => setSelectedPose(null)} />}
-      {activeTab === 'practice' && <PracticeMode sequence={sequence} practiceIndex={practiceIndex} timerSeconds={timerSeconds} isTimerRunning={isTimerRunning} setIsTimerRunning={setIsTimerRunning} nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[0].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }} onClose={() => setActiveTab('generator')} musicTheme={musicThemes.find(t => t.id === selectedMusicId)} spotifyToken={spotifyToken} player={player} deviceId={deviceId} playerError={playerError} ensureAccessToken={ensureAccessToken} isPremiumUser={isPremiumUser} onPlaybackStatus={setSpotifyStatus} playbackStatus={spotifyStatus} currentTrack={currentTrack} isPaused={isPaused} />}
+      
+      {activeTab === 'practice' && (
+        <PracticeMode 
+          sequence={sequence} 
+          practiceIndex={practiceIndex} 
+          timerSeconds={timerSeconds} 
+          isTimerRunning={isTimerRunning} 
+          setIsTimerRunning={setIsTimerRunning} 
+          nextPracticePose={nextPracticePose}
+          prevPracticePose={prevPracticePose}
+          autoContinue={autoContinue}
+          setAutoContinue={setAutoContinue}
+          onClose={() => setActiveTab('generator')} 
+          musicTheme={musicThemes.find(t => t.id === selectedMusicId)} 
+          spotifyToken={spotifyToken} 
+          player={player} 
+          deviceId={deviceId} 
+          playerError={playerError} 
+          ensureAccessToken={ensureAccessToken} 
+          isPremiumUser={isPremiumUser} 
+          onPlaybackStatus={setSpotifyStatus} 
+          playbackStatus={spotifyStatus} 
+          currentTrack={currentTrack} 
+          isPaused={isPaused} 
+        />
+      )}
 
       <div className="pt-16 flex h-screen overflow-hidden">
         {isSidebarOpen && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-opacity animate-in fade-in duration-200" onClick={() => setIsSidebarOpen(false)} />}
@@ -1172,13 +1435,17 @@ export default function YogaApp() {
                    <div>
                      <div className="flex items-center gap-2 mb-1">
                        <span className="px-2 py-0.5 bg-amber-200 text-amber-900 rounded text-[10px] font-bold uppercase tracking-wide">In Progress</span>
-                       <span className="text-xs text-amber-700 dark:text-amber-300">Updated {new Date(inProgress.updatedAt).toLocaleString()}</span>
+                       <span className="text-xs text-amber-700 dark:text-amber-300">
+                         {/* Show readable last pose info */}
+                         Pose { (inProgress.currentIndex || 0) + 1 } of {inProgress.poses.length} • Updated {new Date(inProgress.updatedAt).toLocaleTimeString()}
+                       </span>
                      </div>
                      <h3 className="font-bold text-lg text-stone-900 dark:text-stone-100">{inProgress.name}</h3>
-                     <p className="text-sm opacity-70 dark:text-stone-400">{inProgress.params.style} • {inProgress.params.duration} min • {inProgress.poses.length} poses</p>
+                     <p className="text-sm opacity-70 dark:text-stone-400">{inProgress.params.style} • {inProgress.params.duration} min</p>
                    </div>
                    <div className="flex gap-2">
-                     <button onClick={() => { setParams(inProgress.params); setSequence(inProgress.poses); setActiveTab('generator'); }} className="px-3 py-2 bg-amber-500 text-white rounded-lg shadow">Resume</button>
+                     {/* Update button to use new resumePractice logic */}
+                     <button onClick={() => resumePractice(inProgress)} className="px-3 py-2 bg-amber-500 text-white rounded-lg shadow font-bold">Resume</button>
                      <button onClick={clearInProgress} className="p-2 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/50 rounded-lg" title="Clear in-progress flow"><Trash2 size={18} /></button>
                    </div>
                  </div>
@@ -1237,7 +1504,7 @@ export default function YogaApp() {
                     <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
                   </div>
                 ) : (
-                  sequence.map((pose, idx) => (<PoseCard key={pose.uniqueId} pose={pose} index={idx} onSwap={swapPose} setSelectedPose={setSelectedPose} isTeacherMode={isTeacherMode} />))
+                  sequence.map((pose, idx) => (<PoseCard key={pose.uniqueId} pose={pose} index={idx} onSwap={swapPose} setSelectedPose={setSelectedPose} isTeacherMode={isTeacherMode} isLast={idx === sequence.length - 1} />))
                 )}
               </div>
             </div>
