@@ -277,12 +277,12 @@ const TARGET_AREAS = [
 ];
 
 const DEFAULT_MUSIC_THEMES = [
-  { id: 'electronic', name: 'Tribal / House', icon: <Activity size={16}/>, description: 'Upbeat rhythm for Vinyasa.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX2vYju3k0l41' },
-  { id: 'ambient', name: 'Ambient Drone', icon: <Wind size={16}/>, description: 'Deep, spacious sounds for focus.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX1n9whBbB48g' },
-  { id: 'nature', name: 'Rain & Forest', icon: <Sun size={16}/>, description: 'Grounding natural textures.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4Pp3kIqgeV5' },
-  { id: 'lofi', name: 'Lo-Fi Beats', icon: <Headphones size={16}/>, description: 'Chill hop for a relaxed groove.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' },
-  { id: 'indian', name: 'Indian Flute', icon: <Music size={16}/>, description: 'Traditional atmosphere.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX5q67ZpWyRrZ' },
-  { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO' },
+  { id: 'electronic', name: 'Tribal / House', icon: <Activity size={16}/>, description: 'Upbeat rhythm for Vinyasa.', link: 'http://open.spotify.com/playlist/37i9dQZF1DX2sUQwD7tbmL' },
+  { id: 'ambient', name: 'Ambient Drone', icon: <Wind size={16}/>, description: 'Deep, spacious sounds for focus.', link: 'http://open.spotify.com/playlist/37i9dQZF1DX6J5NfMJS675' },
+  { id: 'nature', name: 'Rain & Forest', icon: <Sun size={16}/>, description: 'Grounding natural textures.', link: 'http://open.spotify.com/playlist/37i9dQZF1DX4wta20PHgwo' },
+  { id: 'lofi', name: 'Lo-Fi Beats', icon: <Headphones size={16}/>, description: 'Chill hop for a relaxed groove.', link: 'http://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' },
+  { id: 'indian', name: 'Indian Flute', icon: <Music size={16}/>, description: 'Traditional atmosphere.', link: 'http://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M' },
+  { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.', link: 'http://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO' },
 ];
 
 // --- 2. SPOTIFY UTILS -
@@ -291,8 +291,8 @@ const DEFAULT_MUSIC_THEMES = [
 const CLIENT_ID = '4de853bd5af346d5bd03ad30dfa84bff'; 
 
 const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-// MODIFIED: Append /callback to the redirect URI
-const REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/callback` : ''; 
+// MODIFIED: Redirect to ROOT to avoid 404s on systems without client-side routers
+const REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/` : ''; 
 
 const SCOPES = [
   'streaming',               // Required for Web Playback SDK
@@ -325,17 +325,6 @@ const parseSpotifyUri = (link) => {
   if (match) {
     const [, type, id] = match;
     return `spotify:${type}:${id}`;
-  }
-  return null;
-};
-
-const getEmbedUrl = (link) => {
-  if (!link) return null;
-  // Parses standard spotify links to create an embed URL
-  const match = link.match(/(playlist|album|track)[/:]([a-zA-Z0-9]+)/);
-  if (match) {
-    const [, type, id] = match;
-    return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
   }
   return null;
 };
@@ -753,7 +742,7 @@ const PracticeMode = ({
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-sm">
-           {/* Custom Spotify Player with Iframe Fallback */}
+           {/* MODIFIED: REMOVED IFRAME PREVIEW FALLBACK */}
            {spotifyToken && deviceId ? (
              <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full">
                 <div className="p-2 bg-[#1DB954] text-white rounded-lg">
@@ -773,23 +762,9 @@ const PracticeMode = ({
                 )}
              </div>
            ) : (
-              // Fallback to Standard Spotify Embed if SDK not ready
-              musicTheme.link ? (
-                <iframe 
-                  src={getEmbedUrl(musicTheme.link)} 
-                  width="100%" 
-                  height="80" 
-                  frameBorder="0" 
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                  loading="lazy"
-                  className="rounded-xl bg-black/50"
-                  title="Spotify Player"
-                ></iframe>
-              ) : (
-                <div className="text-stone-500 text-sm italic flex items-center gap-2">
-                   No music configured
-                </div>
-              )
+              <div className="text-stone-500 text-sm italic flex items-center gap-2">
+                 {spotifyToken ? "Player Connecting..." : "Music configured but player disconnected"}
+              </div>
            )}
         </div>
       </div>
