@@ -191,12 +191,19 @@ const POSE_LIBRARY = [
     benefits: ['Opens hips and chest', 'Strengthens legs and glutes', 'Builds heat'],
     types: ['strength', 'hip-opener', 'standing']
   },
-  { 
-    id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
-    cues: 'Sit back into heels, lift chest, tuck tailbone slightly.', 
+  {
+    id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true,
+    cues: 'Sit back into heels, lift chest, tuck tailbone slightly.',
     teachingCue: 'Feet together or hip-width. Bend knees and sink hips back as if sitting in a chair. Reach arms high, keeping chest lifted.',
     benefits: ['Strengthens ankles, thighs, calves, and spine', 'Stretches shoulders and chest', 'Stimulates heart and diaphragm'],
     types: ['strength', 'standing']
+  },
+  {
+    id: 'revwar', name: 'Revolved Crescent Lunge', sanskrit: 'Parivrtta Anjaneyasana', category: POSE_CATEGORIES.STANDING, difficulty: 3, wrist: false, knee: false, pregnant: false,
+    cues: 'Twist over front leg, back heel lifted, prayer hands.',
+    teachingCue: 'From High Lunge, bring hands to heart. Lengthen spine, then hook opposite elbow outside front knee and twist, pressing palms together to deepen.',
+    benefits: ['Builds heat and detoxifies', 'Strengthens legs and core', 'Improves balance and focus'],
+    types: ['twist', 'standing', 'strength', 'peak']
   },
 
   // BALANCE
@@ -221,12 +228,19 @@ const POSE_LIBRARY = [
     benefits: ['Strengthens ankles and legs', 'Strengthens shoulders and muscles of the back', 'Tones the abdomen'],
     types: ['balance', 'strength', 'hamstring']
   },
-  { 
-    id: 'dancer', name: 'Dancer Pose', sanskrit: 'Natarajasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
-    cues: 'Catch inside of back foot, kick into hand.', 
+  {
+    id: 'dancer', name: 'Dancer Pose', sanskrit: 'Natarajasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true,
+    cues: 'Catch inside of back foot, kick into hand.',
     teachingCue: 'Catch inside edge of back foot. Kick foot into hand to lift leg high while reaching opposite arm forward.',
     benefits: ['Stretches shoulders, chest, thighs, groins, and abdomen', 'Strengthens legs and ankles', 'Improves balance'],
     types: ['balance', 'backbend', 'peak']
+  },
+  {
+    id: 'halfmoon', name: 'Half Moon Pose', sanskrit: 'Ardha Chandrasana', category: POSE_CATEGORIES.BALANCE, difficulty: 2, wrist: false, knee: false, pregnant: true,
+    cues: 'Stack hips and shoulders, lift back leg, top arm high.',
+    teachingCue: 'From Triangle, bend front knee and slide bottom hand forward. Lift back leg parallel to floor while opening chest and hips, reaching top arm skyward.',
+    benefits: ['Strengthens ankles, thighs, and core', 'Improves balance', 'Expands chest and side body'],
+    types: ['balance', 'hip-opener']
   },
 
   // FLOOR / STRETCH / PEAK
@@ -237,16 +251,30 @@ const POSE_LIBRARY = [
     benefits: ['Stretches thighs, groins and psoas', 'Opens hips', 'Stimulates abdominal organs'],
     types: ['hip-opener', 'rest']
   },
-  { 
-    id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 1, wrist: false, knee: false, pregnant: true, 
-    cues: 'Lift hips, interlace fingers under back.', 
+  {
+    id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 1, wrist: false, knee: false, pregnant: true,
+    cues: 'Lift hips, interlace fingers under back.',
     teachingCue: 'Lie on back, knees bent, feet flat. Press into feet to lift hips. Interlace fingers underneath you and roll shoulders under.',
     benefits: ['Stretches chest, neck, and spine', 'Calms the brain', 'Rejuvenates tired legs'],
     types: ['backbend', 'spine']
   },
-  { 
-    id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Dhanurasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 3, wrist: true, knee: false, pregnant: false, 
-    cues: 'Press into hands and feet, lift entire body.', 
+  {
+    id: 'locust', name: 'Locust Pose', sanskrit: 'Salabhasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 2, wrist: false, knee: false, pregnant: false,
+    cues: 'Lift chest, arms, and legs off mat, reach back.',
+    teachingCue: 'Lie prone with arms along sides. On inhale, lift chest, arms, and legs away from the mat, lengthening through toes and fingertips while keeping neck long.',
+    benefits: ['Strengthens back, glutes, and hamstrings', 'Opens chest and shoulders', 'Improves posture'],
+    types: ['backbend', 'strength', 'core']
+  },
+  {
+    id: 'camel', name: 'Camel Pose', sanskrit: 'Ustrasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 2, wrist: false, knee: true, pregnant: false,
+    cues: 'Kneel, hands to heels, press hips forward, heart lifts.',
+    teachingCue: 'From a tall kneel, place hands on heels or blocks. Press hips forward, lift through the sternum, and allow head to release back if comfortable.',
+    benefits: ['Opens chest and hip flexors', 'Strengthens back muscles', 'Boosts energy and mood'],
+    types: ['backbend', 'peak', 'chest']
+  },
+  {
+    id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Dhanurasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 3, wrist: true, knee: false, pregnant: false,
+    cues: 'Press into hands and feet, lift entire body.',
     teachingCue: 'Hands by ears, fingers facing shoulders. Press into hands and feet to lift head and body off floor, arching spine.',
     benefits: ['Strengthens arms, wrists, legs, buttocks, abdomen, and spine', 'Stimulates thyroid and pituitary', 'Increases energy'],
     types: ['backbend', 'peak', 'strength']
@@ -265,12 +293,19 @@ const POSE_LIBRARY = [
     benefits: ['Strengthens arms and wrists', 'Stretches upper back', 'Strengthens abdominal muscles'],
     types: ['arm-balance', 'peak', 'core']
   },
-  { 
-    id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
-    cues: 'Forearms down, interlace fingers, crown of head lightly down.', 
+  {
+    id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: true, knee: false, pregnant: false,
+    cues: 'Forearms down, interlace fingers, crown of head lightly down.',
     teachingCue: 'Interlace fingers, place forearms down. Set crown of head on mat. Walk feet in, lift hips, and float legs up vertically.',
     benefits: ['Calms the brain', 'Strengthens arms, legs and spine', 'Improves digestion'],
     types: ['inversion', 'peak', 'core']
+  },
+  {
+    id: 'shoulder', name: 'Shoulderstand', sanskrit: 'Sarvangasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: false, knee: false, pregnant: false,
+    cues: 'Stack hips over shoulders, support back with hands.',
+    teachingCue: 'From supine, lift hips and legs overhead, placing hands on low back. Walk elbows closer and lengthen legs toward the ceiling to stack ankles over shoulders.',
+    benefits: ['Improves circulation', 'Stimulates thyroid and parathyroid', 'Calms the nervous system'],
+    types: ['inversion', 'peak', 'rest']
   },
   
   // RESTORATIVE / COOL DOWN
@@ -288,23 +323,30 @@ const POSE_LIBRARY = [
     benefits: ['Calms the brain', 'Stretches spine, shoulders, hamstrings, and groins', 'Stimulates liver and kidneys'],
     types: ['hamstring', 'hip-opener', 'rest']
   },
-  { 
-    id: 'twist', name: 'Supine Twist', sanskrit: 'Supta Matsyendrasana', category: POSE_CATEGORIES.TWIST, difficulty: 1, wrist: false, knee: false, pregnant: true, 
-    cues: 'Knees to one side, gaze opposite.', 
+  {
+    id: 'twist', name: 'Supine Twist', sanskrit: 'Supta Matsyendrasana', category: POSE_CATEGORIES.TWIST, difficulty: 1, wrist: false, knee: false, pregnant: true,
+    cues: 'Knees to one side, gaze opposite.',
     teachingCue: 'Lie on back. Draw knees to chest, then drop them to one side. Open arms wide and gaze in the opposite direction.',
     benefits: ['Stretches the back muscles and glutes', 'Massages back and hips', 'Helps hydrate spinal disks'],
     types: ['twist', 'spine', 'rest']
   },
-  { 
-    id: 'happy', name: 'Happy Baby', sanskrit: 'Ananda Balasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 1, wrist: false, knee: false, pregnant: true, 
-    cues: 'Grab outer feet, pull knees toward armpits.', 
+  {
+    id: 'happy', name: 'Happy Baby', sanskrit: 'Ananda Balasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 1, wrist: false, knee: false, pregnant: true,
+    cues: 'Grab outer feet, pull knees toward armpits.',
     teachingCue: 'Lie on back. Grab outer edges of feet. Pull knees toward armpits while keeping tailbone grounded on the mat.',
     benefits: ['Gently releases hips', 'Calms the brain', 'Relieves lower back pain'],
     types: ['hip-opener', 'rest']
   },
-  { 
-    id: 'sava', name: 'Corpse Pose', sanskrit: 'Savasana', category: POSE_CATEGORIES.SAVASANA, difficulty: 0, wrist: false, knee: false, pregnant: true, 
-    cues: 'Complete relaxation. Let go of breath control.', 
+  {
+    id: 'legswall', name: 'Legs Up the Wall', sanskrit: 'Viparita Karani', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 0, wrist: false, knee: false, pregnant: true,
+    cues: 'Scoot hips to wall, extend legs upward, arms relaxed.',
+    teachingCue: 'Sit close to a wall, roll onto back, and extend legs straight up the wall. Let arms rest by sides with palms up, allowing breath to slow.',
+    benefits: ['Relieves tired legs and feet', 'Calms the nervous system', 'Encourages venous drainage and lymph flow'],
+    types: ['rest', 'inversion', 'grounding']
+  },
+  {
+    id: 'sava', name: 'Corpse Pose', sanskrit: 'Savasana', category: POSE_CATEGORIES.SAVASANA, difficulty: 0, wrist: false, knee: false, pregnant: true,
+    cues: 'Complete relaxation. Let go of breath control.',
     teachingCue: 'Lie flat on your back, arms by sides, palms up. Close eyes. Release all tension and rest completely.',
     benefits: ['Calms the brain', 'Relieves stress', 'Relaxes the body'],
     types: ['rest', 'grounding']
