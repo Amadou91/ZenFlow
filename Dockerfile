@@ -6,6 +6,9 @@ WORKDIR /app
 # Copy the project (including vendored node_modules) to avoid external registry access
 COPY . .
 
+# Ensure dev dependencies like Vite are present before building
+RUN npm ci --include=dev
+
 # Build the app (creates the /dist folder)
 RUN npm run build
 
