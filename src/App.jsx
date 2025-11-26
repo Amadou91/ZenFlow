@@ -287,15 +287,18 @@ const DEFAULT_MUSIC_THEMES = [
 
 // --- 2. SPOTIFY UTILS ---
 
-const resolvedApiBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
-// Default to the current origin when no API base URL is provided so production
-// deployments behind nginx still work without a Vite env override.
-const API_BASE_URL = resolvedApiBase || (typeof window !== 'undefined' ? window.location.origin : '');
-const buildApiUrl = (path) => `${API_BASE_URL.replace(/\/$/, '')}${path}`;
+const SPOTIFY_CLIENT_ID = 'cb6d7c9dc6e44326b8c1212c6d84bd11';
 
-const LOGIN_URL = buildApiUrl('/api/spotify/login');
-const REFRESH_URL = buildApiUrl('/api/spotify/refresh');
-const LOGOUT_URL = buildApiUrl('/api/spotify/logout');
+const getRedirectUri = () => (typeof window !== 'undefined' ? `${window.location.origin}/` : '');
+const getLoginUrl = () => {
+  const params = new URLSearchParams({
+    response_type: 'token',
+    client_id: SPOTIFY_CLIENT_ID,
+    redirect_uri: getRedirectUri(),
+    scope: REQUIRED_SCOPES.join(' ')
+  });
+  return `https://accounts.spotify.com/authorize?${params.toString()}`;
+};
 
 const REQUIRED_SCOPES = [
   'streaming',               // Required for Web Playback SDK
@@ -562,7 +565,7 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
   );
 };
 
-const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, loginUrl, isPremiumUser, tokenError }) => {
+const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, getLoginUrl, isPremiumUser, tokenError }) => {
   const [editingId, setEditingId] = useState(null);
   const [tempLink, setTempLink] = useState('');
 
@@ -581,9 +584,9 @@ const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, loginUrl, isPremiumU
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100">Music Configuration</h2>
         {!spotifyToken ? (
-           <a href={loginUrl} className="flex items-center gap-2 px-4 py-2 bg-[#1DB954] text-white rounded-full font-bold text-sm hover:opacity-90">
+           <button onClick={() => window.location.href = getLoginUrl()} className="flex items-center gap-2 px-4 py-2 bg-[#1DB954] text-white rounded-full font-bold text-sm hover:opacity-90">
              <LogIn size={16} /> Connect Spotify
-           </a>
+           </button>
         ) : (
           <div className="flex items-center gap-2 text-[#1DB954] font-bold text-sm">
              <Check size={16} /> {isPremiumUser ? 'Spotify Premium Connected' : 'Spotify Connected'}
@@ -960,52 +963,57 @@ export default function YogaApp() {
   const [tokenError, setTokenError] = useState(null);
   const isPremiumUser = spotifyProfile?.product === 'premium';
 
-  const bootstrapTokenFromQuery = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const url = new URL(window.location.href);
-    const token = url.searchParams.get('access_token');
-    const expiresIn = Number(url.searchParams.get('expires_in') || '0');
-    if (token) {
-      setSpotifyToken(token);
-      setTokenExpiry(Date.now() + (expiresIn || 3600) * 1000);
-      url.searchParams.delete('access_token');
-      url.searchParams.delete('expires_in');
-      window.history.replaceState({}, '', url.toString());
+  const storeToken = useCallback((token, expiresAt) => {
+    setSpotifyToken(token);
+    setTokenExpiry(expiresAt);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('spotify_access_token', token);
+      localStorage.setItem('spotify_token_expiry', String(expiresAt));
     }
   }, []);
 
-  const refreshAccessToken = useCallback(async () => {
-    try {
-      const res = await fetch(REFRESH_URL, { credentials: 'include' });
-      if (!res.ok) {
-        if (res.status === 401) {
-          setTokenError('Connect Spotify to enable full playback.');
-          return null;
-        }
-        const errorText = await res.text();
-        throw new Error(errorText);
-      }
-      const data = await res.json();
-      setSpotifyToken(data.access_token);
-      setTokenExpiry(Date.now() + (data.expires_in || 3600) * 1000);
-      setTokenError(null);
-      return data.access_token;
-    } catch (err) {
-      console.error('Token refresh failed', err);
-      setTokenError('Unable to refresh Spotify session. Please reconnect.');
-      return null;
+  const clearStoredToken = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('spotify_access_token');
+      localStorage.removeItem('spotify_token_expiry');
     }
   }, []);
+
+  const bootstrapTokenFromHash = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const token = hashParams.get('access_token');
+    const expiresIn = Number(hashParams.get('expires_in') || '0');
+
+    if (token) {
+      const expiresAt = Date.now() + (expiresIn || 3600) * 1000;
+      storeToken(token, expiresAt);
+      setTokenError(null);
+      window.history.replaceState({}, '', window.location.pathname + window.location.search);
+      return;
+    }
+
+    const storedToken = localStorage.getItem('spotify_access_token');
+    const storedExpiry = Number(localStorage.getItem('spotify_token_expiry') || '0');
+
+    if (storedToken && storedExpiry > Date.now()) {
+      setTokenError(null);
+      setSpotifyToken(storedToken);
+      setTokenExpiry(storedExpiry);
+    } else {
+      clearStoredToken();
+    }
+  }, [clearStoredToken, storeToken]);
 
   const ensureAccessToken = useCallback(async () => {
-    if (spotifyToken) return spotifyToken;
-    return refreshAccessToken();
-  }, [refreshAccessToken, spotifyToken]);
+    if (spotifyToken && (!tokenExpiry || tokenExpiry > Date.now())) return spotifyToken;
+    setTokenError('Connect Spotify to enable full playback.');
+    return null;
+  }, [spotifyToken, tokenExpiry]);
 
   useEffect(() => {
-    bootstrapTokenFromQuery();
-    refreshAccessToken();
-  }, [bootstrapTokenFromQuery, refreshAccessToken]);
+    bootstrapTokenFromHash();
+  }, [bootstrapTokenFromHash]);
 
   useEffect(() => {
     if (!spotifyToken) return;
@@ -1014,13 +1022,6 @@ export default function YogaApp() {
       if (profile) setSpotifyProfile(profile);
     })();
   }, [spotifyToken]);
-
-  useEffect(() => {
-    if (!tokenExpiry) return;
-    const refreshInMs = Math.max(0, tokenExpiry - Date.now() - 60000);
-    const timer = setTimeout(() => refreshAccessToken(), refreshInMs);
-    return () => clearTimeout(timer);
-  }, [tokenExpiry, refreshAccessToken]);
 
   // Initialize Custom Hook
   const { player, deviceId, playerError } = useSpotifyPlayer(spotifyToken);
@@ -1260,15 +1261,12 @@ export default function YogaApp() {
   };
 
   const handleLogout = async () => {
-    try {
-      await fetch(LOGOUT_URL, { method: 'POST', credentials: 'include' });
-    } catch (err) {
-      console.error('Failed to log out of Spotify', err);
-    }
+    clearStoredToken();
     setSpotifyToken(null);
     setTokenExpiry(null);
     setSpotifyProfile(null);
     setSpotifyStatus('');
+    setTokenError(null);
   };
 
   // --- UI RENDER ---
@@ -1298,9 +1296,9 @@ export default function YogaApp() {
 
         <div className="flex items-center gap-2">
           {!spotifyToken && (
-            <a href={LOGIN_URL} className="px-3 py-2 bg-[#1DB954] text-white rounded-full text-xs font-bold hover:opacity-90 flex items-center gap-1">
+            <button onClick={() => window.location.href = getLoginUrl()} className="px-3 py-2 bg-[#1DB954] text-white rounded-full text-xs font-bold hover:opacity-90 flex items-center gap-1">
               <LogIn size={16} /> Connect Spotify
-            </a>
+            </button>
           )}
           {spotifyToken && (
             <button onClick={handleLogout} className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full" title="Disconnect Spotify">
@@ -1482,7 +1480,7 @@ export default function YogaApp() {
               themes={musicThemes}
               onUpdateTheme={updateMusicTheme}
               spotifyToken={spotifyToken}
-              loginUrl={LOGIN_URL}
+              getLoginUrl={getLoginUrl}
               isPremiumUser={isPremiumUser}
               tokenError={tokenError}
             />
