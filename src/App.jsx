@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Menu, X, Play, RefreshCw, Settings, Heart, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
@@ -358,49 +358,61 @@ const useSpotifyPlayer = (token) => {
   useEffect(() => {
     if (!token) return;
 
-    // Prevent multiple script injections
-    if (!document.getElementById('spotify-player-script')) {
-      const script = document.createElement("script");
-      script.id = 'spotify-player-script';
-      script.src = "https://sdk.scdn.co/spotify-player.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
+    let localPlayer;
 
-    window.onSpotifyWebPlaybackSDKReady = () => {
-      const newPlayer = new window.Spotify.Player({
+    const initializePlayer = () => {
+      localPlayer = new window.Spotify.Player({
         name: 'ZenFlow Web Player',
         getOAuthToken: cb => { cb(token); },
         volume: 0.5
       });
 
-      setPlayer(newPlayer);
+      setPlayer(localPlayer);
 
-      newPlayer.addListener('ready', ({ device_id }) => {
+      localPlayer.addListener('ready', ({ device_id }) => {
         console.log('Ready with Device ID', device_id);
         setDeviceId(device_id);
       });
 
-      newPlayer.addListener('not_ready', ({ device_id }) => {
+      localPlayer.addListener('not_ready', ({ device_id }) => {
         console.log('Device ID has gone offline', device_id);
       });
 
-      newPlayer.addListener('player_state_changed', (state) => {
+      localPlayer.addListener('player_state_changed', (state) => {
         if (!state) return;
         setTrack(state.track_window.current_track);
         setPaused(state.paused);
         setActive(true);
       });
 
-      newPlayer.addListener('initialization_error', ({ message }) => setPlayerError(message));
-      newPlayer.addListener('authentication_error', ({ message }) => setPlayerError(message));
-      newPlayer.addListener('account_error', ({ message }) => setPlayerError("Premium account required for playback."));
+      localPlayer.addListener('initialization_error', ({ message }) => setPlayerError(message));
+      localPlayer.addListener('authentication_error', ({ message }) => setPlayerError(message));
+      localPlayer.addListener('account_error', () => setPlayerError("Premium account required for playback."));
 
-      newPlayer.connect();
+      localPlayer.connect();
     };
 
+    // Check if the script is already loaded
+    if (window.Spotify) {
+      initializePlayer();
+    } else {
+      // If not, wait for it
+      window.onSpotifyWebPlaybackSDKReady = initializePlayer;
+      
+      // Inject script if it doesn't exist
+      if (!document.getElementById('spotify-player-script')) {
+        const script = document.createElement("script");
+        script.id = 'spotify-player-script';
+        script.src = "https://sdk.scdn.co/spotify-player.js";
+        script.async = true;
+        document.body.appendChild(script);
+      }
+    }
+
     return () => {
-       // Optional cleanup
+       if (localPlayer) {
+         localPlayer.disconnect();
+       }
     };
   }, [token]);
 
@@ -887,20 +899,27 @@ export default function YogaApp() {
   const [selectedPose, setSelectedPose] = useState(null);
 
   // --- SPOTIFY INTEGRATION ---
-  const [spotifyToken, setSpotifyToken] = useState(null);
+  // Initialize with lazy state to check local storage immediately on mount (prevents re-render)
+  const [spotifyToken, setSpotifyToken] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    
+    // Check URL first to avoid effect update
+    const hash = getTokenFromUrl();
+    if (hash.access_token) {
+      return hash.access_token;
+    }
+
+    return localStorage.getItem('spotify_token');
+  });
   
-  // Initialize Spotify Auth and Player
+  // Handle Auth Redirect Side Effects (Cleanup URL, Sync Storage)
   useEffect(() => {
     const hash = getTokenFromUrl();
-    window.location.hash = ""; // Clear hash for cleanliness
     const _token = hash.access_token;
 
     if (_token) {
-      setSpotifyToken(_token);
+      window.location.hash = ""; // Clear hash for cleanliness
       localStorage.setItem('spotify_token', _token);
-    } else {
-      const savedToken = localStorage.getItem('spotify_token');
-      if (savedToken) setSpotifyToken(savedToken);
     }
   }, []);
 
@@ -1203,11 +1222,13 @@ export default function YogaApp() {
         )}
 
         {/* SIDEBAR */}
-        {activeTab === 'generator' && (
+        {/* MODIFIED: Sidebar now renders if user is on generator OR if sidebar is open (for mobile menu) */}
+        {(activeTab === 'generator' || isSidebarOpen) && (
           <aside className={`
             fixed lg:static inset-y-0 left-0 z-40 w-80 bg-white dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 
             transform transition-transform duration-300 ease-in-out print:hidden flex flex-col
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden'}
+            ${/* On desktop, hide sidebar if not on generator tab */ activeTab !== 'generator' ? 'lg:hidden' : ''}
           `}>
             <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
               
@@ -1238,86 +1259,91 @@ export default function YogaApp() {
                 ))}
               </div>
 
-              {/* CONTROLS */}
-              <div className="space-y-5">
-                <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Settings size={14} /> Configuration</div>
-                
-                <div>
-                  <div className="flex justify-between text-sm mb-2 font-medium dark:text-stone-300"><span>Duration</span> <span>{params.duration} min</span></div>
-                  <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full accent-teal-600 h-2 bg-stone-200 dark:bg-stone-600 rounded-lg appearance-none cursor-pointer" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              {/* CONTROLS - Only show if on Generator tab */}
+              {activeTab === 'generator' && (
+                <div className="space-y-5">
+                  <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Settings size={14} /> Configuration</div>
+                  
                   <div>
-                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Style</label>
-                    <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
-                      {['Vinyasa', 'Hatha', 'Power', 'Yin', 'Restorative'].map(s => <option key={s}>{s}</option>)}
-                    </select>
+                    <div className="flex justify-between text-sm mb-2 font-medium dark:text-stone-300"><span>Duration</span> <span>{params.duration} min</span></div>
+                    <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full accent-teal-600 h-2 bg-stone-200 dark:bg-stone-600 rounded-lg appearance-none cursor-pointer" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Level</label>
-                    <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
-                      {['Beginner', 'Intermediate', 'Advanced'].map(l => <option key={l}>{l}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
 
-              <div className="space-y-4 pt-4 border-t border-stone-100 dark:border-stone-700">
-                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Layers size={14} /> Method</div>
-                 <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { id: SEQUENCE_METHODS.STANDARD, label: 'Standard', icon: Layers },
-                      { id: SEQUENCE_METHODS.PEAK, label: 'Peak Pose', icon: Target },
-                      { id: SEQUENCE_METHODS.THEME, label: 'Themed', icon: Zap },
-                      { id: SEQUENCE_METHODS.TARGET, label: 'Body Area', icon: Anchor },
-                      { id: SEQUENCE_METHODS.LADDER, label: 'Ladder', icon: Layers }
-                    ].map(m => (
-                      <button 
-                        key={m.id}
-                        onClick={() => setParams({...params, method: m.id})} 
-                        className={`p-3 rounded-lg text-xs font-bold border transition-all flex flex-col items-center gap-1 ${params.method === m.id ? 'bg-teal-50 border-teal-500 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100 dark:border-teal-500' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-teal-300 dark:hover:border-stone-500'}`}
-                      >
-                        <m.icon size={16} /> {m.label}
-                      </button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Style</label>
+                      <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                        {['Vinyasa', 'Hatha', 'Power', 'Yin', 'Restorative'].map(s => <option key={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Level</label>
+                      <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                        {['Beginner', 'Intermediate', 'Advanced'].map(l => <option key={l}>{l}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-stone-100 dark:border-stone-700">
+                    <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Layers size={14} /> Method</div>
+                    <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: SEQUENCE_METHODS.STANDARD, label: 'Standard', icon: Layers },
+                          { id: SEQUENCE_METHODS.PEAK, label: 'Peak Pose', icon: Target },
+                          { id: SEQUENCE_METHODS.THEME, label: 'Themed', icon: Zap },
+                          { id: SEQUENCE_METHODS.TARGET, label: 'Body Area', icon: Anchor },
+                          { id: SEQUENCE_METHODS.LADDER, label: 'Ladder', icon: Layers }
+                        ].map(m => (
+                          <button 
+                            key={m.id}
+                            onClick={() => setParams({...params, method: m.id})} 
+                            className={`p-3 rounded-lg text-xs font-bold border transition-all flex flex-col items-center gap-1 ${params.method === m.id ? 'bg-teal-50 border-teal-500 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100 dark:border-teal-500' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-teal-300 dark:hover:border-stone-500'}`}
+                          >
+                            <m.icon size={16} /> {m.label}
+                          </button>
+                        ))}
+                    </div>
+
+                    {params.method === SEQUENCE_METHODS.PEAK && (
+                        <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                          {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    )}
+                    
+                    {params.method === SEQUENCE_METHODS.THEME && (
+                        <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                          {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    )}
+
+                    {params.method === SEQUENCE_METHODS.TARGET && (
+                        <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                          {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-stone-100 dark:border-stone-700">
+                    <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Activity size={14} /> Filters</div>
+                    {['noWrists', 'kneeFriendly', 'pregnancySafe'].map(f => (
+                      <label key={f} className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 p-2 hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded text-stone-700 dark:text-stone-300">
+                        <input type="checkbox" checked={params.filters[f]} onChange={() => setParams(p => ({...p, filters: {...p.filters, [f]: !p.filters[f]}}))} className="accent-teal-600 w-4 h-4 rounded" />
+                        <span className="capitalize">{f.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      </label>
                     ))}
-                 </div>
-
-                 {params.method === SEQUENCE_METHODS.PEAK && (
-                    <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                      {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                 )}
-                 
-                 {params.method === SEQUENCE_METHODS.THEME && (
-                    <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                      {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                 )}
-
-                 {params.method === SEQUENCE_METHODS.TARGET && (
-                    <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                      {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                 )}
-              </div>
-
-              <div className="space-y-3 pt-4 border-t border-stone-100 dark:border-stone-700">
-                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Activity size={14} /> Filters</div>
-                 {['noWrists', 'kneeFriendly', 'pregnancySafe'].map(f => (
-                   <label key={f} className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 p-2 hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded text-stone-700 dark:text-stone-300">
-                     <input type="checkbox" checked={params.filters[f]} onChange={() => setParams(p => ({...p, filters: {...p.filters, [f]: !p.filters[f]}}))} className="accent-teal-600 w-4 h-4 rounded" />
-                     <span className="capitalize">{f.replace(/([A-Z])/g, ' $1').trim()}</span>
-                   </label>
-                 ))}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="p-4 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
-              <button onClick={generateSequence} className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg shadow-teal-900/20 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95">
-                <RefreshCw size={18} /> Generate Flow
-              </button>
-            </div>
+            {/* GENERATE BUTTON - Only show if on Generator tab */}
+            {activeTab === 'generator' && (
+              <div className="p-4 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
+                <button onClick={generateSequence} className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg shadow-teal-900/20 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95">
+                  <RefreshCw size={18} /> Generate Flow
+                </button>
+              </div>
+            )}
           </aside>
         )}
 
