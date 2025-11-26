@@ -3,7 +3,7 @@ import {
   Menu, X, Play, RefreshCw, Settings, Heart, Copy, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
   Shuffle, SkipForward, Pause, PlayCircle, Info, Download, Check, Headphones,
-  Layers, Target, Zap, Anchor // New icons for methods
+  Layers, Target, Zap, Anchor
 } from 'lucide-react';
 
 /**
@@ -30,22 +30,19 @@ const POSE_LIBRARY = [
     id: 'suc', name: 'Easy Pose', sanskrit: 'Sukhasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Sit tall, ground sit bones, hands on knees.', 
     benefits: ['Calms the brain', 'Strengthens the back', 'Stretches knees and ankles'],
-    types: ['grounding', 'meditation'],
-    prompt: 'Clean minimalist vector flat illustration of a person sitting cross-legged in Sukhasana (Easy Pose), neutral spine, hands resting on knees, relaxed shoulders. White background, soft teal and slate grey palette, simple crisp lines, animation-ready.'
+    types: ['grounding', 'meditation']
   },
   { 
     id: 'vir', name: 'Hero Pose', sanskrit: 'Virasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Knees together, feet apart, sit between heels.', 
     benefits: ['Stretches thighs and knees', 'Improves digestion', 'Relieves tired legs'],
-    types: ['grounding', 'knees'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Virasana (Hero Pose), seated between heels, knees together, torso upright, hands resting on thighs. White background, soft teal and slate grey palette.'
+    types: ['grounding', 'knees']
   },
   { 
     id: 'chi', name: 'Child\'s Pose', sanskrit: 'Balasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: true, pregnant: true, 
     cues: 'Knees wide, big toes touch, forehead to mat.', 
     benefits: ['Gently stretches hips and thighs', 'Calms the mind', 'Relieves back and neck pain'],
-    types: ['grounding', 'hip-opener', 'rest'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Balasana (Child’s Pose), knees wide, torso folded down, forehead on mat, arms extended forward. White background, soft teal and slate grey palette.'
+    types: ['grounding', 'hip-opener', 'rest']
   },
 
   // WARMUP
@@ -53,36 +50,31 @@ const POSE_LIBRARY = [
     id: 'cat', name: 'Cat Pose', sanskrit: 'Marjaryasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Exhale, round spine to ceiling, chin to chest.', 
     benefits: ['Increases spine flexibility', 'Stretches back torso and neck', 'Stimulates abdominal organs'],
-    types: ['spine', 'warmup'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Cat Pose (Marjaryasana), rounded spine, head dropped, on all fours. White background, soft teal and slate grey palette.'
+    types: ['spine', 'warmup']
   },
   { 
     id: 'cow', name: 'Cow Pose', sanskrit: 'Bitilasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Inhale, drop belly, lift gaze.', 
     benefits: ['Stretches front torso and neck', 'Massages spine', 'Calms the mind'],
-    types: ['spine', 'warmup'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Cow Pose (Bitilasana), spine arched, chest open, head lifted, on all fours. White background, soft teal and slate grey palette.'
+    types: ['spine', 'warmup']
   },
   { 
     id: 'thread', name: 'Thread the Needle', sanskrit: 'Parsva Balasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Slide arm under chest, rest shoulder on mat.', 
     benefits: ['Opens shoulders', 'Gentle spinal twist', 'Relieves tension in upper back'],
-    types: ['twist', 'shoulder'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Thread the Needle pose, on all fours with one arm threaded under the chest, shoulder and head resting on the ground. White background, soft teal and slate grey palette.'
+    types: ['twist', 'shoulder']
   },
   { 
     id: 'dd', name: 'Downward Facing Dog', sanskrit: 'Adho Mukha Svanasana', category: POSE_CATEGORIES.WARMUP, difficulty: 2, wrist: true, knee: false, pregnant: true, 
     cues: 'Hips high, heels down, press into knuckles.', 
     benefits: ['Energizes the body', 'Stretches shoulders, hamstrings, calves', 'Strengthens arms and legs'],
-    types: ['hamstring', 'inversion', 'strength'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Downward Facing Dog, hips lifted, arms straight, legs straight, forming an inverted V. White background, soft teal and slate grey palette.'
+    types: ['hamstring', 'inversion', 'strength']
   },
   { 
     id: 'rag', name: 'Ragdoll Fold', sanskrit: 'Uttanasana Variation', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Hold opposite elbows, sway gently side to side.', 
     benefits: ['Releases lower back', 'Calms the nervous system', 'Stretches hamstrings'],
-    types: ['hamstring', 'spine'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Ragdoll Forward Fold, knees soft, torso hanging over legs, arms hanging or holding elbows. White background, soft teal and slate grey palette.'
+    types: ['hamstring', 'spine']
   },
 
   // SUN SALUTATION
@@ -90,36 +82,31 @@ const POSE_LIBRARY = [
     id: 'mtn', name: 'Mountain Pose', sanskrit: 'Tadasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Feet grounded, palms forward, crown lifts.', 
     benefits: ['Improves posture', 'Strengthens thighs, knees, and ankles', 'Firms abdomen and buttocks'],
-    types: ['standing', 'grounding'],
-    prompt: 'Clean minimalist vector flat illustration of a person standing tall in Tadasana, feet hip-width, neutral spine, arms by sides. White background, soft teal and slate grey palette.'
+    types: ['standing', 'grounding']
   },
   { 
     id: 'plk', name: 'Plank Pose', sanskrit: 'Phalakasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, 
     cues: 'Core engaged, heels press back, dome upper back.', 
     benefits: ['Strengthens arms, wrists, and spine', 'Tones abdomen', 'Prepares body for advanced arm balances'],
-    types: ['core', 'strength'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Plank Pose, straight line from head to heels, arms straight, core engaged. White background, soft teal and slate grey palette.'
+    types: ['core', 'strength']
   },
   { 
     id: 'chat', name: 'Chaturanga', sanskrit: 'Chaturanga Dandasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Lower halfway, elbows hug ribs.', 
     benefits: ['Develops core stability', 'Strengthens arms and wrists', 'Tones abdomen'],
-    types: ['strength', 'arm-balance'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Chaturanga, elbows bent at 90 degrees, body parallel to floor, tight core. White background, soft teal and slate grey palette.'
+    types: ['strength', 'arm-balance']
   },
   { 
     id: 'cobra', name: 'Cobra Pose', sanskrit: 'Bhujangasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: true, knee: false, pregnant: false, 
     cues: 'Lift chest, little weight in hands, press tops of feet.', 
     benefits: ['Strengthens the spine', 'Stretches chest and lungs, shoulders, and abdomen', 'Stimulates abdominal organs'],
-    types: ['backbend', 'spine'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Cobra Pose, chest lifted, elbows bent close to ribs, legs on ground. White background, soft teal and slate grey palette.'
+    types: ['backbend', 'spine']
   },
   { 
     id: 'updog', name: 'Upward Facing Dog', sanskrit: 'Urdhva Mukha Svanasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, 
     cues: 'Thighs lifted, chest open, shoulders down.', 
     benefits: ['Improves posture', 'Strengthens spine, arms, wrists', 'Stretches chest and lungs'],
-    types: ['backbend', 'strength'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Upward Facing Dog, arms straight, thighs lifted off ground, chest open. White background, soft teal and slate grey palette.'
+    types: ['backbend', 'strength']
   },
 
   // STANDING
@@ -127,50 +114,43 @@ const POSE_LIBRARY = [
     id: 'w1', name: 'Warrior I', sanskrit: 'Virabhadrasana I', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Back heel down 45 degrees, hips square to front.', 
     benefits: ['Stretches chest and lungs', 'Strengthens shoulders and arms', 'Strengthens and stretches thighs and calves'],
-    types: ['strength', 'hip-opener', 'standing'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Warrior I, front knee bent 90 degrees, back leg straight, hips squared, arms overhead. White background, soft teal and slate grey palette.'
+    types: ['strength', 'hip-opener', 'standing']
   },
   { 
     id: 'w2', name: 'Warrior II', sanskrit: 'Virabhadrasana II', category: POSE_CATEGORIES.STANDING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Front knee over ankle, gaze over front middle finger.', 
     benefits: ['Increases stamina', 'Strengthens legs and ankles', 'Stretches groins, chest and shoulders'],
-    types: ['strength', 'hip-opener', 'standing'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Warrior II, front knee bent, arms extended parallel, hips open, strong T-shape. White background, soft teal and slate grey palette.'
+    types: ['strength', 'hip-opener', 'standing']
   },
   { 
     id: 'tri', name: 'Triangle Pose', sanskrit: 'Trikonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Lengthen side body, hand to shin or block.', 
     benefits: ['Stretches hips, groins, hamstrings', 'Opens chest and shoulders', 'Relieves backache'],
-    types: ['hamstring', 'hip-opener', 'standing'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Triangle Pose, front leg straight, torso extended sideways, bottom hand to shin, top arm vertical. White background, soft teal and slate grey palette.'
+    types: ['hamstring', 'hip-opener', 'standing']
   },
   { 
     id: 'extside', name: 'Extended Side Angle', sanskrit: 'Utthita Parsvakonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Forearm to thigh or hand to floor, long diagonal line.', 
     benefits: ['Strengthens legs, knees, and ankles', 'Stretches groins, spine, waist', 'Stimulates abdominal organs'],
-    types: ['strength', 'side-stretch', 'standing'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Extended Side Angle, front knee bent, forearm on thigh or hand to floor, top arm extended overhead on a diagonal. White background, soft teal and slate grey palette.'
+    types: ['strength', 'side-stretch', 'standing']
   },
   { 
     id: 'lunge', name: 'High Lunge', sanskrit: 'Ashta Chandrasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Back heel lifted, hips square, arms reach up.', 
     benefits: ['Strengthens legs and arms', 'Stretches hip flexors', 'Develops balance and stability'],
-    types: ['strength', 'balance', 'standing'],
-    prompt: 'Clean minimalist vector flat illustration of a person in High Lunge, front knee bent, back leg straight, arms overhead, torso upright. White background, soft teal and slate grey palette.'
+    types: ['strength', 'balance', 'standing']
   },
   { 
     id: 'goddess', name: 'Goddess Pose', sanskrit: 'Utkata Konasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Toes out, heels in, sink hips, cactus arms.', 
     benefits: ['Opens hips and chest', 'Strengthens legs and glutes', 'Builds heat'],
-    types: ['strength', 'hip-opener', 'standing'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Goddess Pose, wide stance, knees bent, toes turned out, arms bent at 90 degrees. White background, soft teal and slate grey palette.'
+    types: ['strength', 'hip-opener', 'standing']
   },
   { 
     id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Sit back into heels, lift chest, tuck tailbone slightly.', 
     benefits: ['Strengthens ankles, thighs, calves, and spine', 'Stretches shoulders and chest', 'Stimulates heart and diaphragm'],
-    types: ['strength', 'standing'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Chair Pose, knees bent deeply, hips back, arms overhead, spine long. White background, soft teal and slate grey palette.'
+    types: ['strength', 'standing']
   },
 
   // BALANCE
@@ -178,29 +158,25 @@ const POSE_LIBRARY = [
     id: 'tree', name: 'Tree Pose', sanskrit: 'Vrksasana', category: POSE_CATEGORIES.BALANCE, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Foot to calf or thigh (not knee), hands to heart.', 
     benefits: ['Strengthens thighs, calves, ankles, and spine', 'Stretches groins and inner thighs', 'Improves balance'],
-    types: ['balance', 'hip-opener'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Tree Pose, standing on one leg, other foot on inner thigh, hands in prayer at chest. White background, soft teal and slate grey palette.'
+    types: ['balance', 'hip-opener']
   },
   { 
     id: 'eagle', name: 'Eagle Pose', sanskrit: 'Garudasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'Wrap right leg over left, right arm under left.', 
     benefits: ['Strengthens and stretches ankles and calves', 'Stretches thighs, hips, shoulders, and upper back', 'Improves concentration'],
-    types: ['balance', 'twist', 'peak'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Eagle Pose, one leg wrapped around the other, arms wrapped, slight squat, elbows lifted. White background, soft teal and slate grey palette.'
+    types: ['balance', 'twist', 'peak']
   },
   { 
     id: 'w3', name: 'Warrior III', sanskrit: 'Virabhadrasana III', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'T-shape body, hips square to floor.', 
     benefits: ['Strengthens ankles and legs', 'Strengthens shoulders and muscles of the back', 'Tones the abdomen'],
-    types: ['balance', 'strength', 'hamstring'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Warrior III, standing on one leg, torso forward, back leg lifted straight, arms extended. White background, soft teal and slate grey palette.'
+    types: ['balance', 'strength', 'hamstring']
   },
   { 
     id: 'dancer', name: 'Dancer Pose', sanskrit: 'Natarajasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'Catch inside of back foot, kick into hand.', 
     benefits: ['Stretches shoulders, chest, thighs, groins, and abdomen', 'Strengthens legs and ankles', 'Improves balance'],
-    types: ['balance', 'backbend', 'peak'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Dancer Pose, standing on one leg, back leg bent and held by the hand, opposite arm reaching forward. White background, soft teal and slate grey palette.'
+    types: ['balance', 'backbend', 'peak']
   },
 
   // FLOOR / STRETCH / PEAK
@@ -208,43 +184,37 @@ const POSE_LIBRARY = [
     id: 'pigeon', name: 'Half Pigeon', sanskrit: 'Eka Pada Rajakapotasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 2, wrist: true, knee: true, pregnant: true, 
     cues: 'Right knee to right wrist, shin diagonal.', 
     benefits: ['Stretches thighs, groins and psoas', 'Opens hips', 'Stimulates abdominal organs'],
-    types: ['hip-opener', 'rest'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Half Pigeon Pose, front leg folded, back leg extended, torso upright or folding forward. White background, soft teal and slate grey palette.'
+    types: ['hip-opener', 'rest']
   },
   { 
     id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Lift hips, interlace fingers under back.', 
     benefits: ['Stretches chest, neck, and spine', 'Calms the brain', 'Rejuvenates tired legs'],
-    types: ['backbend', 'spine'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Bridge Pose, lying on back with knees bent, hips lifted, chest open. White background, soft teal and slate grey palette.'
+    types: ['backbend', 'spine']
   },
   { 
     id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Dhanurasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Press into hands and feet, lift entire body.', 
     benefits: ['Strengthens arms, wrists, legs, buttocks, abdomen, and spine', 'Stimulates thyroid and pituitary', 'Increases energy'],
-    types: ['backbend', 'peak', 'strength'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Wheel Pose, full backbend, hands and feet on ground, chest lifted. White background, soft teal and slate grey palette.'
+    types: ['backbend', 'peak', 'strength']
   },
   { 
     id: 'boat', name: 'Boat Pose', sanskrit: 'Navasana', category: POSE_CATEGORIES.CORE, difficulty: 2, wrist: false, knee: false, pregnant: false, 
     cues: 'Lift feet, balance on sit bones, chest open.', 
     benefits: ['Strengthens abdomen, hip flexors, and spine', 'Stimulates kidneys', 'Improves digestion'],
-    types: ['core', 'strength'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Boat Pose, balanced on sit bones, legs lifted straight, torso leaning back, arms extended forward. White background, soft teal and slate grey palette.'
+    types: ['core', 'strength']
   },
   { 
     id: 'crow', name: 'Crow Pose', sanskrit: 'Bakasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Knees to armpits, lean forward, float feet.', 
     benefits: ['Strengthens arms and wrists', 'Stretches upper back', 'Strengthens abdominal muscles'],
-    types: ['arm-balance', 'peak', 'core'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Crow Pose, balancing on hands, knees on upper arms, feet lifted, compact body. White background, soft teal and slate grey palette.'
+    types: ['arm-balance', 'peak', 'core']
   },
   { 
     id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Forearms down, interlace fingers, crown of head lightly down.', 
     benefits: ['Calms the brain', 'Strengthens arms, legs and spine', 'Improves digestion'],
-    types: ['inversion', 'peak', 'core'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Supported Headstand, forearm base, straight legs stacked over hips. White background, soft teal and slate grey palette.'
+    types: ['inversion', 'peak', 'core']
   },
   
   // RESTORATIVE / COOL DOWN
@@ -252,36 +222,31 @@ const POSE_LIBRARY = [
     id: 'paschi', name: 'Seated Forward Fold', sanskrit: 'Paschimottanasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Lengthen spine then fold, keep feet flexed.', 
     benefits: ['Calms the brain', 'Stretches the spine, shoulders and hamstrings', 'Stimulates liver and kidneys'],
-    types: ['hamstring', 'spine', 'rest'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Seated Forward Fold, legs straight, torso folding over legs, hands reaching toward feet. White background, soft teal and slate grey palette.'
+    types: ['hamstring', 'spine', 'rest']
   },
   { 
     id: 'janu', name: 'Head to Knee', sanskrit: 'Janu Sirsasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: true, pregnant: true, 
     cues: 'One leg straight, one foot to inner thigh, fold.', 
     benefits: ['Calms the brain', 'Stretches spine, shoulders, hamstrings, and groins', 'Stimulates liver and kidneys'],
-    types: ['hamstring', 'hip-opener', 'rest'],
-    prompt: 'Clean minimalist vector flat illustration of a person in Head-to-Knee Pose, one leg extended, other foot against inner thigh, torso folding over extended leg. White background, soft teal and slate grey palette.'
+    types: ['hamstring', 'hip-opener', 'rest']
   },
   { 
     id: 'twist', name: 'Supine Twist', sanskrit: 'Supta Matsyendrasana', category: POSE_CATEGORIES.TWIST, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Knees to one side, gaze opposite.', 
     benefits: ['Stretches the back muscles and glutes', 'Massages back and hips', 'Helps hydrate spinal disks'],
-    types: ['twist', 'spine', 'rest'],
-    prompt: 'Clean minimalist vector flat illustration of a person lying on their back in a Supine Twist, one knee crossed over the body, opposite arm extended. White background, soft teal and slate grey palette.'
+    types: ['twist', 'spine', 'rest']
   },
   { 
     id: 'happy', name: 'Happy Baby', sanskrit: 'Ananda Balasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Grab outer feet, pull knees toward armpits.', 
     benefits: ['Gently releases hips', 'Calms the brain', 'Relieves lower back pain'],
-    types: ['hip-opener', 'rest'],
-    prompt: 'Clean minimalist vector flat illustration of a person on their back in Happy Baby Pose, knees bent wide, hands holding feet, spine grounded. White background, soft teal and slate grey palette.'
+    types: ['hip-opener', 'rest']
   },
   { 
     id: 'sava', name: 'Corpse Pose', sanskrit: 'Savasana', category: POSE_CATEGORIES.SAVASANA, difficulty: 0, wrist: false, knee: false, pregnant: true, 
     cues: 'Complete relaxation. Let go of breath control.', 
     benefits: ['Calms the brain', 'Relieves stress', 'Relaxes the body'],
-    types: ['rest', 'grounding'],
-    prompt: 'Clean minimalist vector flat illustration of a person lying flat on back in Savasana, arms relaxed by sides, legs extended, neutral alignment. White background, soft teal and slate grey palette.'
+    types: ['rest', 'grounding']
   },
 ];
 
@@ -333,7 +298,6 @@ const PoseDetailModal = ({ pose, onClose }) => {
   if (!pose) return null;
 
   const imagePath = `/poses/${pose.id}.png`; 
-  const fallbackImage = `https://image.pollinations.ai/prompt/${encodeURIComponent(pose.prompt || pose.name)}?nologo=true`;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
@@ -345,7 +309,6 @@ const PoseDetailModal = ({ pose, onClose }) => {
             src={imagePath} 
             alt={pose.name} 
             className="w-full h-full object-contain p-8 mix-blend-multiply dark:mix-blend-normal transition-transform group-hover:scale-105"
-            onError={(e) => { e.target.onerror = null; e.target.src = fallbackImage; }} 
           />
           <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md">
             <X size={20} />
@@ -513,8 +476,6 @@ const PracticeMode = ({
       setIsTimerRunning(false);
   }, []);
 
-  const bgImage = `https://image.pollinations.ai/prompt/${encodeURIComponent(current.prompt || current.name)}?nologo=true`;
-
   return (
     <div className="fixed inset-0 z-[60] bg-stone-900 text-stone-100 flex flex-col">
       {/* Header */}
@@ -533,7 +494,6 @@ const PracticeMode = ({
            <img 
               src={`/poses/${current.id}.png`} 
               className="w-full h-full object-cover" 
-              onError={(e) => { e.target.onerror = null; e.target.src = bgImage; }}
             />
         </div>
 
