@@ -1,16 +1,42 @@
-# React + Vite
+# ZenFlow
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Vite + React yoga sequence builder with integrated Spotify Web Playback SDK support for full-track streaming (Premium accounts only).
 
-Currently, two official plugins are available:
+## Prerequisites
+- Node.js 18+ (for native `fetch` in the backend server)
+- A Spotify Developer application with a Premium account for playback
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Environment
+Copy `.env.example` to `.env` and set the values from your Spotify app:
 
-## React Compiler
+```
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+SPOTIFY_REDIRECT_URI=http://localhost:5174/api/spotify/callback
+FRONTEND_URI=http://localhost:5173/
+SPOTIFY_SCOPES=streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state
+ALLOWED_ORIGIN=http://localhost:5173
+PORT=5174
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Key Spotify dashboard settings:
+- **Redirect URI** must exactly match `SPOTIFY_REDIRECT_URI` (including trailing slash rules). Add `http://localhost:5174/api/spotify/callback` for local dev.
+- **Allowed front-end origin** should include `http://localhost:5173/` (ensure the trailing slash if you use one when registering URIs).
+- Scopes required: `streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state`.
 
-## Expanding the ESLint configuration
+## Running locally
+1. Install dependencies with `npm install` (already vendored in this environment).
+2. Start the Spotify auth server:
+   ```bash
+   npm run server
+   ```
+3. In a separate terminal, start the Vite dev server pointing to the backend:
+   ```bash
+   VITE_API_BASE_URL=http://localhost:5174 npm run dev
+   ```
+4. Open `http://localhost:5173/` in the browser. Use the **Connect Spotify** button to go through the OAuth flow. The backend stores the refresh token in an HttpOnly cookie and refreshes access tokens automatically.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Playback flow
+- After connecting, the Web Playback SDK spins up a device named **ZenFlow Web Player** and the app automatically transfers playback to it.
+- Use the **Start Playlist** action in practice mode to trigger full-track playback of the configured playlist/album/track URI.
+- Premium users will hear full tracks; non-Premium accounts receive a clear warning and cannot start playback.
