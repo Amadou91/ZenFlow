@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Menu, X, Play, RefreshCw, Settings, Heart, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
@@ -285,22 +285,14 @@ const DEFAULT_MUSIC_THEMES = [
   { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.', link: 'http://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO' },
 ];
 
-// --- 2. SPOTIFY UTILS -
+// --- 2. SPOTIFY UTILS ---
 
-// REPLACE THIS WITH YOUR ACTUAL CLIENT ID FROM SPOTIFY DASHBOARD
-const CLIENT_ID = '4de853bd5af346d5bd03ad30dfa84bff'; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const LOGIN_URL = `${API_BASE_URL}/api/spotify/login`;
+const REFRESH_URL = `${API_BASE_URL}/api/spotify/refresh`;
+const LOGOUT_URL = `${API_BASE_URL}/api/spotify/logout`;
 
-const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-
-// MODIFIED: Robust redirect URI handling
-// Automatically adds trailing slash if missing, which is critical for exact matching in Spotify Dashboard
-const getRedirectUri = () => {
-  if (typeof window === 'undefined') return '';
-  const uri = window.location.origin;
-  return uri.endsWith('/') ? uri : `${uri}/`;
-};
-
-const SCOPES = [
+const REQUIRED_SCOPES = [
   'streaming',               // Required for Web Playback SDK
   'user-read-email',         // Required for SDK
   'user-read-private',       // Required for SDK
@@ -308,9 +300,20 @@ const SCOPES = [
   'user-modify-playback-state' // To transfer playback to this device
 ];
 
-const getLoginUrl = () => {
-  const REDIRECT_URI = getRedirectUri();
-  return `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES.join(' '))}&response_type=token&show_dialog=true`;
+const transferPlaybackToDevice = async (token, deviceId, play = false) => {
+  if (!token || !deviceId) return;
+  try {
+    await fetch('https://api.spotify.com/v1/me/player', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ device_ids: [deviceId], play })
+    });
+  } catch (err) {
+    console.error('Failed to transfer playback', err);
+  }
 };
 
 const parseSpotifyUri = (link) => {
@@ -338,6 +341,22 @@ const playSpotifyTrack = async (token, device_id, context_uri) => {
     });
   } catch (err) {
     console.error("Spotify Play Error:", err);
+  }
+};
+
+const fetchSpotifyProfile = async (token) => {
+  if (!token) return null;
+  try {
+    const res = await fetch('https://api.spotify.com/v1/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch (e) {
+    console.error('Failed to load Spotify profile', e);
+    return null;
   }
 };
 
@@ -538,7 +557,7 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
   );
 };
 
-const MusicConfig = ({ themes, onUpdateTheme, spotifyToken }) => {
+const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, loginUrl, isPremiumUser, tokenError }) => {
   const [editingId, setEditingId] = useState(null);
   const [tempLink, setTempLink] = useState('');
 
@@ -557,19 +576,30 @@ const MusicConfig = ({ themes, onUpdateTheme, spotifyToken }) => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100">Music Configuration</h2>
         {!spotifyToken ? (
-           <a href={getLoginUrl()} className="flex items-center gap-2 px-4 py-2 bg-[#1DB954] text-white rounded-full font-bold text-sm hover:opacity-90">
+           <a href={loginUrl} className="flex items-center gap-2 px-4 py-2 bg-[#1DB954] text-white rounded-full font-bold text-sm hover:opacity-90">
              <LogIn size={16} /> Connect Spotify
            </a>
         ) : (
           <div className="flex items-center gap-2 text-[#1DB954] font-bold text-sm">
-             <Check size={16} /> Spotify Connected
+             <Check size={16} /> {isPremiumUser ? 'Spotify Premium Connected' : 'Spotify Connected'}
           </div>
         )}
       </div>
-      
+
       <p className="text-stone-600 dark:text-stone-400 mb-8">
         Link your Spotify playlists to each mood. For full playback, ensure you are connected to Spotify Premium above.
       </p>
+
+      {tokenError && (
+        <div className="mb-6 px-4 py-3 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-sm">
+          {tokenError}
+        </div>
+      )}
+      {spotifyToken && !isPremiumUser && (
+        <div className="mb-6 px-4 py-3 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-sm">
+          Premium is required to play full tracks. You can still manage playlist links here.
+        </div>
+      )}
 
       <div className="grid gap-4">
         {themes.map(theme => (
@@ -621,19 +651,23 @@ const MusicConfig = ({ themes, onUpdateTheme, spotifyToken }) => {
   );
 };
 
-const PracticeMode = ({ 
-    sequence, 
-    practiceIndex, 
-    timerSeconds, 
-    isTimerRunning, 
-    setIsTimerRunning, 
-    nextPracticePose, 
-    onClose, 
+const PracticeMode = ({
+    sequence,
+    practiceIndex,
+    timerSeconds,
+    isTimerRunning,
+    setIsTimerRunning,
+    nextPracticePose,
+    onClose,
     musicTheme,
     spotifyToken,
     player,
     deviceId,
-    playerError
+    playerError,
+    ensureAccessToken,
+    isPremiumUser,
+    onPlaybackStatus,
+    playbackStatus
 }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
@@ -642,11 +676,22 @@ const PracticeMode = ({
       setIsTimerRunning(false);
   }, [setIsTimerRunning]);
 
-  const handlePlayMusic = () => {
-     if (!player || !deviceId || !spotifyToken || !musicTheme.link) return;
+  const handlePlayMusic = async () => {
+     if (!player || !deviceId || !musicTheme.link) return;
+     const token = await ensureAccessToken();
+     if (!token) {
+        onPlaybackStatus?.('Connect Spotify to play music from your playlists.');
+        return;
+     }
+     if (!isPremiumUser) {
+        onPlaybackStatus?.('Spotify Premium is required for full-track playback.');
+        return;
+     }
      const uri = parseSpotifyUri(musicTheme.link);
      if (uri) {
-        playSpotifyTrack(spotifyToken, deviceId, uri);
+        await transferPlaybackToDevice(token, deviceId, true);
+        await playSpotifyTrack(token, deviceId, uri);
+        onPlaybackStatus?.('Playing through Spotify Web Playback SDK.');
      }
   };
 
@@ -736,6 +781,12 @@ const PracticeMode = ({
             <SkipForward size={32} className="hidden sm:block" />
           </button>
         </div>
+
+        {playbackStatus && (
+          <div className="mt-4 text-xs bg-emerald-900/40 border border-emerald-700 text-emerald-100 px-4 py-2 rounded-lg">
+            {playbackStatus}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-sm">
            {/* MODIFIED: REMOVED IFRAME PREVIEW FALLBACK */}
@@ -887,6 +938,7 @@ export default function YogaApp() {
   );
   
   const [selectedMusicId, setSelectedMusicId] = useState(musicThemes[0].id);
+  const [spotifyStatus, setSpotifyStatus] = useState('');
   
   // Practice Mode State
   const [practiceIndex, setPracticeIndex] = useState(0);
@@ -897,42 +949,90 @@ export default function YogaApp() {
   const [selectedPose, setSelectedPose] = useState(null);
 
   // --- SPOTIFY INTEGRATION ---
-  // Initialize with lazy state to check URL/local storage immediately (avoids cascading renders)
-  const [spotifyToken, setSpotifyToken] = useState(() => {
-    if (typeof window === 'undefined') return null;
+  const [spotifyToken, setSpotifyToken] = useState(null);
+  const [tokenExpiry, setTokenExpiry] = useState(null);
+  const [spotifyProfile, setSpotifyProfile] = useState(null);
+  const [tokenError, setTokenError] = useState(null);
+  const isPremiumUser = spotifyProfile?.product === 'premium';
 
-    // 1. Check for hash (redirect back from Spotify)
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token')) {
-      try {
-        const params = new URLSearchParams(hash.substring(1));
-        const token = params.get('access_token');
-        if (token) {
-          localStorage.setItem('spotify_token', token);
-          return token;
-        }
-      } catch (e) {
-        console.error("Error parsing hash", e);
-      }
-    }
-
-    // 2. Fallback to local storage
-    return localStorage.getItem('spotify_token');
-  });
-
-  // Clear the hash after mount if we just logged in
-  useEffect(() => {
-    if (window.location.hash && window.location.hash.includes('access_token')) {
-      window.location.hash = '';
+  const bootstrapTokenFromQuery = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('access_token');
+    const expiresIn = Number(url.searchParams.get('expires_in') || '0');
+    if (token) {
+      setSpotifyToken(token);
+      setTokenExpiry(Date.now() + (expiresIn || 3600) * 1000);
+      url.searchParams.delete('access_token');
+      url.searchParams.delete('expires_in');
+      window.history.replaceState({}, '', url.toString());
     }
   }, []);
+
+  const refreshAccessToken = useCallback(async () => {
+    try {
+      const res = await fetch(REFRESH_URL, { credentials: 'include' });
+      if (!res.ok) {
+        if (res.status === 401) {
+          setTokenError('Connect Spotify to enable full playback.');
+          return null;
+        }
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
+      const data = await res.json();
+      setSpotifyToken(data.access_token);
+      setTokenExpiry(Date.now() + (data.expires_in || 3600) * 1000);
+      setTokenError(null);
+      return data.access_token;
+    } catch (err) {
+      console.error('Token refresh failed', err);
+      setTokenError('Unable to refresh Spotify session. Please reconnect.');
+      return null;
+    }
+  }, []);
+
+  const ensureAccessToken = useCallback(async () => {
+    if (spotifyToken) return spotifyToken;
+    return refreshAccessToken();
+  }, [refreshAccessToken, spotifyToken]);
+
+  useEffect(() => {
+    bootstrapTokenFromQuery();
+    refreshAccessToken();
+  }, [bootstrapTokenFromQuery, refreshAccessToken]);
+
+  useEffect(() => {
+    if (!spotifyToken) return;
+    (async () => {
+      const profile = await fetchSpotifyProfile(spotifyToken);
+      if (profile) setSpotifyProfile(profile);
+    })();
+  }, [spotifyToken]);
+
+  useEffect(() => {
+    if (!tokenExpiry) return;
+    const refreshInMs = Math.max(0, tokenExpiry - Date.now() - 60000);
+    const timer = setTimeout(() => refreshAccessToken(), refreshInMs);
+    return () => clearTimeout(timer);
+  }, [tokenExpiry, refreshAccessToken]);
 
   // Initialize Custom Hook
   const { player, deviceId, playerError } = useSpotifyPlayer(spotifyToken);
 
   useEffect(() => {
-    if (playerError) console.warn("Spotify SDK Error:", playerError);
+    if (playerError) {
+      console.warn("Spotify SDK Error:", playerError);
+      setSpotifyStatus(playerError);
+    }
   }, [playerError]);
+
+  useEffect(() => {
+    if (spotifyToken && deviceId) {
+      transferPlaybackToDevice(spotifyToken, deviceId);
+      setSpotifyStatus('Web Playback device is ready. Use Start Playlist to begin.');
+    }
+  }, [spotifyToken, deviceId]);
 
 
   // Timer Logic
@@ -1154,9 +1254,16 @@ export default function YogaApp() {
     localStorage.setItem('yoga_saved_sequences', JSON.stringify(updated));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(LOGOUT_URL, { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      console.error('Failed to log out of Spotify', err);
+    }
     setSpotifyToken(null);
-    localStorage.removeItem('spotify_token');
+    setTokenExpiry(null);
+    setSpotifyProfile(null);
+    setSpotifyStatus('');
   };
 
   // --- UI RENDER ---
@@ -1185,6 +1292,11 @@ export default function YogaApp() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {!spotifyToken && (
+            <a href={LOGIN_URL} className="px-3 py-2 bg-[#1DB954] text-white rounded-full text-xs font-bold hover:opacity-90 flex items-center gap-1">
+              <LogIn size={16} /> Connect Spotify
+            </a>
+          )}
           {spotifyToken && (
             <button onClick={handleLogout} className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full" title="Disconnect Spotify">
               <LogOut size={20} />
@@ -1212,6 +1324,10 @@ export default function YogaApp() {
           player={player}
           deviceId={deviceId}
           playerError={playerError}
+          ensureAccessToken={ensureAccessToken}
+          isPremiumUser={isPremiumUser}
+          onPlaybackStatus={setSpotifyStatus}
+          playbackStatus={spotifyStatus}
         />
       )}
 
@@ -1356,7 +1472,16 @@ export default function YogaApp() {
         <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative scrollbar-thin">
           
           {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
-          {activeTab === 'settings' && <MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} spotifyToken={spotifyToken} />}
+          {activeTab === 'settings' && (
+            <MusicConfig
+              themes={musicThemes}
+              onUpdateTheme={updateMusicTheme}
+              spotifyToken={spotifyToken}
+              loginUrl={LOGIN_URL}
+              isPremiumUser={isPremiumUser}
+              tokenError={tokenError}
+            />
+          )}
 
           {activeTab === 'saved' && (
             <div className="max-w-4xl mx-auto p-8">
