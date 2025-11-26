@@ -19,6 +19,13 @@ ALLOWED_ORIGIN=https://yoga.johnnyautomates.com
 PORT=5174
 ```
 
+If your frontend is deployed separately from the Node auth server (for example, the API is served on a different port such as `https://yoga.johnnyautomates.com:8080`), set `VITE_API_BASE_URL` when building the client so it points to the public API origin:
+
+```
+VITE_API_BASE_URL=https://yoga.johnnyautomates.com:8080
+```
+Otherwise the client will default to using the same origin as the page, which works when nginx proxies `/api/spotify/*` to the server on its internal port.
+
 Why both the client ID **and** client secret? The backend exchanges the Spotify authorization code for access/refresh tokens, and that exchange requires the secret. Keep the secret in the server-only `.env` file shown above; it is never sent to the browser.
 
 Key Spotify dashboard settings:

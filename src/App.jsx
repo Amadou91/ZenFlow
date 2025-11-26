@@ -287,10 +287,15 @@ const DEFAULT_MUSIC_THEMES = [
 
 // --- 2. SPOTIFY UTILS ---
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const LOGIN_URL = `${API_BASE_URL}/api/spotify/login`;
-const REFRESH_URL = `${API_BASE_URL}/api/spotify/refresh`;
-const LOGOUT_URL = `${API_BASE_URL}/api/spotify/logout`;
+const resolvedApiBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
+// Default to the current origin when no API base URL is provided so production
+// deployments behind nginx still work without a Vite env override.
+const API_BASE_URL = resolvedApiBase || (typeof window !== 'undefined' ? window.location.origin : '');
+const buildApiUrl = (path) => `${API_BASE_URL.replace(/\/$/, '')}${path}`;
+
+const LOGIN_URL = buildApiUrl('/api/spotify/login');
+const REFRESH_URL = buildApiUrl('/api/spotify/refresh');
+const LOGOUT_URL = buildApiUrl('/api/spotify/logout');
 
 const REQUIRED_SCOPES = [
   'streaming',               // Required for Web Playback SDK
