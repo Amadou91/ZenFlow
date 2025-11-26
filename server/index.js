@@ -51,9 +51,11 @@ const buildAuthorizeUrl = (state) => {
   return `https://accounts.spotify.com/authorize?${params.toString()}`
 }
 
-const exchangeToken = async ({ code, refreshToken }) => {
+  const tokenUrl = "https://accounts.spotify.com/api/token";
+
   const body = new URLSearchParams({
-    grant_type: refreshToken ? 'refresh_token' : 'authorization_code',
+    grant_type: "authorization_code",
+    code,
     redirect_uri: SPOTIFY_REDIRECT_URI,
   })
 
