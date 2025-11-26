@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Menu, X, Play, RefreshCw, Settings, Heart, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
-  Shuffle, SkipForward, Pause, PlayCircle, Info, Check, Headphones,
+  Shuffle, SkipForward, SkipBack, Pause, PlayCircle, Info, Check, Headphones,
   Layers, Target, Zap, Anchor, BookOpen, User, Feather, ExternalLink,
   LogOut, LogIn, Edit3, Clock
 } from 'lucide-react';
@@ -627,7 +627,7 @@ const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, getLoginUrl, isPremi
   );
 };
 
-const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
+const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, prevPracticePose, autoContinue, setAutoContinue, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
 
@@ -723,25 +723,39 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
           </div>
 
           {/* Center: Controls */}
-          <div className="order-1 md:order-2 flex items-center justify-center gap-6">
-            <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">
-              {isTimerRunning ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
-            </button>
-            <button onClick={nextPracticePose} className="p-3 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white">
-              <SkipForward size={28} />
-            </button>
+          <div className="order-1 md:order-2 flex flex-col items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-6">
+                <button onClick={prevPracticePose} disabled={practiceIndex === 0} className={`p-3 rounded-full transition-colors ${practiceIndex === 0 ? 'text-stone-600 cursor-not-allowed' : 'hover:bg-stone-800 text-stone-400 hover:text-white'}`}>
+                  <SkipBack size={28} />
+                </button>
+                <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">
+                  {isTimerRunning ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+                </button>
+                <button onClick={nextPracticePose} className="p-3 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white">
+                  <SkipForward size={28} />
+                </button>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-stone-400 cursor-pointer hover:text-white transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={autoContinue} 
+                  onChange={(e) => setAutoContinue(e.target.checked)} 
+                  className="w-3.5 h-3.5 rounded accent-teal-500 bg-stone-700 border-stone-600 focus:ring-teal-500 focus:ring-offset-stone-900"
+                />
+                Auto Continue
+            </label>
           </div>
 
           {/* Right: Up Next */}
-          <div className="order-2 md:order-3 flex justify-center md:justify-end">
+          <div className="order-2 md:order-3 flex justify-center md:justify-end w-full">
             {next ? (
-              <div className="flex items-center gap-3 text-right opacity-80 hover:opacity-100 transition-opacity group cursor-pointer" onClick={nextPracticePose}>
-                <div className="hidden sm:block">
+              <div className="flex items-center gap-3 text-right opacity-80 hover:opacity-100 transition-opacity group cursor-pointer max-w-[200px] sm:max-w-[250px]" onClick={nextPracticePose}>
+                <div className="hidden sm:block flex-1 min-w-0">
                   <span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span>
-                  <span className="font-bold text-sm text-white block">{next.name}</span>
-                  <span className="text-xs text-stone-400 italic truncate max-w-[150px] block">{next.cues.split('.')[0]}...</span>
+                  <span className="font-bold text-sm text-white block truncate">{next.name}</span>
+                  <span className="text-xs text-stone-400 italic block leading-tight line-clamp-2">{next.cues}</span>
                 </div>
-                <div className="w-10 h-10 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50">
+                <div className="w-10 h-10 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50 shrink-0">
                   <PoseIcon category={next.category} className="w-5 h-5" />
                 </div>
               </div>
@@ -834,6 +848,21 @@ export default function YogaApp() {
     const saved = localStorage.getItem('yoga_in_progress');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Auto Continue State
+  const [autoContinue, setAutoContinue] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('zenflow_auto_continue');
+      return saved === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zenflow_auto_continue', autoContinue);
+    }
+  }, [autoContinue]);
 
   const [musicThemes, setMusicThemes] = useState(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('yoga_music_themes'); if (saved) { const parsed = JSON.parse(saved); return DEFAULT_MUSIC_THEMES.map(def => { const savedTheme = parsed.find(s => s.id === def.id); return savedTheme ? { ...def, link: savedTheme.link } : def; }); } } return DEFAULT_MUSIC_THEMES; });
   const updateMusicTheme = (id, newLink) => { const updated = musicThemes.map(t => t.id === id ? { ...t, link: newLink } : t); setMusicThemes(updated); localStorage.setItem('yoga_music_themes', JSON.stringify(updated.map(({ id, link }) => ({ id, link })))); };
@@ -976,13 +1005,38 @@ export default function YogaApp() {
     if (isTimerRunning) {
       interval = setInterval(() => {
         setTimerSeconds(prev => {
-          if (prev <= 1) { setIsTimerRunning(false); return 0; }
+          if (prev <= 1) { 
+             // Timer Done
+             if (autoContinue) {
+                // We'll handle auto-next in a separate effect to avoid state loop here, 
+                // or we let it sit at 0 and the effect below catches it.
+                // But to be safe, just let it hit 0.
+                return 0;
+             }
+             setIsTimerRunning(false); 
+             return 0; 
+          }
           return prev - 1;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTimerRunning]);
+  }, [isTimerRunning, autoContinue]);
+
+  // Auto-Continue Trigger
+  useEffect(() => {
+    if (isTimerRunning && timerSeconds === 0 && autoContinue) {
+       if (practiceIndex < sequence.length - 1) {
+          const nextIndex = practiceIndex + 1;
+          setPracticeIndex(nextIndex);
+          setTimerSeconds(sequence[nextIndex].timerVal);
+          // Keep timer running
+       } else {
+          setIsTimerRunning(false); // End of sequence
+       }
+    }
+  }, [timerSeconds, isTimerRunning, autoContinue, practiceIndex, sequence]);
+
 
   const getFilteredPool = () => { 
     let pool = [...POSE_LIBRARY]; 
@@ -1193,6 +1247,26 @@ export default function YogaApp() {
     setActiveTab('practice');
   };
 
+  const nextPracticePose = () => { 
+    if (practiceIndex < sequence.length - 1) { 
+      const nextIndex = practiceIndex + 1;
+      setPracticeIndex(nextIndex); 
+      setTimerSeconds(sequence[nextIndex].timerVal); 
+      setIsTimerRunning(true); 
+    } else { 
+      setActiveTab('generator'); 
+    } 
+  };
+
+  const prevPracticePose = () => {
+    if (practiceIndex > 0) {
+      const prevIndex = practiceIndex - 1;
+      setPracticeIndex(prevIndex);
+      setTimerSeconds(sequence[prevIndex].timerVal);
+      setIsTimerRunning(true);
+    }
+  };
+
   const handleLogout = async () => {
     try { await fetch(`${API_BASE}/api/spotify/logout`, { method: 'POST', credentials: 'include' }); } catch (err) { console.warn('Logout failed', err); }
     clearStoredToken(); setSpotifyToken(null); setTokenExpiry(null); setSpotifyProfile(null); setSpotifyStatus(''); setTokenError(null);
@@ -1224,17 +1298,10 @@ export default function YogaApp() {
           timerSeconds={timerSeconds} 
           isTimerRunning={isTimerRunning} 
           setIsTimerRunning={setIsTimerRunning} 
-          nextPracticePose={() => { 
-            if (practiceIndex < sequence.length - 1) { 
-              const nextIndex = practiceIndex + 1;
-              setPracticeIndex(nextIndex); 
-              // Set timer for the NEXT pose, not the first one
-              setTimerSeconds(sequence[nextIndex].timerVal); 
-              setIsTimerRunning(true); 
-            } else { 
-              setActiveTab('generator'); 
-            } 
-          }} 
+          nextPracticePose={nextPracticePose}
+          prevPracticePose={prevPracticePose}
+          autoContinue={autoContinue}
+          setAutoContinue={setAutoContinue}
           onClose={() => setActiveTab('generator')} 
           musicTheme={musicThemes.find(t => t.id === selectedMusicId)} 
           spotifyToken={spotifyToken} 
