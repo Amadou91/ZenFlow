@@ -487,9 +487,8 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
   }
   return (
     <div className="relative pl-8 md:pl-12 group break-inside-avoid mb-4">
-      <div className="absolute left-[15px] md:left-[23px] top-8 bottom-[-16px] w-0.5 bg-stone-200 dark:bg-stone-700 group-last:hidden"></div>
       <div className="absolute left-[9px] md:left-[17px] top-6 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-stone-900 bg-teal-500 shadow-sm z-10"></div>
-      <div 
+      <div
         onClick={() => setSelectedPose(pose)}
         className="cursor-pointer bg-white dark:bg-stone-800 p-4 md:p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 transition-all group relative"
       >
@@ -559,7 +558,7 @@ const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, getLoginUrl, isPremi
   );
 };
 
-const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus }) => {
+const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
 
@@ -614,9 +613,25 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
         <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-sm">
            {spotifyToken && deviceId ? (
              <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full">
-                <div className="p-2 bg-[#1DB954] text-white rounded-lg"><Music size={20} /></div>
-                <div className="text-left flex-1 min-w-0"><p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Music Player</p><button onClick={handlePlayMusic} className="text-sm font-bold text-white hover:text-[#1DB954] flex items-center gap-1 truncate w-full">Start Playlist <Play size={12} fill="currentColor" /></button></div>
-                {player && (<div className="flex gap-2 ml-2"><button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full"><Pause size={16} /></button><button onClick={() => player.nextTrack()} className="p-2 hover:bg-white/10 rounded-full"><SkipForward size={16} /></button></div>)}
+                {currentTrack?.album?.images?.[0]?.url ? (
+                  <img src={currentTrack.album.images[0].url} alt={currentTrack.name} className="w-14 h-14 rounded-lg object-cover border border-stone-700" />
+                ) : (
+                  <div className="p-3 bg-[#1DB954] text-white rounded-lg"><Music size={24} /></div>
+                )}
+                <div className="text-left flex-1 min-w-0">
+                  <p className="text-[11px] text-stone-400 font-bold uppercase tracking-wider">Now Playing</p>
+                  <p className="text-sm font-bold text-white truncate" title={currentTrack?.name || 'Start Playlist'}>{currentTrack?.name || 'Start Playlist'}</p>
+                  <p className="text-xs text-stone-400 truncate" title={currentTrack?.artists?.map(a => a.name).join(', ') || 'Artist'}>{currentTrack?.artists?.map(a => a.name).join(', ') || 'Artist'}</p>
+                  <button onClick={handlePlayMusic} className="mt-1 text-xs font-semibold text-[#1DB954] hover:text-white flex items-center gap-1">{currentTrack ? 'Resume Playlist' : 'Start Playlist'} <Play size={12} fill="currentColor" /></button>
+                </div>
+                {player && (
+                  <div className="flex gap-2 ml-2 items-center">
+                    <button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full" title="Play/Pause">
+                      {isPaused ? <Play size={16} fill="currentColor" className="ml-0.5" /> : <Pause size={16} />}
+                    </button>
+                    <button onClick={() => player.nextTrack()} className="p-2 hover:bg-white/10 rounded-full" title="Next Track"><SkipForward size={16} /></button>
+                  </div>
+                )}
              </div>
            ) : (<div className="text-stone-500 text-sm italic flex items-center gap-2">{!spotifyToken ? "Music configured but disconnected" : (spotifyToken && playerError ? `Player Error: ${playerError}` : "Player Connecting...")}</div>)}
         </div>
@@ -653,6 +668,11 @@ export default function YogaApp() {
   const [params, setParams] = useState({ duration: 60, difficulty: 'Intermediate', style: 'Vinyasa', filters: { noWrists: false, kneeFriendly: false, pregnancySafe: false }, method: SEQUENCE_METHODS.STANDARD, selectedPeakPose: PEAK_POSES[0]?.id || '', selectedTheme: THEMES[0].id, selectedTarget: TARGET_AREAS[0].id });
   const [sequence, setSequence] = useState([]);
   const [savedSequences, setSavedSequences] = useState(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('yoga_saved_sequences'); return saved ? JSON.parse(saved) : []; } return []; });
+  const [inProgress, setInProgress] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = localStorage.getItem('yoga_in_progress');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [musicThemes, setMusicThemes] = useState(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('yoga_music_themes'); if (saved) { const parsed = JSON.parse(saved); return DEFAULT_MUSIC_THEMES.map(def => { const savedTheme = parsed.find(s => s.id === def.id); return savedTheme ? { ...def, link: savedTheme.link } : def; }); } } return DEFAULT_MUSIC_THEMES; });
   const updateMusicTheme = (id, newLink) => { const updated = musicThemes.map(t => t.id === id ? { ...t, link: newLink } : t); setMusicThemes(updated); localStorage.setItem('yoga_music_themes', JSON.stringify(updated.map(({ id, link }) => ({ id, link })))); };
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
@@ -760,7 +780,7 @@ export default function YogaApp() {
     })();
   }, [spotifyToken]);
 
-  const { player, deviceId, playerError } = useSpotifyPlayer(spotifyToken);
+  const { player, deviceId, playerError, currentTrack, isPaused } = useSpotifyPlayer(spotifyToken);
 
   useEffect(() => {
     if (playerError) {
@@ -985,6 +1005,30 @@ export default function YogaApp() {
 
   const deleteSaved = (id) => { const updated = savedSequences.filter(s => s.id !== id); setSavedSequences(updated); localStorage.setItem('yoga_saved_sequences', JSON.stringify(updated)); };
 
+  const clearInProgress = useCallback(() => {
+    setInProgress(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('yoga_in_progress');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sequence.length === 0) return;
+
+    const snapshot = {
+      id: 'in-progress',
+      name: 'In Progress Flow',
+      updatedAt: new Date().toISOString(),
+      params,
+      poses: sequence
+    };
+
+    setInProgress(snapshot);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('yoga_in_progress', JSON.stringify(snapshot));
+    }
+  }, [params, sequence]);
+
   const handleLogout = async () => {
     try { await fetch(`${API_BASE}/api/spotify/logout`, { method: 'POST', credentials: 'include' }); } catch (err) { console.warn('Logout failed', err); }
     clearStoredToken(); setSpotifyToken(null); setTokenExpiry(null); setSpotifyProfile(null); setSpotifyStatus(''); setTokenError(null);
@@ -1008,7 +1052,7 @@ export default function YogaApp() {
       </header>
 
       {selectedPose && <PoseDetailModal pose={selectedPose} onClose={() => setSelectedPose(null)} />}
-      {activeTab === 'practice' && <PracticeMode sequence={sequence} practiceIndex={practiceIndex} timerSeconds={timerSeconds} isTimerRunning={isTimerRunning} setIsTimerRunning={setIsTimerRunning} nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[0].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }} onClose={() => setActiveTab('generator')} musicTheme={musicThemes.find(t => t.id === selectedMusicId)} spotifyToken={spotifyToken} player={player} deviceId={deviceId} playerError={playerError} ensureAccessToken={ensureAccessToken} isPremiumUser={isPremiumUser} onPlaybackStatus={setSpotifyStatus} playbackStatus={spotifyStatus} />}
+      {activeTab === 'practice' && <PracticeMode sequence={sequence} practiceIndex={practiceIndex} timerSeconds={timerSeconds} isTimerRunning={isTimerRunning} setIsTimerRunning={setIsTimerRunning} nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[0].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }} onClose={() => setActiveTab('generator')} musicTheme={musicThemes.find(t => t.id === selectedMusicId)} spotifyToken={spotifyToken} player={player} deviceId={deviceId} playerError={playerError} ensureAccessToken={ensureAccessToken} isPremiumUser={isPremiumUser} onPlaybackStatus={setSpotifyStatus} playbackStatus={spotifyStatus} currentTrack={currentTrack} isPaused={isPaused} />}
 
       <div className="pt-16 flex h-screen overflow-hidden">
         {isSidebarOpen && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-opacity animate-in fade-in duration-200" onClick={() => setIsSidebarOpen(false)} />}
@@ -1119,8 +1163,41 @@ export default function YogaApp() {
           {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
           {activeTab === 'settings' && <MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} spotifyToken={spotifyToken} getLoginUrl={getLoginUrl} isPremiumUser={isPremiumUser} tokenError={tokenError} />}
           {activeTab === 'saved' && (
-             <div className="max-w-4xl mx-auto p-8"><h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-8 border-b border-stone-200 dark:border-stone-700 pb-4">Saved Flows</h2>
-             {savedSequences.map(s => (<div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl flex justify-between items-center group shadow-sm mb-4 border border-stone-100 dark:border-stone-700"><div><h3 className="font-bold text-lg dark:text-stone-100">{s.name}</h3><p className="text-sm opacity-60 dark:text-stone-400">{s.params.style} • {s.params.duration} min</p></div><div className="flex gap-2"><button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 bg-teal-50 rounded-lg"><Play size={18}/></button><button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-600 bg-rose-50 rounded-lg"><Trash2 size={18}/></button></div></div>))}
+             <div className="max-w-4xl mx-auto p-8">
+               <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-6">Saved & In-Progress</h2>
+               <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Pick up where you left off or revisit your favorite flows.</p>
+
+               {inProgress && (
+                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-6 rounded-xl flex justify-between items-center shadow-sm mb-6">
+                   <div>
+                     <div className="flex items-center gap-2 mb-1">
+                       <span className="px-2 py-0.5 bg-amber-200 text-amber-900 rounded text-[10px] font-bold uppercase tracking-wide">In Progress</span>
+                       <span className="text-xs text-amber-700 dark:text-amber-300">Updated {new Date(inProgress.updatedAt).toLocaleString()}</span>
+                     </div>
+                     <h3 className="font-bold text-lg text-stone-900 dark:text-stone-100">{inProgress.name}</h3>
+                     <p className="text-sm opacity-70 dark:text-stone-400">{inProgress.params.style} • {inProgress.params.duration} min • {inProgress.poses.length} poses</p>
+                   </div>
+                   <div className="flex gap-2">
+                     <button onClick={() => { setParams(inProgress.params); setSequence(inProgress.poses); setActiveTab('generator'); }} className="px-3 py-2 bg-amber-500 text-white rounded-lg shadow">Resume</button>
+                     <button onClick={clearInProgress} className="p-2 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/50 rounded-lg" title="Clear in-progress flow"><Trash2 size={18} /></button>
+                   </div>
+                 </div>
+               )}
+
+               <h3 className="text-xl font-bold text-teal-900 dark:text-teal-100 mb-4">Saved Flows</h3>
+               {savedSequences.length === 0 && <p className="text-sm text-stone-500 dark:text-stone-400">No saved flows yet. Create a sequence and tap the heart to store it.</p>}
+               {savedSequences.map(s => (
+                 <div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl flex justify-between items-center group shadow-sm mb-4 border border-stone-100 dark:border-stone-700">
+                   <div>
+                     <h3 className="font-bold text-lg dark:text-stone-100">{s.name}</h3>
+                     <p className="text-sm opacity-60 dark:text-stone-400">{s.params.style} • {s.params.duration} min</p>
+                   </div>
+                   <div className="flex gap-2">
+                     <button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 bg-teal-50 rounded-lg"><Play size={18}/></button>
+                     <button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-600 bg-rose-50 rounded-lg"><Trash2 size={18}/></button>
+                   </div>
+                 </div>
+               ))}
              </div>
           )}
           {activeTab === 'generator' && (
@@ -1154,7 +1231,7 @@ export default function YogaApp() {
                 <p className="text-sm text-gray-500">{params.style} • {params.difficulty} • {params.duration} mins</p>
               </div>
 
-              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : `space-y-1 ${sequence.length > 0 ? "relative before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-700 print:before:hidden" : ""}`}>
+              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : "space-y-1"}>
                 {sequence.length === 0 ? (
                   <div className="text-center py-20 opacity-40 text-stone-600 dark:text-stone-400 px-4">
                     <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
