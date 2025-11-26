@@ -287,16 +287,31 @@ const DEFAULT_MUSIC_THEMES = [
 
 // --- 2. SPOTIFY UTILS ---
 
-const SPOTIFY_CLIENT_ID = 'cb6d7c9dc6e44326b8c1212c6d84bd11';
+const API_BASE =
+  typeof window !== 'undefined'
+    ? (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+    : '';
 
-const getRedirectUri = () => (typeof window !== 'undefined' ? `${window.location.origin}/` : '');
+const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+const SPOTIFY_REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
+const useDirectSpotifyAuth = Boolean(SPOTIFY_CLIENT_ID);
+
 const getLoginUrl = () => {
+  if (!useDirectSpotifyAuth) return `${API_BASE}/api/spotify/login`;
+
+  const redirectUri =
+    SPOTIFY_REDIRECT_URI ||
+    (typeof window !== 'undefined'
+      ? `${window.location.origin}${window.location.pathname}`
+      : '');
+
   const params = new URLSearchParams({
     response_type: 'token',
     client_id: SPOTIFY_CLIENT_ID,
-    redirect_uri: getRedirectUri(),
-    scope: REQUIRED_SCOPES.join(' ')
+    redirect_uri: redirectUri,
+    scope: REQUIRED_SCOPES.join(' '),
   });
+
   return `https://accounts.spotify.com/authorize?${params.toString()}`;
 };
 
@@ -979,17 +994,43 @@ export default function YogaApp() {
     }
   }, []);
 
+  const refreshAccessToken = useCallback(async () => {
+    if (useDirectSpotifyAuth) {
+      setTokenError('Spotify session expired. Reconnect to continue playback.');
+      clearStoredToken();
+      setSpotifyToken(null);
+      return null;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/spotify/refresh`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to refresh token');
+      const data = await res.json();
+      const expiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+      storeToken(data.access_token, expiresAt);
+      setTokenError(null);
+      return data.access_token;
+    } catch (err) {
+      console.error('Unable to refresh Spotify token', err);
+      setTokenError('Connect Spotify to enable full playback.');
+      clearStoredToken();
+      setSpotifyToken(null);
+      return null;
+    }
+  }, [API_BASE, clearStoredToken, storeToken, useDirectSpotifyAuth]);
+
   const bootstrapTokenFromHash = useCallback(() => {
     if (typeof window === 'undefined') return;
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const token = hashParams.get('access_token');
-    const expiresIn = Number(hashParams.get('expires_in') || '0');
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get('access_token') || hashParams.get('access_token');
+    const expiresIn = Number(searchParams.get('expires_in') || hashParams.get('expires_in') || '0');
 
     if (token) {
       const expiresAt = Date.now() + (expiresIn || 3600) * 1000;
       storeToken(token, expiresAt);
       setTokenError(null);
-      window.history.replaceState({}, '', window.location.pathname + window.location.search);
+      window.history.replaceState({}, '', window.location.pathname);
       return;
     }
 
@@ -1007,9 +1048,15 @@ export default function YogaApp() {
 
   const ensureAccessToken = useCallback(async () => {
     if (spotifyToken && (!tokenExpiry || tokenExpiry > Date.now())) return spotifyToken;
-    setTokenError('Connect Spotify to enable full playback.');
-    return null;
-  }, [spotifyToken, tokenExpiry]);
+
+    // For direct auth we cannot refresh; require a reconnect instead.
+    if (useDirectSpotifyAuth) {
+      setTokenError('Spotify session expired. Reconnect to continue playback.');
+      return null;
+    }
+
+    return refreshAccessToken();
+  }, [refreshAccessToken, spotifyToken, tokenExpiry, useDirectSpotifyAuth]);
 
   useEffect(() => {
     bootstrapTokenFromHash();
@@ -1261,6 +1308,13 @@ export default function YogaApp() {
   };
 
   const handleLogout = async () => {
+    try {
+      if (!useDirectSpotifyAuth) {
+        await fetch(`${API_BASE}/api/spotify/logout`, { method: 'POST', credentials: 'include' });
+      }
+    } catch (err) {
+      console.warn('Failed to log out from Spotify', err);
+    }
     clearStoredToken();
     setSpotifyToken(null);
     setTokenExpiry(null);

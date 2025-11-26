@@ -7,7 +7,7 @@ A Vite + React yoga sequence builder with integrated Spotify Web Playback SDK su
 - A Spotify Developer application with a Premium account for playback
 
 ## Environment
-Copy `.env.example` to `.env` and set the values from your Spotify app (the `.env` file lives next to the `package.json` and is loaded by the backend server):
+Copy `.env.example` to `.env` and set the values from your Spotify app (the `.env` file lives next to the `package.json` and is loaded by the backend server). If you are not running the backend auth server, you can instead expose the client-side vars shown in the **Frontend-only auth** section below.
 
 ```
 SPOTIFY_CLIENT_ID=your_spotify_client_id
@@ -18,6 +18,19 @@ SPOTIFY_SCOPES=streaming user-read-email user-read-private user-read-playback-st
 ALLOWED_ORIGIN=https://yoga.johnnyautomates.com
 PORT=5174
 ```
+
+### Frontend-only auth (no backend)
+If you prefer to skip the Node auth server and use Spotify's implicit grant flow directly from the browser, build the client with these Vite environment variables instead:
+
+```
+VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id
+VITE_SPOTIFY_REDIRECT_URI=https://yoga.johnnyautomates.com
+```
+
+Notes:
+- Set `VITE_SPOTIFY_REDIRECT_URI` to the exact origin/path that should receive the redirect. For local dev you can use `http://localhost:5173` (Vite dev server default). For your production site use `https://yoga.johnnyautomates.com`.
+- Register the same redirect URIs in the Spotify app dashboard under **Redirect URIs**. Spotify allows multiple entries, so add both your localhost and production URLs.
+- Tokens from the implicit flow expire (typically in 1 hour) and cannot be refreshed without a backend, so reconnect when prompted.
 
 If your frontend is deployed separately from the Node auth server (for example, the API is served on a different port such as `https://yoga.johnnyautomates.com:8080`), set `VITE_API_BASE_URL` when building the client so it points to the public API origin:
 
