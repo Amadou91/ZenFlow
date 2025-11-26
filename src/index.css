@@ -29,14 +29,18 @@
 
 /* Print Optimization - Teacher Mode */
 @media print {
-  @page { margin: 2cm; }
+  @page { margin: 1cm; }
   body { 
     -webkit-print-color-adjust: exact; 
     background: white !important;
     color: black !important;
   }
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
+  
+  /* Hide specific elements that shouldn't print */
+  .no-print, header, aside, nav, .print-hidden { display: none !important; }
+  
+  /* Show print-only container */
+  .print-only-container { display: block !important; height: auto !important; overflow: visible !important; }
   
   /* Ensure grid layouts work in print */
   .break-inside-avoid { page-break-inside: avoid; }
