@@ -558,7 +558,7 @@ const MusicConfig = ({ themes, onUpdateTheme, spotifyToken, getLoginUrl, isPremi
   );
 };
 
-const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus }) => {
+const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
 
@@ -605,12 +605,28 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
         <div className="md:hidden">{next && (<div className="flex items-center gap-3 rounded-xl bg-stone-800/80 border border-stone-700 p-3"><div className="w-10 h-10 bg-stone-900 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700"><PoseIcon category={next.category} className="w-5 h-5" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
         <div className="hidden md:block">{next && (<div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group"><div className="w-12 h-12 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50"><PoseIcon category={next.category} className="w-6 h-6" /></div><div className="text-left"><span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span><span className="font-bold text-sm text-white">{next.name}</span></div></div>)}</div>
         <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap"><button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 sm:w-20 sm:h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">{isTimerRunning ? <Pause className="w-7 h-7 sm:w-8 sm:h-8" /> : <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5 sm:ml-1" />}</button><button onClick={nextPracticePose} className="p-3 sm:p-4 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white"><SkipForward size={32} /></button></div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3 w-full md:max-w-xl">
            {spotifyToken && deviceId ? (
              <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full">
-                <div className="p-2 bg-[#1DB954] text-white rounded-lg"><Music size={20} /></div>
-                <div className="text-left flex-1 min-w-0"><p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Music Player</p><button onClick={handlePlayMusic} className="text-sm font-bold text-white hover:text-[#1DB954] flex items-center gap-1 truncate w-full">Start Playlist <Play size={12} fill="currentColor" /></button></div>
-                {player && (<div className="flex gap-2 ml-2"><button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full"><Pause size={16} /></button><button onClick={() => player.nextTrack()} className="p-2 hover:bg-white/10 rounded-full"><SkipForward size={16} /></button></div>)}
+                {currentTrack?.album?.images?.[0]?.url ? (
+                  <img src={currentTrack.album.images[0].url} alt={currentTrack.name} className="w-14 h-14 rounded-lg object-cover border border-stone-700" />
+                ) : (
+                  <div className="p-3 bg-[#1DB954] text-white rounded-lg"><Music size={24} /></div>
+                )}
+                <div className="text-left flex-1 min-w-0">
+                  <p className="text-[11px] text-stone-400 font-bold uppercase tracking-wider">Now Playing</p>
+                  <p className="text-sm font-bold text-white truncate" title={currentTrack?.name || 'Start Playlist'}>{currentTrack?.name || 'Start Playlist'}</p>
+                  <p className="text-xs text-stone-400 truncate" title={currentTrack?.artists?.map(a => a.name).join(', ') || 'Artist'}>{currentTrack?.artists?.map(a => a.name).join(', ') || 'Artist'}</p>
+                  <button onClick={handlePlayMusic} className="mt-1 text-xs font-semibold text-[#1DB954] hover:text-white flex items-center gap-1">{currentTrack ? 'Resume Playlist' : 'Start Playlist'} <Play size={12} fill="currentColor" /></button>
+                </div>
+                {player && (
+                  <div className="flex gap-2 ml-2 items-center">
+                    <button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full" title="Play/Pause">
+                      {isPaused ? <Play size={16} fill="currentColor" className="ml-0.5" /> : <Pause size={16} />}
+                    </button>
+                    <button onClick={() => player.nextTrack()} className="p-2 hover:bg-white/10 rounded-full" title="Next Track"><SkipForward size={16} /></button>
+                  </div>
+                )}
              </div>
            ) : (<div className="text-stone-500 text-sm italic flex items-center gap-2">{!spotifyToken ? "Music configured but disconnected" : (spotifyToken && playerError ? `Player Error: ${playerError}` : "Player Connecting...")}</div>)}
         </div>
@@ -759,7 +775,7 @@ export default function YogaApp() {
     })();
   }, [spotifyToken]);
 
-  const { player, deviceId, playerError } = useSpotifyPlayer(spotifyToken);
+  const { player, deviceId, playerError, currentTrack, isPaused } = useSpotifyPlayer(spotifyToken);
 
   useEffect(() => {
     if (playerError) {
@@ -1031,7 +1047,7 @@ export default function YogaApp() {
       </header>
 
       {selectedPose && <PoseDetailModal pose={selectedPose} onClose={() => setSelectedPose(null)} />}
-      {activeTab === 'practice' && <PracticeMode sequence={sequence} practiceIndex={practiceIndex} timerSeconds={timerSeconds} isTimerRunning={isTimerRunning} setIsTimerRunning={setIsTimerRunning} nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[0].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }} onClose={() => setActiveTab('generator')} musicTheme={musicThemes.find(t => t.id === selectedMusicId)} spotifyToken={spotifyToken} player={player} deviceId={deviceId} playerError={playerError} ensureAccessToken={ensureAccessToken} isPremiumUser={isPremiumUser} onPlaybackStatus={setSpotifyStatus} playbackStatus={spotifyStatus} />}
+      {activeTab === 'practice' && <PracticeMode sequence={sequence} practiceIndex={practiceIndex} timerSeconds={timerSeconds} isTimerRunning={isTimerRunning} setIsTimerRunning={setIsTimerRunning} nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[0].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }} onClose={() => setActiveTab('generator')} musicTheme={musicThemes.find(t => t.id === selectedMusicId)} spotifyToken={spotifyToken} player={player} deviceId={deviceId} playerError={playerError} ensureAccessToken={ensureAccessToken} isPremiumUser={isPremiumUser} onPlaybackStatus={setSpotifyStatus} playbackStatus={spotifyStatus} currentTrack={currentTrack} isPaused={isPaused} />}
 
       <div className="pt-16 flex h-screen overflow-hidden">
         {isSidebarOpen && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-opacity animate-in fade-in duration-200" onClick={() => setIsSidebarOpen(false)} />}
