@@ -1450,7 +1450,7 @@ const bootstrapTokenFromHash = useCallback(async () => {
                 ))}
               </div>
 
-              {/* CONTROLS - Only show if on Generator tab */}
+              {/* CONTROLS - Only show if on Generator tab  */}
               {activeTab === 'generator' && (
                 <div className="space-y-5">
                   <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Settings size={14} /> Configuration</div>
