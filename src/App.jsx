@@ -287,49 +287,9 @@ const DEFAULT_MUSIC_THEMES = [
 
 // --- 2. SPOTIFY UTILS ---
 
-// FORCED 127.0.0.1 LOGIC:
-// Spotify only supports exact URI matches. 'localhost' and '127.0.0.1' are different origins.
-// We force 127.0.0.1 to be safe for local dev, assuming the backend runs on port 5174.
-const API_BASE =
-  typeof window !== 'undefined'
-    ? (
-        import.meta.env.VITE_API_BASE_URL ||
-        // If we detect we are running locally (localhost OR 127.0.0.1 on port 5173),
-        // we force the API base to be http://127.0.0.1:5174 to match Spotify allowlists.
-        (['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '5173'
-          ? `http://127.0.0.1:5174`
-          : window.location.origin)
-      )
-    : '';
+const API_BASE = typeof window !== 'undefined' ? (import.meta.env.VITE_API_BASE_URL || '') : '';
 
-const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-const SPOTIFY_REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
-const useDirectSpotifyAuth = Boolean(SPOTIFY_CLIENT_ID);
-
-const getLoginUrl = () => {
-  if (!useDirectSpotifyAuth) return `${API_BASE}/api/spotify/login`;
-
-  // For frontend-only auth, we also need to ensure the redirect URI uses 127.0.0.1 if local
-  let currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-  if (currentOrigin.includes('localhost')) {
-      currentOrigin = currentOrigin.replace('localhost', '127.0.0.1');
-  }
-
-  const redirectUri =
-    SPOTIFY_REDIRECT_URI ||
-    (typeof window !== 'undefined'
-      ? `${currentOrigin}${window.location.pathname}`
-      : '');
-
-  const params = new URLSearchParams({
-    response_type: 'token',
-    client_id: SPOTIFY_CLIENT_ID,
-    redirect_uri: redirectUri,
-    scope: REQUIRED_SCOPES.join(' '),
-  });
-
-  return `https://accounts.spotify.com/authorize?${params.toString()}`;
-};
+const getLoginUrl = () => '/api/spotify/login';
 
 const REQUIRED_SCOPES = [
   'streaming',               // Required for Web Playback SDK
@@ -1011,13 +971,6 @@ export default function YogaApp() {
   }, []);
 
   const refreshAccessToken = useCallback(async () => {
-    if (useDirectSpotifyAuth) {
-      setTokenError('Spotify session expired. Reconnect to continue playback.');
-      clearStoredToken();
-      setSpotifyToken(null);
-      return null;
-    }
-
     try {
       const res = await fetch(`${API_BASE}/api/spotify/refresh`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to refresh token');
@@ -1035,55 +988,31 @@ export default function YogaApp() {
     }
   }, [clearStoredToken, storeToken]);
 
-const bootstrapTokenFromHash = useCallback(async () => {
-  if (typeof window === 'undefined') return;
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const searchParams = new URLSearchParams(window.location.search);
-  const token = searchParams.get('access_token') || hashParams.get('access_token');
-  const expiresIn = Number(searchParams.get('expires_in') || hashParams.get('expires_in') || '0');
-
-    if (token) {
-      const expiresAt = Date.now() + (expiresIn || 3600) * 1000;
-      storeToken(token, expiresAt);
-      setTokenError(null);
-      window.history.replaceState({}, '', window.location.pathname);
-      return;
-    }
+  const bootstrapAccessToken = useCallback(async () => {
+    if (typeof window === 'undefined') return;
 
     const storedToken = localStorage.getItem('spotify_access_token');
     const storedExpiry = Number(localStorage.getItem('spotify_token_expiry') || '0');
 
     if (storedToken && storedExpiry > Date.now()) {
+      setSpotifyToken(storedToken);
+      setTokenExpiry(storedExpiry);
       setTokenError(null);
-    setSpotifyToken(storedToken);
-    setTokenExpiry(storedExpiry);
-  } else {
-    clearStoredToken();
-  }
+      return;
+    }
 
-  // If we're using the backend (authorization code flow) and the user has a
-  // refresh token cookie, pull a fresh access token automatically so they can
-  // resume playback without clicking Connect again.
-  if (!useDirectSpotifyAuth && (!token || expiresIn === 0) && !storedToken) {
+    clearStoredToken();
     await refreshAccessToken();
-  }
-}, [clearStoredToken, refreshAccessToken, storeToken]);
+  }, [clearStoredToken, refreshAccessToken]);
 
   const ensureAccessToken = useCallback(async () => {
     if (spotifyToken && (!tokenExpiry || tokenExpiry > Date.now())) return spotifyToken;
-
-    // For direct auth we cannot refresh; require a reconnect instead.
-    if (useDirectSpotifyAuth) {
-      setTokenError('Spotify session expired. Reconnect to continue playback.');
-      return null;
-    }
-
     return refreshAccessToken();
   }, [refreshAccessToken, spotifyToken, tokenExpiry]);
 
   useEffect(() => {
-    bootstrapTokenFromHash();
-  }, [bootstrapTokenFromHash]);
+    bootstrapAccessToken();
+  }, [bootstrapAccessToken]);
 
   useEffect(() => {
     if (!spotifyToken) return;
@@ -1332,9 +1261,7 @@ const bootstrapTokenFromHash = useCallback(async () => {
 
   const handleLogout = async () => {
     try {
-      if (!useDirectSpotifyAuth) {
-        await fetch(`${API_BASE}/api/spotify/logout`, { method: 'POST', credentials: 'include' });
-      }
+      await fetch(`${API_BASE}/api/spotify/logout`, { method: 'POST', credentials: 'include' });
     } catch (err) {
       console.warn('Failed to log out from Spotify', err);
     }
