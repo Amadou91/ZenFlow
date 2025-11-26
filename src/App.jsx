@@ -291,8 +291,16 @@ const DEFAULT_MUSIC_THEMES = [
 const CLIENT_ID = '4de853bd5af346d5bd03ad30dfa84bff'; 
 
 const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-// MODIFIED: Redirect to ROOT to avoid 404s on systems without client-side routers
-const REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/` : ''; 
+
+// MODIFIED: Robust redirect URI handling
+const getRedirectUri = () => {
+  if (typeof window === 'undefined') return '';
+  // Ensure we have a trailing slash, as Spotify cares about exact string matching
+  const uri = window.location.origin;
+  return uri.endsWith('/') ? uri : `${uri}/`;
+};
+
+const REDIRECT_URI = getRedirectUri();
 
 const SCOPES = [
   'streaming',               // Required for Web Playback SDK
