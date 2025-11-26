@@ -1230,7 +1230,7 @@ export default function YogaApp() {
               {/* SEQUENCE LIST */}
               <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : "space-y-1 relative before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-700 print:before:hidden"}>
                 {sequence.length === 0 ? (
-                  <div className="text-center py-20 opacity-40 text-stone-600 dark:text-stone-400">
+                  <div className="text-center py-20 opacity-40 text-stone-600 dark:text-stone-400 px-4">
                     <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
                   </div>
                 ) : (
