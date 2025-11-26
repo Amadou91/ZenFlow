@@ -648,6 +648,11 @@ export default function YogaApp() {
   const [params, setParams] = useState({ duration: 60, difficulty: 'Intermediate', style: 'Vinyasa', filters: { noWrists: false, kneeFriendly: false, pregnancySafe: false }, method: SEQUENCE_METHODS.STANDARD, selectedPeakPose: PEAK_POSES[0]?.id || '', selectedTheme: THEMES[0].id, selectedTarget: TARGET_AREAS[0].id });
   const [sequence, setSequence] = useState([]);
   const [savedSequences, setSavedSequences] = useState(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('yoga_saved_sequences'); return saved ? JSON.parse(saved) : []; } return []; });
+  const [inProgress, setInProgress] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = localStorage.getItem('yoga_in_progress');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [musicThemes, setMusicThemes] = useState(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('yoga_music_themes'); if (saved) { const parsed = JSON.parse(saved); return DEFAULT_MUSIC_THEMES.map(def => { const savedTheme = parsed.find(s => s.id === def.id); return savedTheme ? { ...def, link: savedTheme.link } : def; }); } } return DEFAULT_MUSIC_THEMES; });
   const updateMusicTheme = (id, newLink) => { const updated = musicThemes.map(t => t.id === id ? { ...t, link: newLink } : t); setMusicThemes(updated); localStorage.setItem('yoga_music_themes', JSON.stringify(updated.map(({ id, link }) => ({ id, link })))); };
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
@@ -980,6 +985,30 @@ export default function YogaApp() {
 
   const deleteSaved = (id) => { const updated = savedSequences.filter(s => s.id !== id); setSavedSequences(updated); localStorage.setItem('yoga_saved_sequences', JSON.stringify(updated)); };
 
+  const clearInProgress = useCallback(() => {
+    setInProgress(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('yoga_in_progress');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sequence.length === 0) return;
+
+    const snapshot = {
+      id: 'in-progress',
+      name: 'In Progress Flow',
+      updatedAt: new Date().toISOString(),
+      params,
+      poses: sequence
+    };
+
+    setInProgress(snapshot);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('yoga_in_progress', JSON.stringify(snapshot));
+    }
+  }, [params, sequence]);
+
   const handleLogout = async () => {
     try { await fetch(`${API_BASE}/api/spotify/logout`, { method: 'POST', credentials: 'include' }); } catch (err) { console.warn('Logout failed', err); }
     clearStoredToken(); setSpotifyToken(null); setTokenExpiry(null); setSpotifyProfile(null); setSpotifyStatus(''); setTokenError(null);
@@ -1114,8 +1143,41 @@ export default function YogaApp() {
           {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
           {activeTab === 'settings' && <MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} spotifyToken={spotifyToken} getLoginUrl={getLoginUrl} isPremiumUser={isPremiumUser} tokenError={tokenError} />}
           {activeTab === 'saved' && (
-             <div className="max-w-4xl mx-auto p-8"><h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-8 border-b border-stone-200 dark:border-stone-700 pb-4">Saved Flows</h2>
-             {savedSequences.map(s => (<div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl flex justify-between items-center group shadow-sm mb-4 border border-stone-100 dark:border-stone-700"><div><h3 className="font-bold text-lg dark:text-stone-100">{s.name}</h3><p className="text-sm opacity-60 dark:text-stone-400">{s.params.style} • {s.params.duration} min</p></div><div className="flex gap-2"><button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 bg-teal-50 rounded-lg"><Play size={18}/></button><button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-600 bg-rose-50 rounded-lg"><Trash2 size={18}/></button></div></div>))}
+             <div className="max-w-4xl mx-auto p-8">
+               <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-6">Saved & In-Progress</h2>
+               <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Pick up where you left off or revisit your favorite flows.</p>
+
+               {inProgress && (
+                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-6 rounded-xl flex justify-between items-center shadow-sm mb-6">
+                   <div>
+                     <div className="flex items-center gap-2 mb-1">
+                       <span className="px-2 py-0.5 bg-amber-200 text-amber-900 rounded text-[10px] font-bold uppercase tracking-wide">In Progress</span>
+                       <span className="text-xs text-amber-700 dark:text-amber-300">Updated {new Date(inProgress.updatedAt).toLocaleString()}</span>
+                     </div>
+                     <h3 className="font-bold text-lg text-stone-900 dark:text-stone-100">{inProgress.name}</h3>
+                     <p className="text-sm opacity-70 dark:text-stone-400">{inProgress.params.style} • {inProgress.params.duration} min • {inProgress.poses.length} poses</p>
+                   </div>
+                   <div className="flex gap-2">
+                     <button onClick={() => { setParams(inProgress.params); setSequence(inProgress.poses); setActiveTab('generator'); }} className="px-3 py-2 bg-amber-500 text-white rounded-lg shadow">Resume</button>
+                     <button onClick={clearInProgress} className="p-2 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/50 rounded-lg" title="Clear in-progress flow"><Trash2 size={18} /></button>
+                   </div>
+                 </div>
+               )}
+
+               <h3 className="text-xl font-bold text-teal-900 dark:text-teal-100 mb-4">Saved Flows</h3>
+               {savedSequences.length === 0 && <p className="text-sm text-stone-500 dark:text-stone-400">No saved flows yet. Create a sequence and tap the heart to store it.</p>}
+               {savedSequences.map(s => (
+                 <div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl flex justify-between items-center group shadow-sm mb-4 border border-stone-100 dark:border-stone-700">
+                   <div>
+                     <h3 className="font-bold text-lg dark:text-stone-100">{s.name}</h3>
+                     <p className="text-sm opacity-60 dark:text-stone-400">{s.params.style} • {s.params.duration} min</p>
+                   </div>
+                   <div className="flex gap-2">
+                     <button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 bg-teal-50 rounded-lg"><Play size={18}/></button>
+                     <button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-600 bg-rose-50 rounded-lg"><Trash2 size={18}/></button>
+                   </div>
+                 </div>
+               ))}
              </div>
           )}
           {activeTab === 'generator' && (
