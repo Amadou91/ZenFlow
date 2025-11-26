@@ -23,10 +23,10 @@ if (existsSync(envPath)) {
 const {
   SPOTIFY_CLIENT_ID,
   SPOTIFY_CLIENT_SECRET,
-  SPOTIFY_REDIRECT_URI = 'http://localhost:5174/api/spotify/callback',
-  FRONTEND_URI = 'http://localhost:5173/',
+  SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5174/api/spotify/callback',
+  FRONTEND_URI = 'http://127.0.0.1:5173/',
   SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state',
-  ALLOWED_ORIGIN = 'http://localhost:5173',
+  ALLOWED_ORIGIN = 'http://127.0.0.1:5173',
   PORT = 5174,
 } = process.env;
 

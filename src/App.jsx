@@ -292,8 +292,8 @@ const API_BASE =
     ? (
         import.meta.env.VITE_API_BASE_URL ||
         // Helpful local dev default: UI runs on 5173, auth server on 5174
-        (window.location.hostname === 'localhost' && window.location.port === '5173'
-          ? 'http://localhost:5174'
+        (['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '5173'
+          ? `http://${window.location.hostname}:5174`
           : window.location.origin)
       )
     : '';
