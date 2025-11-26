@@ -3,7 +3,7 @@ import {
   Menu, X, Play, RefreshCw, Settings, Heart, Copy, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
   Shuffle, SkipForward, Pause, PlayCircle, Info, Download, Check, Headphones,
-  Layers, Target, Zap, Anchor
+  Layers, Target, Zap, Anchor, BookOpen, User, Feather, Smile, Sunrise, RotateCcw, ArrowUp
 } from 'lucide-react';
 
 /**
@@ -294,46 +294,60 @@ const TARGET_AREAS = [
 
 // --- EXTRACTED SUB-COMPONENTS TO FIX RE-MOUNTING ISSUES ---
 
+const PoseIcon = ({ category, className = "w-full h-full p-2" }) => {
+  let Icon = User;
+  switch(category) {
+    case POSE_CATEGORIES.SUN_SALUTATION: Icon = Sun; break;
+    case POSE_CATEGORIES.WARMUP: Icon = Activity; break;
+    case POSE_CATEGORIES.CENTERING: Icon = Anchor; break;
+    case POSE_CATEGORIES.STANDING: Icon = User; break;
+    case POSE_CATEGORIES.BALANCE: Icon = ScaleIcon; break;
+    case POSE_CATEGORIES.CORE: Icon = Zap; break;
+    case POSE_CATEGORIES.BACKBEND: Icon = ArrowUp; break;
+    case POSE_CATEGORIES.TWIST: Icon = RefreshCw; break;
+    case POSE_CATEGORIES.HIP_OPENER: Icon = Target; break;
+    case POSE_CATEGORIES.RESTORATIVE: Icon = Feather; break;
+    case POSE_CATEGORIES.SAVASANA: Icon = Moon; break;
+    case POSE_CATEGORIES.INVERSION: Icon = RotateCcw; break;
+    default: Icon = User;
+  }
+  // Custom SVG wrapper for Scale since it's not imported
+  if (category === POSE_CATEGORIES.BALANCE) {
+    return <div className={`${className} flex items-center justify-center`}><Target className="w-full h-full" /></div>
+  }
+  
+  return <Icon className={className} strokeWidth={1.5} />;
+};
+
+// Helper for balance since Scale isn't standard in all sets
+const ScaleIcon = (props) => <Target {...props} />;
+
 const PoseDetailModal = ({ pose, onClose }) => {
   if (!pose) return null;
 
-  const imagePath = `/poses/${pose.id}.png`; 
-
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
       <div className="bg-white dark:bg-stone-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
         
         {/* Header Image Area */}
         <div className="h-64 bg-stone-100 dark:bg-stone-900 relative flex items-center justify-center overflow-hidden group">
-          <img 
-            src={imagePath} 
-            alt={pose.name} 
-            className="w-full h-full object-contain p-8 mix-blend-multiply dark:mix-blend-normal transition-transform group-hover:scale-105"
-          />
-          <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md">
+          <div className="w-32 h-32 text-teal-600 dark:text-teal-400 opacity-80">
+             <PoseIcon category={pose.category} className="w-full h-full" />
+          </div>
+          <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-stone-700 dark:text-white rounded-full backdrop-blur-md">
             <X size={20} />
           </button>
-          <div className="absolute bottom-4 right-4 flex gap-2">
-             <a 
-               href={imagePath} 
-               download={`${pose.id}.png`}
-               onClick={(e) => e.stopPropagation()}
-               className="p-2 bg-white/90 dark:bg-black/50 text-stone-700 dark:text-stone-200 rounded-lg hover:text-teal-600 text-xs font-bold flex items-center gap-1 shadow-sm"
-             >
-               <Download size={14} /> Save Image
-             </a>
-          </div>
         </div>
 
         {/* Content */}
         <div className="p-8 overflow-y-auto">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <span className="text-teal-600 font-bold uppercase tracking-widest text-xs mb-1 block">{pose.category}</span>
+              <span className="text-teal-700 dark:text-teal-400 font-bold uppercase tracking-widest text-xs mb-1 block">{pose.category}</span>
               <h2 className="text-3xl font-serif text-stone-900 dark:text-white mb-1">{pose.name}</h2>
-              <p className="text-stone-500 italic font-serif text-lg">{pose.sanskrit}</p>
+              <p className="text-stone-600 dark:text-stone-400 italic font-serif text-lg">{pose.sanskrit}</p>
             </div>
-            <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${pose.difficulty <= 1 ? 'bg-emerald-100 text-emerald-800' : pose.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' : 'bg-rose-100 text-rose-800'}`}>
+            <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide h-fit ${pose.difficulty <= 1 ? 'bg-emerald-100 text-emerald-800' : pose.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' : 'bg-rose-100 text-rose-800'}`}>
               Level {pose.difficulty}
             </div>
           </div>
@@ -341,21 +355,21 @@ const PoseDetailModal = ({ pose, onClose }) => {
           <div className="grid md:grid-cols-2 gap-8">
             <div>
               <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200">
-                <Info size={18} className="text-teal-500" /> Instructions
+                <Info size={18} className="text-teal-600 dark:text-teal-400" /> Instructions
               </h3>
-              <p className="text-stone-600 dark:text-stone-400 leading-relaxed bg-stone-50 dark:bg-stone-900/50 p-4 rounded-lg">
+              <p className="text-stone-700 dark:text-stone-300 leading-relaxed bg-stone-50 dark:bg-stone-900/50 p-4 rounded-lg border border-stone-100 dark:border-stone-700">
                 {pose.cues}
               </p>
             </div>
 
             <div>
               <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200">
-                <Check size={18} className="text-teal-500" /> Key Benefits
+                <Check size={18} className="text-teal-600 dark:text-teal-400" /> Key Benefits
               </h3>
               <ul className="space-y-2">
                 {pose.benefits && pose.benefits.map((benefit, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-stone-600 dark:text-stone-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-teal-400 mt-1.5 shrink-0" />
+                  <li key={i} className="flex items-start gap-2 text-sm text-stone-600 dark:text-stone-300">
+                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5 shrink-0" />
                     {benefit}
                   </li>
                 ))}
@@ -369,90 +383,60 @@ const PoseDetailModal = ({ pose, onClose }) => {
   );
 };
 
-const PoseCard = ({ pose, index, onSwap, setSelectedPose }) => (
-  <div className="relative pl-16 group break-inside-avoid print:pl-10 print:mb-4">
-    {/* Timeline Dot */}
-    <div className="absolute left-[26px] top-6 w-4 h-4 rounded-full border-4 border-white dark:border-stone-900 bg-teal-500 print:left-[10px]"></div>
-
-    <div 
-      onClick={() => setSelectedPose(pose)}
-      className="cursor-pointer bg-white dark:bg-stone-800 p-5 rounded-xl border border-stone-100 dark:border-stone-700 hover:shadow-md hover:border-teal-200 dark:hover:border-teal-800 transition-all group relative"
-    >
-      <div className="flex justify-between items-start mb-1">
-        <div>
-          <span className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-1 block">{pose.category}</span>
-          <h3 className="font-bold text-lg text-stone-800 dark:text-stone-100 leading-tight group-hover:text-teal-600 transition-colors">{pose.name}</h3>
-          <p className="text-stone-500 dark:text-stone-400 italic text-sm font-serif">{pose.sanskrit}</p>
+const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
+  // Teacher Mode: Condensed view
+  if (isTeacherMode) {
+    return (
+      <div className="flex items-center gap-4 p-3 border-b border-stone-200 dark:border-stone-700 break-inside-avoid hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors">
+        <span className="font-mono text-stone-400 w-6 text-right">{index + 1}</span>
+        <div className="w-10 h-10 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-teal-600 dark:text-teal-400">
+           <PoseIcon category={pose.category} className="w-6 h-6" />
         </div>
-        <div className="flex flex-col items-end gap-2">
-           <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wide ${pose.difficulty <= 1 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' : pose.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' : 'bg-rose-100 text-rose-800'}`}>
-            Level {pose.difficulty}
-          </span>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onSwap(index); }} 
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-stone-400 hover:text-teal-600" 
-            title="Swap Pose"
-          >
-            <Shuffle size={14} />
-          </button>
+        <div className="flex-1">
+          <h4 className="font-bold text-stone-900 dark:text-stone-100 text-sm">{pose.name}</h4>
+          <p className="text-xs text-stone-500 dark:text-stone-400 italic">{pose.sanskrit}</p>
         </div>
+        <div className="text-xs text-stone-600 dark:text-stone-400 font-medium uppercase tracking-wide">{pose.duration}</div>
       </div>
+    );
+  }
 
-      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div className="bg-stone-50 dark:bg-stone-900/50 p-3 rounded-lg">
-          <strong className="block text-teal-700 dark:text-teal-400 text-xs uppercase mb-1">Cues</strong>
-          <p className="opacity-80 leading-relaxed">{pose.cues}</p>
-        </div>
-        <div className="flex flex-col justify-center gap-2 opacity-70">
-          <div className="flex items-center gap-2">
-            <Wind size={14} /> <span>Hold: <strong>{pose.duration}</strong></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const PoseLibrary = ({ setSelectedPose }) => {
-  const [search, setSearch] = useState('');
-  const filtered = POSE_LIBRARY.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    p.sanskrit.toLowerCase().includes(search.toLowerCase())
-  );
-
+  // Student/Standard Mode: Detailed Card
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-          <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100">Pose Lab</h2>
-          <p className="text-stone-500">Explore the encyclopedia of movement. Click any pose for details.</p>
-        </div>
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3 top-3 text-stone-400" size={18} />
-          <input 
-            type="text" placeholder="Search poses..." 
-            value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 focus:ring-2 focus:ring-teal-500 outline-none"
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(pose => (
-          <div 
-            key={pose.id} 
-            onClick={() => setSelectedPose(pose)}
-            className="bg-white dark:bg-stone-800 p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-teal-500 transition-colors cursor-pointer group"
-          >
-            <div className="flex justify-between">
-              <h3 className="font-bold text-lg group-hover:text-teal-600 transition-colors">{pose.name}</h3>
-              <span className="text-xs bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded h-fit">{pose.category}</span>
-            </div>
-            <p className="text-sm italic text-stone-500 mb-3">{pose.sanskrit}</p>
-            <div className="flex gap-2 mt-3">
-               {pose.types.map(t => <span key={t} className="text-[10px] uppercase font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-2 py-1 rounded">{t}</span>)}
-            </div>
+    <div className="relative pl-8 md:pl-12 group break-inside-avoid mb-4">
+      {/* Timeline Connector */}
+      <div className="absolute left-[15px] md:left-[23px] top-8 bottom-[-16px] w-0.5 bg-stone-200 dark:bg-stone-700 group-last:hidden"></div>
+      <div className="absolute left-[9px] md:left-[17px] top-6 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-stone-900 bg-teal-500 shadow-sm z-10"></div>
+
+      <div 
+        onClick={() => setSelectedPose(pose)}
+        className="cursor-pointer bg-white dark:bg-stone-800 p-4 md:p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 transition-all group relative"
+      >
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center gap-4">
+             <div className="w-14 h-14 bg-stone-50 dark:bg-stone-900 rounded-xl flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                <PoseIcon category={pose.category} className="w-8 h-8" />
+             </div>
+             <div>
+                <h3 className="font-bold text-lg text-stone-800 dark:text-stone-100 leading-tight group-hover:text-teal-700 dark:group-hover:text-teal-400 transition-colors">{pose.name}</h3>
+                <p className="text-stone-500 dark:text-stone-400 italic text-sm font-serif">{pose.sanskrit}</p>
+             </div>
           </div>
-        ))}
+          <div className="flex flex-col items-end gap-2">
+            <button 
+              onClick={(e) => { e.stopPropagation(); onSwap(index); }} 
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-stone-400 hover:text-teal-600 dark:text-stone-500 dark:hover:text-teal-400 bg-stone-50 dark:bg-stone-700 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30" 
+              title="Swap Pose"
+            >
+              <Shuffle size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-4 text-xs text-stone-500 dark:text-stone-400">
+          <span className="flex items-center gap-1 bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded font-medium text-stone-700 dark:text-stone-300">{pose.category}</span>
+          <span className="flex items-center gap-1"><Wind size={12} /> {pose.duration}</span>
+        </div>
       </div>
     </div>
   );
@@ -474,74 +458,137 @@ const PracticeMode = ({
   // Auto-pause timer when Practice Mode mounts
   useEffect(() => {
       setIsTimerRunning(false);
-  }, []);
+  }, [setIsTimerRunning]);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-stone-900 text-stone-100 flex flex-col">
-      {/* Header */}
+    <div className="fixed inset-0 z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300">
       <div className="flex justify-between items-center p-6 border-b border-stone-800">
-        <div className="flex items-center gap-2">
-          <Activity className="text-teal-400" />
-          <span className="font-bold tracking-widest uppercase">Live Practice</span>
+        <div className="flex items-center gap-3">
+          <div className="bg-teal-900/30 p-2 rounded-lg"><Activity className="text-teal-400" size={20} /></div>
+          <div>
+             <span className="font-bold tracking-widest uppercase text-sm block text-teal-400">Live Session</span>
+             <span className="text-xs text-stone-400">Pose {practiceIndex + 1} of {sequence.length}</span>
+          </div>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full"><X /></button>
+        <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full text-stone-400 hover:text-white"><X /></button>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
-        {/* Background image effect */}
-        <div className="absolute inset-0 opacity-10 blur-xl pointer-events-none">
-           <img 
-              src={`/poses/${current.id}.png`} 
-              className="w-full h-full object-cover" 
-            />
+        {/* Background icon effect */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center">
+           <PoseIcon category={current.category} className="w-[120%] h-[120%] text-teal-500" />
         </div>
 
-        <span className="text-teal-400 font-bold uppercase tracking-widest mb-4 relative z-10">{current.category}</span>
-        <h1 className="text-5xl md:text-7xl font-serif mb-2 relative z-10">{current.name}</h1>
-        <p className="text-2xl text-stone-400 italic font-serif mb-12 relative z-10">{current.sanskrit}</p>
-        
-        {/* Timer Ring */}
-        <div className="relative w-48 h-48 flex items-center justify-center mb-12 z-10">
-          <div className={`absolute inset-0 rounded-full border-4 ${isTimerRunning ? 'border-teal-500 animate-pulse' : 'border-stone-700'}`}></div>
-          <div className="text-6xl font-mono font-bold">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</div>
-        </div>
+        <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto w-full">
+           <div className="w-48 h-48 mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
+              <PoseIcon category={current.category} className="w-24 h-24" />
+           </div>
+           
+           <h1 className="text-4xl md:text-6xl font-serif mb-3 text-white tracking-tight">{current.name}</h1>
+           <p className="text-xl md:text-2xl text-stone-400 italic font-serif mb-10">{current.sanskrit}</p>
+           
+           <div className="flex items-center gap-4 mb-10">
+              <div className="relative w-40 h-40 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl">
+                  <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" />
+                  <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} />
+                </svg>
+                <div className="absolute text-4xl font-mono font-bold text-white">
+                  {Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}
+                </div>
+              </div>
+           </div>
 
-        {/* Cues */}
-        <p className="text-xl max-w-2xl leading-relaxed opacity-90 relative z-10">{current.cues}</p>
+           <div className="bg-stone-800/80 backdrop-blur-md p-8 rounded-2xl border border-stone-700/50 max-w-2xl shadow-xl">
+             <p className="text-xl leading-relaxed text-stone-200 font-medium">{current.cues}</p>
+           </div>
+        </div>
       </div>
 
-      {/* Footer Controls */}
-      <div className="bg-stone-800 p-6 flex items-center justify-between relative z-10">
-        <div className="w-1/3">
+      <div className="bg-stone-900 border-t border-stone-800 p-6 flex items-center justify-between relative z-10">
+        <div className="w-1/3 hidden md:block">
           {next && (
-            <div className="hidden md:block opacity-60">
-              <span className="text-xs uppercase block mb-1">Up Next</span>
-              <span className="font-bold">{next.name}</span>
+            <div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group">
+              <div className="w-12 h-12 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50">
+                <PoseIcon category={next.category} className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span>
+                <span className="font-bold text-sm text-white">{next.name}</span>
+              </div>
             </div>
           )}
         </div>
         
-        <div className="flex items-center gap-6">
-          <button 
-            onClick={() => setIsTimerRunning(!isTimerRunning)} 
-            className="w-16 h-16 bg-teal-500 hover:bg-teal-400 rounded-full flex items-center justify-center text-stone-900 transition-transform hover:scale-105"
-          >
+        <div className="flex items-center gap-8 justify-center w-full md:w-1/3">
+          <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-20 h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">
             {isTimerRunning ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="ml-1" />}
           </button>
-          <button 
-            onClick={nextPracticePose} 
-            className="p-4 hover:bg-stone-700 rounded-full transition-colors"
-          >
-            <SkipForward size={24} />
+          <button onClick={nextPracticePose} className="p-4 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white">
+            <SkipForward size={32} />
           </button>
         </div>
 
-        <div className="w-1/3 flex justify-end items-center gap-2 opacity-60">
-          <Music size={16} />
-          <span className="text-sm hidden md:inline">{musicTheme.name}</span>
+        <div className="w-1/3 flex justify-end items-center gap-3 text-stone-500">
+          <Headphones size={18} />
+          <span className="text-xs font-bold tracking-wider uppercase hidden sm:inline">{musicTheme.name}</span>
         </div>
       </div>
+    </div>
+  );
+};
+
+const PoseLibrary = ({ setSelectedPose }) => {
+  const [search, setSearch] = useState('');
+  const filtered = POSE_LIBRARY.filter(p => 
+    p.name.toLowerCase().includes(search.toLowerCase()) || 
+    p.sanskrit.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 min-h-full">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-stone-200 dark:border-stone-700 pb-6">
+        <div>
+          <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-2">Pose Library</h2>
+          <p className="text-stone-600 dark:text-stone-400">Browse the full collection of {POSE_LIBRARY.length} poses.</p>
+        </div>
+        <div className="relative w-full md:w-72">
+          <Search className="absolute left-3 top-3 text-stone-400" size={20} />
+          <input 
+            type="text" placeholder="Find a pose..." 
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 focus:ring-2 focus:ring-teal-500 outline-none shadow-sm text-stone-800 dark:text-stone-100"
+          />
+        </div>
+      </div>
+      
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+          {filtered.map(pose => (
+            <div 
+              key={pose.id} 
+              onClick={() => setSelectedPose(pose)}
+              className="bg-white dark:bg-stone-800 p-5 rounded-2xl border border-stone-200 dark:border-stone-700 hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-md transition-all cursor-pointer group flex items-start gap-4"
+            >
+              <div className="w-16 h-16 bg-stone-50 dark:bg-stone-900 rounded-xl flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors">
+                <PoseIcon category={pose.category} className="w-8 h-8" />
+              </div>
+              <div>
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="font-bold text-lg text-stone-900 dark:text-stone-100 group-hover:text-teal-700 dark:group-hover:text-teal-400 transition-colors">{pose.name}</h3>
+                </div>
+                <p className="text-sm italic text-stone-500 dark:text-stone-400 mb-3 font-serif">{pose.sanskrit}</p>
+                <span className="text-xs bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 px-2.5 py-1 rounded-md font-medium">{pose.category}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 opacity-50">
+          <Info size={48} className="mx-auto mb-4 text-stone-400"/>
+          <p className="text-lg">No poses found matching "{search}"</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -551,22 +598,40 @@ const PracticeMode = ({
  * MAIN APP COMPONENT
  */
 export default function YogaApp() {
-  const [activeTab, setActiveTab] = useState('generator'); // 'generator', 'saved', 'library', 'practice'
+  const [activeTab, setActiveTab] = useState('generator'); 
   const [params, setParams] = useState({
     duration: 60,
     difficulty: 'Intermediate',
     style: 'Vinyasa',
     filters: { noWrists: false, kneeFriendly: false, pregnancySafe: false },
     method: SEQUENCE_METHODS.STANDARD,
-    selectedPeakPose: PEAK_POSES[0].id,
+    selectedPeakPose: PEAK_POSES[0]?.id || '',
     selectedTheme: THEMES[0].id,
     selectedTarget: TARGET_AREAS[0].id
   });
 
   const [sequence, setSequence] = useState([]);
-  const [savedSequences, setSavedSequences] = useState([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  // Initialize state directly from localStorage
+  const [savedSequences, setSavedSequences] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('yoga_saved_sequences');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  
+  // Initialize sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return true;
+  });
+
+  const [isTeacherMode, setIsTeacherMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => 
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
   const [musicTheme, setMusicTheme] = useState(MUSIC_THEMES[0]);
   
   // Practice Mode State
@@ -576,15 +641,6 @@ export default function YogaApp() {
 
   // Pose Modal State
   const [selectedPose, setSelectedPose] = useState(null);
-
-  // Load Preferences
-  useEffect(() => {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setDarkMode(true);
-    }
-    const saved = localStorage.getItem('yoga_saved_sequences');
-    if (saved) setSavedSequences(JSON.parse(saved));
-  }, []);
 
   // Timer Logic
   useEffect(() => {
@@ -621,21 +677,16 @@ export default function YogaApp() {
     const hasCat = selectedPoses.some(p => p.id === 'cat');
     const hasCow = selectedPoses.some(p => p.id === 'cow');
     
-    // If neither is present, return as is
     if (!hasCat && !hasCow) return selectedPoses;
 
-    // Filter out existing instances to re-insert them as a pair
     let newPoses = selectedPoses.filter(p => p.id !== 'cat' && p.id !== 'cow');
     
     const catPose = pool.find(p => p.id === 'cat');
     const cowPose = pool.find(p => p.id === 'cow');
 
-    // Only add the pair if BOTH are available in the filtered pool (respecting wrist/knee filters)
     if (catPose && cowPose) {
-      // Insert them together at the beginning of the set
       newPoses.unshift(catPose, cowPose);
     } else {
-      // If only one is available (e.g. due to filters), just put back what we had
       if (hasCat && catPose) newPoses.push(catPose);
       if (hasCow && cowPose) newPoses.push(cowPose);
     }
@@ -650,301 +701,162 @@ export default function YogaApp() {
     return candidates.slice(0, Math.max(1, count));
   };
 
-  const generateStandardSequence = (pool, minutes) => {
-    let counts = {
-      centering: 2, warmup: Math.floor(minutes * 0.15), sunSal: Math.floor(minutes * 0.15),
-      standing: Math.floor(minutes * 0.30), balance: Math.floor(minutes * 0.10),
-      floor: Math.floor(minutes * 0.20), savasana: 1
-    };
-
-    if (params.style === 'Yin' || params.style === 'Restorative') {
-      counts = { centering: 3, warmup: 2, sunSal: 0, standing: 0, balance: 0, floor: Math.floor(minutes / 4), savasana: 1 };
-    }
-
-    let newSequence = [];
-    newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, counts.centering));
-    
-    // Warmup with Cat/Cow check
-    let warmups = pick(pool, POSE_CATEGORIES.WARMUP, counts.warmup);
-    newSequence.push(...ensureCatCow(warmups, pool));
-
-    if (counts.sunSal > 0) {
-      const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
-      const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
-      if (sunFlow.length === 5) {
-        newSequence.push(...sunFlow);
-        if (params.duration > 45) newSequence.push(...sunFlow);
-      }
-    }
-
-    newSequence.push(...pick(pool, POSE_CATEGORIES.STANDING, counts.standing));
-    newSequence.push(...pick(pool, POSE_CATEGORIES.BALANCE, counts.balance));
-
-    // Floor Mix
-    let floorCandidates = pool.filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category)).sort(() => 0.5 - Math.random());
-    newSequence.push(...floorCandidates.slice(0, counts.floor));
-
-    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
-    if (sava) newSequence.push(sava);
-
-    return newSequence;
-  };
-
-  const generatePeakPoseSequence = (pool, minutes) => {
-    // Structure: Warmup -> SunSal -> Prep Poses -> Peak Pose -> Counter Poses -> Savasana
-    const peakPose = POSE_LIBRARY.find(p => p.id === params.selectedPeakPose);
-    if (!peakPose) return generateStandardSequence(pool, minutes);
-
-    let newSequence = [];
-    newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
-    
-    // Warmup with Cat/Cow check
-    let warmups = pick(pool, POSE_CATEGORIES.WARMUP, 3);
-    newSequence.push(...ensureCatCow(warmups, pool));
-
-    // Sun Salutations
-    const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
-    const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
-    if (sunFlow.length === 5) newSequence.push(...sunFlow);
-
-    // Prep Poses (Standing/Core) that share types with Peak
-    const prepCount = Math.floor(minutes * 0.3);
-    const relatedTypes = peakPose.types.filter(t => t !== 'peak'); // e.g., 'balance', 'hip-opener'
-    
-    // Find standing/balance poses that match at least one type of the peak pose
-    const prepPoses = pool.filter(p => 
-      (p.category === POSE_CATEGORIES.STANDING || p.category === POSE_CATEGORIES.BALANCE || p.category === POSE_CATEGORIES.CORE) &&
-      p.id !== peakPose.id &&
-      p.types.some(t => relatedTypes.includes(t))
-    ).sort(() => 0.5 - Math.random()).slice(0, prepCount);
-
-    newSequence.push(...prepPoses);
-
-    // THE PEAK
-    newSequence.push(peakPose);
-
-    // Cool down / Counter poses (Floor)
-    const coolCount = Math.floor(minutes * 0.2);
-    const coolPoses = pool.filter(p => [POSE_CATEGORIES.TWIST, POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.RESTORATIVE].includes(p.category)).sort(() => 0.5 - Math.random()).slice(0, coolCount);
-    newSequence.push(...coolPoses);
-
-    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
-    if (sava) newSequence.push(sava);
-
-    return newSequence;
-  };
-
-  const generateThemedSequence = (pool, minutes) => {
-    const theme = THEMES.find(t => t.id === params.selectedTheme);
-    if (!theme) return generateStandardSequence(pool, minutes);
-
-    // Filter pool to heavily favor theme types
-    // We don't exclude others entirely, but we prioritize them
-    const prioritizedPool = pool.filter(p => p.types.some(t => theme.types.includes(t)));
-    const otherPool = pool.filter(p => !p.types.some(t => theme.types.includes(t)));
-
-    // Helper to get mostly themed poses, but fill with others if needed
-    const smartPick = (category, count) => {
-      let themedCandidates = prioritizedPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
-      let others = otherPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
-      return [...themedCandidates, ...others].slice(0, Math.max(1, count));
-    };
-
-    let newSequence = [];
-    newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
-    
-    // Warmup with Cat/Cow check
-    let warmups = smartPick(POSE_CATEGORIES.WARMUP, 3);
-    newSequence.push(...ensureCatCow(warmups, pool));
-    
-    // Sun Sal only if appropriate for theme (skip for 'Rest')
-    if (theme.id !== 'rest') {
-       const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
-       const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
-       if (sunFlow.length === 5) newSequence.push(...sunFlow);
-    }
-
-    newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, Math.floor(minutes * 0.25)));
-    newSequence.push(...smartPick(POSE_CATEGORIES.BALANCE, Math.floor(minutes * 0.1)));
-    
-    // Floor
-    let floorCandidates = [...prioritizedPool, ...otherPool].filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category));
-    newSequence.push(...floorCandidates.slice(0, Math.floor(minutes * 0.25)));
-
-    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
-    if (sava) newSequence.push(sava);
-
-    return newSequence;
-  };
-
-  const generateTargetAreaSequence = (pool, minutes) => {
-    const target = TARGET_AREAS.find(t => t.id === params.selectedTarget);
-    if (!target) return generateStandardSequence(pool, minutes);
-
-    // Similar logic to Theme, but strictly filtering for benefits/types related to body part
-    const targetPool = pool.filter(p => p.types.some(t => target.types.includes(t)));
-    const generalPool = pool.filter(p => !p.types.some(t => target.types.includes(t))); // Fillers
-
-    const smartPick = (category, count) => {
-      let main = targetPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
-      let fill = generalPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
-      return [...main, ...fill].slice(0, Math.max(1, count));
-    };
-
-    let newSequence = [];
-    newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
-    
-    // Warmup with Cat/Cow check
-    let warmups = smartPick(POSE_CATEGORIES.WARMUP, 3);
-    newSequence.push(...ensureCatCow(warmups, pool));
-    
-    // Sun Sal
-    const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
-    const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
-    if (sunFlow.length === 5) newSequence.push(...sunFlow);
-
-    // Heavy focus on the target area in Standing/Floor
-    newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, Math.floor(minutes * 0.3)));
-    
-    // Floor work is where target areas usually shine (hips, hamstrings, spine)
-    let floorTarget = targetPool.filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category));
-    let floorFill = generalPool.filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category));
-    
-    newSequence.push(...[...floorTarget, ...floorFill].slice(0, Math.floor(minutes * 0.3)));
-
-    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
-    if (sava) newSequence.push(sava);
-
-    return newSequence;
-  };
-
-  const generateLadderFlowSequence = (pool, minutes) => {
-    // Ladder Flow: Build a sequence A, then A+B, then A+B+C.
-    // We need about 3-4 standing poses to build the ladder.
-    const ladderPoses = pick(pool, POSE_CATEGORIES.STANDING, 3);
-    if (ladderPoses.length < 3) return generateStandardSequence(pool, minutes);
-
-    let newSequence = [];
-    
-    // Warmup
-    newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
-    
-    // Warmup with Cat/Cow check
-    let warmups = pick(pool, POSE_CATEGORIES.WARMUP, 2);
-    newSequence.push(...ensureCatCow(warmups, pool));
-
-    // Sun Sal A (Once)
-    const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
-    const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
-    newSequence.push(...sunFlow);
-
-    // The Ladder Construction
-    // Round 1: Pose 1 -> Vinyasa
-    newSequence.push(ladderPoses[0]);
-    newSequence.push(pool.find(p => p.id === 'plk')); // Mini vinyasa
-    newSequence.push(pool.find(p => p.id === 'dd'));
-
-    // Round 2: Pose 1 -> Pose 2 -> Vinyasa
-    newSequence.push(ladderPoses[0]);
-    newSequence.push(ladderPoses[1]);
-    newSequence.push(pool.find(p => p.id === 'plk')); 
-    newSequence.push(pool.find(p => p.id === 'dd'));
-
-    // Round 3: Pose 1 -> Pose 2 -> Pose 3 -> Vinyasa
-    newSequence.push(ladderPoses[0]);
-    newSequence.push(ladderPoses[1]);
-    newSequence.push(ladderPoses[2]);
-    newSequence.push(pool.find(p => p.id === 'plk')); 
-    newSequence.push(pool.find(p => p.id === 'dd'));
-
-    // Cool down
-    newSequence.push(...pick(pool, POSE_CATEGORIES.HIP_OPENER, 2));
-    newSequence.push(...pick(pool, POSE_CATEGORIES.TWIST, 1));
-
-    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
-    if (sava) newSequence.push(sava);
-
-    return newSequence;
-  };
-
-
   const generateSequence = () => {
     const pool = getFilteredPool();
-    const minutes = params.duration;
     let newSequence = [];
 
-    switch (params.method) {
-      case SEQUENCE_METHODS.PEAK:
-        newSequence = generatePeakPoseSequence(pool, minutes);
-        break;
-      case SEQUENCE_METHODS.THEME:
-        newSequence = generateThemedSequence(pool, minutes);
-        break;
-      case SEQUENCE_METHODS.TARGET:
-        newSequence = generateTargetAreaSequence(pool, minutes);
-        break;
-      case SEQUENCE_METHODS.LADDER:
-        newSequence = generateLadderFlowSequence(pool, minutes);
-        break;
-      default:
-        newSequence = generateStandardSequence(pool, minutes);
-        break;
-    }
+    // Strategy Mapping
+    const strategies = {
+      [SEQUENCE_METHODS.STANDARD]: () => {
+        const counts = params.style === 'Yin' ? { centering: 3, warmup: 2, standing: 0, floor: 5 } : { centering: 2, warmup: 3, standing: 5, floor: 3 };
+        
+        newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, counts.centering));
+        
+        let warmups = pick(pool, POSE_CATEGORIES.WARMUP, counts.warmup);
+        newSequence.push(...ensureCatCow(warmups, pool));
+
+        if (params.style !== 'Yin') {
+           const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
+           if (sunFlow.length === 5) newSequence.push(...sunFlow);
+           
+           newSequence.push(...pick(pool, POSE_CATEGORIES.STANDING, counts.standing));
+           newSequence.push(...pick(pool, POSE_CATEGORIES.BALANCE, 2));
+        }
+        
+        newSequence.push(...pick(pool, POSE_CATEGORIES.HIP_OPENER, counts.floor));
+      },
+      [SEQUENCE_METHODS.PEAK]: () => {
+        const peak = pool.find(p => p.id === params.selectedPeakPose);
+        if (!peak) return strategies[SEQUENCE_METHODS.STANDARD]();
+
+        newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
+        
+        let warmups = pick(pool, POSE_CATEGORIES.WARMUP, 3);
+        newSequence.push(...ensureCatCow(warmups, pool));
+
+        const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
+        newSequence.push(...sunFlow);
+
+        const related = peak.types ? peak.types.filter(t => t !== 'peak') : [];
+        newSequence.push(...pick(pool, POSE_CATEGORIES.STANDING, 4, p => p.types && p.types.some(t => related.includes(t))));
+
+        newSequence.push(peak); 
+
+        newSequence.push(...pick(pool, POSE_CATEGORIES.RESTORATIVE, 2));
+      },
+      [SEQUENCE_METHODS.THEME]: () => {
+        const theme = THEMES.find(t => t.id === params.selectedTheme);
+        if (!theme) return strategies[SEQUENCE_METHODS.STANDARD]();
+        
+        const smartPick = (category, count) => {
+          let candidates = pool.filter(p => p.category === category);
+          candidates.sort((a, b) => {
+             const aMatch = a.types && a.types.some(t => theme.types.includes(t));
+             const bMatch = b.types && b.types.some(t => theme.types.includes(t));
+             return (bMatch ? 1 : 0) - (aMatch ? 1 : 0) || 0.5 - Math.random();
+          });
+          return candidates.slice(0, Math.max(1, count));
+        };
+
+        newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
+        newSequence.push(...ensureCatCow(smartPick(POSE_CATEGORIES.WARMUP, 3), pool));
+        
+        if (theme.id !== 'rest') {
+           const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
+           newSequence.push(...sunFlow);
+        }
+        
+        newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, 4));
+        newSequence.push(...smartPick(POSE_CATEGORIES.HIP_OPENER, 3));
+      },
+      [SEQUENCE_METHODS.TARGET]: () => {
+         const target = TARGET_AREAS.find(t => t.id === params.selectedTarget);
+         if (!target) return strategies[SEQUENCE_METHODS.STANDARD]();
+
+         const smartPick = (category, count) => {
+            let candidates = pool.filter(p => p.category === category);
+            candidates.sort((a, b) => {
+               const aMatch = a.types && a.types.some(t => target.types.includes(t));
+               const bMatch = b.types && b.types.some(t => target.types.includes(t));
+               return (bMatch ? 1 : 0) - (aMatch ? 1 : 0) || 0.5 - Math.random();
+            });
+            return candidates.slice(0, Math.max(1, count));
+         };
+
+         newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
+         newSequence.push(...ensureCatCow(smartPick(POSE_CATEGORIES.WARMUP, 3), pool));
+         newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, 5));
+         newSequence.push(...smartPick(POSE_CATEGORIES.HIP_OPENER, 3));
+      },
+      [SEQUENCE_METHODS.LADDER]: () => {
+         const ladderPoses = pick(pool, POSE_CATEGORIES.STANDING, 3);
+         if (ladderPoses.length < 3) return strategies[SEQUENCE_METHODS.STANDARD]();
+
+         newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
+         newSequence.push(...ensureCatCow(pick(pool, POSE_CATEGORIES.WARMUP, 2), pool));
+
+         const sunFlow = ['mtn', 'plk', 'chat', 'cobra', 'dd'].map(id => pool.find(p => p.id === id)).filter(Boolean);
+         newSequence.push(...sunFlow);
+
+         const vinyasa = [pool.find(p => p.id === 'plk'), pool.find(p => p.id === 'dd')].filter(Boolean);
+         
+         newSequence.push(ladderPoses[0]);
+         newSequence.push(...vinyasa);
+         
+         newSequence.push(ladderPoses[0]);
+         newSequence.push(ladderPoses[1]);
+         newSequence.push(...vinyasa);
+
+         newSequence.push(ladderPoses[0]);
+         newSequence.push(ladderPoses[1]);
+         newSequence.push(ladderPoses[2]);
+         newSequence.push(...vinyasa);
+
+         newSequence.push(...pick(pool, POSE_CATEGORIES.HIP_OPENER, 2));
+      }
+    };
+
+    const strategy = strategies[params.method] || strategies[SEQUENCE_METHODS.STANDARD];
+    strategy();
+
+    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
+    if (sava && !newSequence.find(p => p.id === 'sava')) newSequence.push(sava);
+
+    // TIMING LOGIC: Total Minutes -> Seconds
+    // Reserve 5 mins (300s) for Savasana at end
+    // Divide remaining time equally among active poses
+    const totalSeconds = params.duration * 60;
+    const savasanaSeconds = 300; 
+    const activeSeconds = Math.max(0, totalSeconds - savasanaSeconds);
+    const activePoseCount = newSequence.length - 1; // Exclude Savasana
+    const secondsPerPose = activePoseCount > 0 ? Math.floor(activeSeconds / activePoseCount) : 60;
 
     const finalSequence = newSequence.map((pose, idx) => ({
       ...pose,
       uniqueId: `${pose.id}-${idx}-${Date.now()}`,
-      duration: params.style === 'Yin' ? '3-5 min' : '5-8 breaths',
-      timerVal: params.style === 'Yin' ? 180 : 30, // seconds for timer
-      transition: idx < newSequence.length - 1 ? 'Flow to...' : 'Relax completely.'
+      duration: pose.id === 'sava' ? '5-10 min' : `${Math.floor(secondsPerPose/60)}m ${secondsPerPose%60}s`, // Dynamic text
+      timerVal: pose.id === 'sava' ? savasanaSeconds : secondsPerPose, // Dynamic timer
     }));
 
     setSequence(finalSequence);
     setActiveTab('generator');
+    if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
   const swapPose = (index) => {
     const currentPose = sequence[index];
-    const sameCategory = POSE_LIBRARY.filter(p => 
-      p.category === currentPose.category && 
-      p.id !== currentPose.id &&
-      (!params.filters.noWrists || !p.wrist) &&
-      (!params.filters.kneeFriendly || !p.knee)
-    );
-    
-    if (sameCategory.length > 0) {
-      const newPose = sameCategory[Math.floor(Math.random() * sameCategory.length)];
-      const updatedSeq = [...sequence];
-      updatedSeq[index] = {
-        ...newPose,
-        uniqueId: `${newPose.id}-${index}-${Date.now()}`,
-        duration: currentPose.duration,
-        timerVal: currentPose.timerVal,
-        transition: currentPose.transition
+    const pool = getFilteredPool();
+    const candidates = pool.filter(p => p.category === currentPose.category && p.id !== currentPose.id);
+    if (candidates.length > 0) {
+      const newPose = candidates[Math.floor(Math.random() * candidates.length)];
+      const updated = [...sequence];
+      updated[index] = { 
+        ...newPose, 
+        uniqueId: `${newPose.id}-${index}-${Date.now()}`, 
+        duration: currentPose.duration, 
+        timerVal: currentPose.timerVal 
       };
-      setSequence(updatedSeq);
-    } else {
-      alert("No alternate poses available in this category with current filters.");
-    }
-  };
-
-  const startPractice = () => {
-    if (sequence.length === 0) return;
-    setPracticeIndex(0);
-    setTimerSeconds(sequence[0].timerVal);
-    setActiveTab('practice');
-    setIsTimerRunning(false);
-  };
-
-  const nextPracticePose = () => {
-    if (practiceIndex < sequence.length - 1) {
-      const nextIdx = practiceIndex + 1;
-      setPracticeIndex(nextIdx);
-      setTimerSeconds(sequence[nextIdx].timerVal);
-      setIsTimerRunning(true);
-    } else {
-      // Finished
-      setActiveTab('generator');
+      setSequence(updated);
     }
   };
 
@@ -954,44 +866,40 @@ export default function YogaApp() {
     localStorage.setItem('yoga_saved_sequences', JSON.stringify(updated));
   };
 
-
-  // --- RENDER ---
-
-  // Init Generator on Load
-  useEffect(() => { if(sequence.length === 0) generateSequence(); }, []);
+  // --- UI RENDER ---
 
   return (
     <div className={`min-h-screen font-sans transition-colors duration-300 ${darkMode ? 'dark bg-stone-900 text-stone-100' : 'bg-stone-50 text-stone-800'}`}>
       
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-white/90 dark:bg-stone-800/90 backdrop-blur border-b border-stone-200 dark:border-stone-700 flex items-center justify-between px-4 lg:px-8 print:hidden">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg lg:hidden">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg text-stone-600 dark:text-stone-300">
             <Menu size={24} />
           </button>
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('generator')}>
-            <Activity className="text-teal-600 dark:text-teal-400" />
-            <h1 className="text-xl font-bold tracking-tight text-teal-900 dark:text-teal-100">ZenFlow</h1>
+            <div className="bg-teal-600 text-white p-1.5 rounded-lg"><Activity size={18} /></div>
+            <h1 className="text-xl font-bold tracking-tight text-stone-800 dark:text-stone-100 font-serif">ZenFlow</h1>
           </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <button onClick={() => setActiveTab('generator')} className={`text-sm font-medium ${activeTab === 'generator' ? 'text-teal-600' : 'opacity-60 hover:opacity-100'}`}>Generator</button>
-          <button onClick={() => setActiveTab('library')} className={`text-sm font-medium ${activeTab === 'library' ? 'text-teal-600' : 'opacity-60 hover:opacity-100'}`}>Pose Lab</button>
-          <button onClick={() => setActiveTab('saved')} className={`text-sm font-medium ${activeTab === 'saved' ? 'text-teal-600' : 'opacity-60 hover:opacity-100'}`}>Saved Flows</button>
+        <nav className="hidden md:flex items-center gap-1">
+          {['generator', 'library', 'saved'].map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === tab ? 'bg-stone-100 dark:bg-stone-700 text-teal-700 dark:text-teal-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 transition-colors">
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </div>
       </header>
 
-      {/* OVERLAY: POSE DETAIL MODAL */}
+      {/* MODALS */}
       {selectedPose && <PoseDetailModal pose={selectedPose} onClose={() => setSelectedPose(null)} />}
-
-      {/* OVERLAY: PRACTICE MODE */}
       {activeTab === 'practice' && (
         <PracticeMode 
           sequence={sequence}
@@ -999,7 +907,7 @@ export default function YogaApp() {
           timerSeconds={timerSeconds}
           isTimerRunning={isTimerRunning}
           setIsTimerRunning={setIsTimerRunning}
-          nextPracticePose={nextPracticePose}
+          nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[practiceIndex + 1].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }}
           onClose={() => setActiveTab('generator')}
           musicTheme={musicTheme}
         />
@@ -1008,146 +916,118 @@ export default function YogaApp() {
       {/* MAIN LAYOUT */}
       <div className="pt-16 flex h-screen overflow-hidden">
         
-        {/* SIDEBAR (Only visible in Generator) */}
+        {/* SIDEBAR */}
         {activeTab === 'generator' && (
           <aside className={`
-            absolute lg:relative z-40 w-full lg:w-80 h-[calc(100vh-64px)] 
-            bg-white dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 
-            transform transition-transform duration-300 overflow-y-auto print:hidden
-            [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-stone-200 dark:[&::-webkit-scrollbar-thumb]:bg-stone-700
-            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-none lg:overflow-hidden'}
+            fixed lg:static inset-y-0 left-0 z-40 w-80 bg-white dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 
+            transform transition-transform duration-300 ease-in-out print:hidden flex flex-col
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden'}
           `}>
-            <div className="p-6 space-y-8 pb-32">
-              <div className="flex justify-between items-center lg:hidden">
-                <h2 className="font-bold text-lg">Class Settings</h2>
-                <button onClick={() => setIsSidebarOpen(false)}><X /></button>
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+              <div className="flex justify-between items-center lg:hidden mb-6">
+                <h2 className="font-bold text-lg dark:text-stone-100">Design Class</h2>
+                <button onClick={() => setIsSidebarOpen(false)} className="text-stone-500"><X /></button>
               </div>
 
-              {/* SETTINGS FORM */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold uppercase text-xs tracking-wider"><Settings size={14} /> Basics</div>
+              {/* CONTROLS */}
+              <div className="space-y-5">
+                <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Settings size={14} /> Configuration</div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Duration: {params.duration} min</label>
-                  <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full accent-teal-600 cursor-pointer" />
-                  <div className="flex justify-between text-xs opacity-60 mt-1"><span>15</span><span>90</span></div>
+                  <div className="flex justify-between text-sm mb-2 font-medium dark:text-stone-300"><span>Duration</span> <span>{params.duration} min</span></div>
+                  <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full accent-teal-600 h-2 bg-stone-200 dark:bg-stone-600 rounded-lg appearance-none cursor-pointer" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Style</label>
-                    <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
-                      <option>Vinyasa</option><option>Hatha</option><option>Power</option><option>Yin</option><option>Restorative</option>
+                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Style</label>
+                    <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                      {['Vinyasa', 'Hatha', 'Power', 'Yin', 'Restorative'].map(s => <option key={s}>{s}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Difficulty</label>
-                    <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
-                      <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Level</label>
+                    <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                      {['Beginner', 'Intermediate', 'Advanced'].map(l => <option key={l}>{l}</option>)}
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* SEQUENCING METHOD SECTION */}
-              <div className="space-y-4 border-t border-stone-100 dark:border-stone-700 pt-4">
-                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold uppercase text-xs tracking-wider"><Layers size={14} /> Sequence Method</div>
-                 
+              <div className="space-y-4 pt-4 border-t border-stone-100 dark:border-stone-700">
+                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Layers size={14} /> Method</div>
                  <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.STANDARD})} 
-                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.STANDARD ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
-                    >
-                      Standard Flow
-                    </button>
-                    <button 
-                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.PEAK})} 
-                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.PEAK ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
-                    >
-                      <Target size={14} className="inline mb-1 mr-1"/> Peak Pose
-                    </button>
-                    <button 
-                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.THEME})} 
-                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.THEME ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
-                    >
-                      <Zap size={14} className="inline mb-1 mr-1"/> Themed
-                    </button>
-                    <button 
-                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.TARGET})} 
-                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.TARGET ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
-                    >
-                      <Anchor size={14} className="inline mb-1 mr-1"/> Body Area
-                    </button>
-                    <button 
-                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.LADDER})} 
-                      className={`p-3 rounded-lg text-xs font-bold border transition-all col-span-2 ${params.method === SEQUENCE_METHODS.LADDER ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
-                    >
-                      <Layers size={14} className="inline mb-1 mr-1"/> Ladder Flow
-                    </button>
+                    {[
+                      { id: SEQUENCE_METHODS.STANDARD, label: 'Standard', icon: Layers },
+                      { id: SEQUENCE_METHODS.PEAK, label: 'Peak Pose', icon: Target },
+                      { id: SEQUENCE_METHODS.THEME, label: 'Themed', icon: Zap },
+                      { id: SEQUENCE_METHODS.TARGET, label: 'Body Area', icon: Anchor },
+                      { id: SEQUENCE_METHODS.LADDER, label: 'Ladder', icon: Layers }
+                    ].map(m => (
+                      <button 
+                        key={m.id}
+                        onClick={() => setParams({...params, method: m.id})} 
+                        className={`p-3 rounded-lg text-xs font-bold border transition-all flex flex-col items-center gap-1 ${params.method === m.id ? 'bg-teal-50 border-teal-500 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100 dark:border-teal-500' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-teal-300 dark:hover:border-stone-500'}`}
+                      >
+                        <m.icon size={16} /> {m.label}
+                      </button>
+                    ))}
                  </div>
 
-                 {/* DYNAMIC OPTIONS BASED ON METHOD */}
                  {params.method === SEQUENCE_METHODS.PEAK && (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                      <label className="block text-sm font-medium mb-1">Select Peak Pose</label>
-                      <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
-                        {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                    </div>
+                    <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                      {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
                  )}
-
+                 
                  {params.method === SEQUENCE_METHODS.THEME && (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                      <label className="block text-sm font-medium mb-1">Select Theme</label>
-                      <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
-                        {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                    </div>
+                    <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                      {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
                  )}
 
                  {params.method === SEQUENCE_METHODS.TARGET && (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                      <label className="block text-sm font-medium mb-1">Target Area</label>
-                      <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
-                        {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                    </div>
+                    <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                      {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
                  )}
               </div>
 
-              <div className="space-y-3 border-t border-stone-100 dark:border-stone-700 pt-4">
-                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold uppercase text-xs tracking-wider"><Activity size={14} /> Filters</div>
-                 <label className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80"><input type="checkbox" checked={params.filters.noWrists} onChange={() => setParams(p => ({...p, filters: {...p.filters, noWrists: !p.filters.noWrists}}))} className="accent-teal-600 w-4 h-4" /><span>Wrist-Friendly</span></label>
-                 <label className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80"><input type="checkbox" checked={params.filters.kneeFriendly} onChange={() => setParams(p => ({...p, filters: {...p.filters, kneeFriendly: !p.filters.kneeFriendly}}))} className="accent-teal-600 w-4 h-4" /><span>Knee-Friendly</span></label>
-                 <label className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80"><input type="checkbox" checked={params.filters.pregnancySafe} onChange={() => setParams(p => ({...p, filters: {...p.filters, pregnancySafe: !p.filters.pregnancySafe}}))} className="accent-teal-600 w-4 h-4" /><span>Pregnancy Safe</span></label>
+              <div className="space-y-3 pt-4 border-t border-stone-100 dark:border-stone-700">
+                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Activity size={14} /> Filters</div>
+                 {['noWrists', 'kneeFriendly', 'pregnancySafe'].map(f => (
+                   <label key={f} className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 p-2 hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded text-stone-700 dark:text-stone-300">
+                     <input type="checkbox" checked={params.filters[f]} onChange={() => setParams(p => ({...p, filters: {...p.filters, [f]: !p.filters[f]}}))} className="accent-teal-600 w-4 h-4 rounded" />
+                     <span className="capitalize">{f.replace(/([A-Z])/g, ' $1').trim()}</span>
+                   </label>
+                 ))}
               </div>
+            </div>
 
-              <button onClick={() => { 
-                generateSequence(); 
-                if (window.innerWidth < 1024) setIsSidebarOpen(false); 
-              }} className="w-full py-4 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg shadow-teal-700/20 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95">
-                <RefreshCw size={20} /> Generate Sequence
+            <div className="p-4 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
+              <button onClick={generateSequence} className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg shadow-teal-900/20 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95">
+                <RefreshCw size={18} /> Generate Flow
               </button>
             </div>
           </aside>
         )}
 
-        {/* CONTENT AREA */}
-        <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-stone-200 dark:[&::-webkit-scrollbar-thumb]:bg-stone-700">
+        {/* WORKSPACE */}
+        <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative scrollbar-thin">
           
           {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
 
           {activeTab === 'saved' && (
-            <div className="max-w-4xl mx-auto p-6 lg:p-12">
-               <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-8">Saved Flows</h2>
-               {savedSequences.length === 0 ? <p className="opacity-50 text-center">No saved flows yet.</p> : (
+            <div className="max-w-4xl mx-auto p-8">
+               <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-8 border-b border-stone-200 dark:border-stone-700 pb-4">Your Library</h2>
+               {savedSequences.length === 0 ? <div className="text-center py-20 opacity-50 text-stone-600 dark:text-stone-400"><BookOpen size={48} className="mx-auto mb-4"/>No saved flows yet.</div> : (
                  <div className="grid gap-4">
                    {savedSequences.map(s => (
-                     <div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl flex justify-between items-center group shadow-sm">
-                        <div><h3 className="font-bold text-lg">{s.name}</h3><p className="text-sm opacity-60">{s.params.style} • {s.params.duration} min</p></div>
+                     <div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl flex justify-between items-center group shadow-sm hover:shadow-md border border-stone-100 dark:border-stone-700">
+                        <div><h3 className="font-bold text-lg text-stone-900 dark:text-stone-100">{s.name}</h3><p className="text-sm opacity-60 text-stone-600 dark:text-stone-400">{s.params.style} • {s.params.duration} min • {s.date}</p></div>
                         <div className="flex gap-2">
-                          <button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg"><Play size={18} /></button>
-                          <button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 size={18} /></button>
+                          <button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-lg"><Play size={18} /></button>
+                          <button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg"><Trash2 size={18} /></button>
                         </div>
                      </div>
                    ))}
@@ -1157,30 +1037,31 @@ export default function YogaApp() {
           )}
 
           {activeTab === 'generator' && (
-            <div className="max-w-4xl mx-auto p-4 lg:p-10 print:p-0 print:max-w-none">
+            <div className="max-w-5xl mx-auto p-4 lg:p-8 print:p-0 print:max-w-none">
               
-              {/* SEQUENCE HEADER CARD */}
-              <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 p-6 mb-8 print:border-none print:shadow-none">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-100 dark:border-stone-700 pb-6 mb-6">
+              {/* SEQUENCE HEADER */}
+              <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 p-6 mb-8 print:hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-stone-100 dark:border-stone-700 pb-6 mb-6">
                   <div>
-                    <span className="text-xs font-bold tracking-widest text-teal-600 uppercase mb-1 block">Class Plan</span>
-                    <h2 className="text-3xl font-serif text-stone-900 dark:text-white">
-                        {params.method === SEQUENCE_METHODS.STANDARD ? `${params.style} Flow` : 
-                         params.method === SEQUENCE_METHODS.PEAK ? `Peak: ${POSE_LIBRARY.find(p=>p.id===params.selectedPeakPose)?.name}` : 
-                         params.method === SEQUENCE_METHODS.THEME ? `${THEMES.find(t=>t.id===params.selectedTheme)?.name}` :
-                         params.method === SEQUENCE_METHODS.TARGET ? `${TARGET_AREAS.find(t=>t.id===params.selectedTarget)?.name} Focus` :
-                         'Ladder Flow'}
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-[10px] font-bold uppercase tracking-wider">{params.style}</span>
+                      <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 text-[10px] font-bold uppercase tracking-wider">{params.difficulty}</span>
+                    </div>
+                    <h2 className="text-4xl font-serif text-stone-900 dark:text-white">
+                        {params.method === SEQUENCE_METHODS.PEAK ? `Peak: ${POSE_LIBRARY.find(p=>p.id===params.selectedPeakPose)?.name}` : 'Yoga Sequence'}
                     </h2>
-                    <div className="flex gap-4 mt-2 text-sm opacity-60">
-                      <span className="flex items-center gap-1"><Wind size={14}/> {params.duration} Mins</span>
-                      <span className="flex items-center gap-1"><Activity size={14}/> {sequence.length} Poses</span>
-                      <span className="flex items-center gap-1"><Layers size={14}/> {params.difficulty}</span>
+                    <div className="flex gap-6 mt-3 text-sm text-stone-500 dark:text-stone-400 font-medium">
+                      <span className="flex items-center gap-1.5"><Wind size={16}/> {params.duration} mins</span>
+                      <span className="flex items-center gap-1.5"><Activity size={16}/> {sequence.length} poses</span>
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 print:hidden">
-                    <button onClick={startPractice} className="px-4 py-2 bg-stone-900 dark:bg-white text-white dark:text-stone-900 hover:opacity-90 rounded-lg font-bold flex items-center gap-2 shadow-lg">
-                      <PlayCircle size={18} /> Start
+                  <div className="flex gap-2">
+                    <button onClick={() => { if(sequence.length > 0) { setPracticeIndex(0); setTimerSeconds(sequence[0].timerVal); setActiveTab('practice'); }}} className="px-6 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 hover:opacity-90 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-transform hover:-translate-y-0.5">
+                      <PlayCircle size={20} /> Start Practice
+                    </button>
+                    <button onClick={() => setIsTeacherMode(!isTeacherMode)} className={`p-3 rounded-xl border transition-colors ${isTeacherMode ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-400' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400'}`} title="Teacher Mode">
+                      <BookOpen size={20} />
                     </button>
                     <button onClick={() => { 
                       const name = prompt("Name flow:"); 
@@ -1189,43 +1070,57 @@ export default function YogaApp() {
                         setSavedSequences([newSave, ...savedSequences]);
                         localStorage.setItem('yoga_saved_sequences', JSON.stringify([newSave, ...savedSequences]));
                       }
-                    }} className="p-2 text-stone-500 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><Heart size={20} /></button>
-                    <button onClick={() => { navigator.clipboard.writeText(sequence.map(p => p.name).join('\n')); alert('Copied!'); }} className="p-2 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg"><Copy size={20} /></button>
-                    <button onClick={() => window.print()} className="p-2 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg"><Printer size={20} /></button>
+                    }} className="p-3 text-stone-500 dark:text-stone-400 hover:text-rose-500 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors"><Heart size={20} /></button>
+                    <button onClick={() => window.print()} className="p-3 text-stone-500 dark:text-stone-400 hover:text-teal-600 dark:hover:text-teal-400 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-xl transition-colors"><Printer size={20} /></button>
                   </div>
                 </div>
 
-                {/* SOUNDSCAPE SELECTOR */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
-                  {MUSIC_THEMES.map(theme => (
-                    <button 
-                      key={theme.id}
-                      onClick={() => setMusicTheme(theme)}
-                      className={`p-3 rounded-lg flex items-center gap-3 text-left transition-all border ${musicTheme.id === theme.id ? 'bg-teal-50 border-teal-200 dark:bg-teal-900/30 dark:border-teal-800 ring-1 ring-teal-500' : 'bg-stone-50 dark:bg-stone-900 border-transparent hover:bg-stone-100 dark:hover:bg-stone-800'}`}
-                    >
-                      <div className={`p-2 rounded-full shrink-0 ${musicTheme.id === theme.id ? 'bg-teal-100 text-teal-700 dark:bg-teal-800 dark:text-teal-200' : 'bg-stone-200 dark:bg-stone-700 text-stone-500'}`}>
-                        {theme.icon}
-                      </div>
-                      <div className="overflow-hidden">
-                        <span className="block text-sm font-bold truncate">{theme.name}</span>
-                        <span className="block text-xs opacity-60 truncate">{theme.description}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                {/* Music Themes */}
+                {!isTeacherMode && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                    {MUSIC_THEMES.map(theme => (
+                      <button 
+                        key={theme.id}
+                        onClick={() => setMusicTheme(theme)}
+                        className={`p-2 rounded-lg flex flex-col items-center text-center transition-all border ${musicTheme.id === theme.id ? 'bg-teal-50 border-teal-200 text-teal-800 dark:bg-teal-900/40 dark:border-teal-700 dark:text-teal-200 ring-1 ring-teal-500' : 'bg-stone-50 dark:bg-stone-800 border-transparent hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400'}`}
+                      >
+                        <div className="mb-1">{theme.icon}</div>
+                        <span className="text-[10px] font-bold truncate w-full">{theme.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* LIST VIEW */}
-              <div className="space-y-1 relative before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-700 print:before:left-4">
-                {sequence.map((pose, idx) => (
-                  <PoseCard key={pose.uniqueId} pose={pose} index={idx} onSwap={swapPose} setSelectedPose={setSelectedPose} />
-                ))}
+              {/* PRINT HEADER (Only visible in Print) */}
+              <div className="hidden print-only mb-8 text-center">
+                <h1 className="text-3xl font-serif font-bold mb-2">ZenFlow Sequence</h1>
+                <p className="text-sm text-gray-500">{params.style} • {params.difficulty} • {params.duration} mins</p>
+              </div>
+
+              {/* SEQUENCE LIST */}
+              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : "space-y-1 relative before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-700 print:before:hidden"}>
+                {sequence.length === 0 ? (
+                  <div className="text-center py-20 opacity-40 text-stone-600 dark:text-stone-400">
+                    <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
+                  </div>
+                ) : (
+                  sequence.map((pose, idx) => (
+                    <PoseCard 
+                      key={pose.uniqueId} 
+                      pose={pose} 
+                      index={idx} 
+                      onSwap={swapPose} 
+                      setSelectedPose={setSelectedPose}
+                      isTeacherMode={isTeacherMode} 
+                    />
+                  ))
+                )}
               </div>
 
               <div className="mt-12 text-center text-stone-400 text-sm print:hidden">
-                <p>Generated by ZenFlow.</p>
+                <p>Designed with mindfulness by ZenFlow.</p>
               </div>
-
             </div>
           )}
         </main>
