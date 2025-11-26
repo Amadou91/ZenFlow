@@ -3,7 +3,8 @@ import {
   Menu, X, Play, RefreshCw, Settings, Heart, Copy, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
   Shuffle, SkipForward, Pause, PlayCircle, Info, Download, Check, Headphones,
-  Layers, Target, Zap, Anchor, BookOpen, User, Feather, Smile, Sunrise, RotateCcw, ArrowUp
+  Layers, Target, Zap, Anchor, BookOpen, User, Feather, Smile, Sunrise, RotateCcw, ArrowUp,
+  Volume2, VolumeX, Edit3, Save, ExternalLink
 } from 'lucide-react';
 
 /**
@@ -251,17 +252,16 @@ const POSE_LIBRARY = [
 ];
 
 /**
- * MUSIC THEMES
+ * DEFAULT MUSIC THEMES
+ * We now store spotify URLs here by default
  */
-const MUSIC_THEMES = [
-  { id: 'electronic', name: 'Tribal / Deep House', icon: <Activity size={16}/>, description: 'Upbeat rhythm for Power & Vinyasa flows.' },
-  { id: 'ambient', name: 'Ambient Drone', icon: <Wind size={16}/>, description: 'Deep, spacious sounds for focus.' },
-  { id: 'nature', name: 'Rain & Forest', icon: <Sun size={16}/>, description: 'Grounding natural textures.' },
-  { id: 'lofi', name: 'Lo-Fi Beats', icon: <Headphones size={16}/>, description: 'Chill hop for a relaxed groove.' },
-  { id: 'indian', name: 'Indian Flute', icon: <Music size={16}/>, description: 'Traditional atmosphere with Sitar & Flute.' },
-  { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.' },
-  { id: 'binaural', name: 'Binaural Theta', icon: <Wind size={16}/>, description: 'Brainwave entrainment for deep meditation.' },
-  { id: 'silence', name: 'Breath Only', icon: <Moon size={16}/>, description: 'Pure silence to focus on Ujjayi breath.' },
+const DEFAULT_MUSIC_THEMES = [
+  { id: 'electronic', name: 'Tribal / House', icon: <Activity size={16}/>, description: 'Upbeat rhythm for Vinyasa.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX2vYju3k0l41' },
+  { id: 'ambient', name: 'Ambient Drone', icon: <Wind size={16}/>, description: 'Deep, spacious sounds for focus.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX1n9whBbB48g' },
+  { id: 'nature', name: 'Rain & Forest', icon: <Sun size={16}/>, description: 'Grounding natural textures.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4Pp3kIqgeV5' },
+  { id: 'lofi', name: 'Lo-Fi Beats', icon: <Headphones size={16}/>, description: 'Chill hop for a relaxed groove.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' },
+  { id: 'indian', name: 'Indian Flute', icon: <Music size={16}/>, description: 'Traditional atmosphere.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX5q67ZpWyRrZ' },
+  { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO' },
 ];
 
 /**
@@ -291,8 +291,17 @@ const TARGET_AREAS = [
   { id: 'shoulders', name: 'Shoulders & Neck', types: ['shoulder'] }
 ];
 
+// --- UTILS ---
+const extractSpotifyId = (url) => {
+  if (!url) return null;
+  // Handle full URL or just ID, mostly supports playlist/album/track
+  const match = url.match(/(playlist|album|track)[/:]([a-zA-Z0-9]+)/);
+  if (match) return `embed/${match[1]}/${match[2]}`;
+  return null;
+};
 
-// --- EXTRACTED SUB-COMPONENTS TO FIX RE-MOUNTING ISSUES ---
+
+// --- COMPONENTS ---
 
 const PoseIcon = ({ category, className = "w-full h-full p-2" }) => {
   let Icon = User;
@@ -311,15 +320,12 @@ const PoseIcon = ({ category, className = "w-full h-full p-2" }) => {
     case POSE_CATEGORIES.INVERSION: Icon = RotateCcw; break;
     default: Icon = User;
   }
-  // Custom SVG wrapper for Scale since it's not imported
   if (category === POSE_CATEGORIES.BALANCE) {
     return <div className={`${className} flex items-center justify-center`}><Target className="w-full h-full" /></div>
   }
-  
   return <Icon className={className} strokeWidth={1.5} />;
 };
 
-// Helper for balance since Scale isn't standard in all sets
 const ScaleIcon = (props) => <Target {...props} />;
 
 const PoseDetailModal = ({ pose, onClose }) => {
@@ -328,8 +334,6 @@ const PoseDetailModal = ({ pose, onClose }) => {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
       <div className="bg-white dark:bg-stone-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-        
-        {/* Header Image Area */}
         <div className="h-64 bg-stone-100 dark:bg-stone-900 relative flex items-center justify-center overflow-hidden group">
           <div className="w-32 h-32 text-teal-600 dark:text-teal-400 opacity-80">
              <PoseIcon category={pose.category} className="w-full h-full" />
@@ -338,9 +342,7 @@ const PoseDetailModal = ({ pose, onClose }) => {
             <X size={20} />
           </button>
         </div>
-
-        {/* Content */}
-        <div className="p-8 overflow-y-auto">
+        <div className="p-5 md:p-8 overflow-y-auto">
           <div className="flex justify-between items-start mb-6">
             <div>
               <span className="text-teal-700 dark:text-teal-400 font-bold uppercase tracking-widest text-xs mb-1 block">{pose.category}</span>
@@ -351,21 +353,13 @@ const PoseDetailModal = ({ pose, onClose }) => {
               Level {pose.difficulty}
             </div>
           </div>
-
           <div className="grid md:grid-cols-2 gap-8">
             <div>
-              <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200">
-                <Info size={18} className="text-teal-600 dark:text-teal-400" /> Instructions
-              </h3>
-              <p className="text-stone-700 dark:text-stone-300 leading-relaxed bg-stone-50 dark:bg-stone-900/50 p-4 rounded-lg border border-stone-100 dark:border-stone-700">
-                {pose.cues}
-              </p>
+              <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200"><Info size={18} className="text-teal-600 dark:text-teal-400" /> Instructions</h3>
+              <p className="text-stone-700 dark:text-stone-300 leading-relaxed bg-stone-50 dark:bg-stone-900/50 p-4 rounded-lg border border-stone-100 dark:border-stone-700">{pose.cues}</p>
             </div>
-
             <div>
-              <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200">
-                <Check size={18} className="text-teal-600 dark:text-teal-400" /> Key Benefits
-              </h3>
+              <h3 className="font-bold flex items-center gap-2 mb-3 text-stone-800 dark:text-stone-200"><Check size={18} className="text-teal-600 dark:text-teal-400" /> Key Benefits</h3>
               <ul className="space-y-2">
                 {pose.benefits && pose.benefits.map((benefit, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-stone-600 dark:text-stone-300">
@@ -377,14 +371,12 @@ const PoseDetailModal = ({ pose, onClose }) => {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
 const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
-  // Teacher Mode: Condensed view
   if (isTeacherMode) {
     return (
       <div className="flex items-center gap-4 p-3 border-b border-stone-200 dark:border-stone-700 break-inside-avoid hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors">
@@ -400,14 +392,10 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
       </div>
     );
   }
-
-  // Student/Standard Mode: Detailed Card
   return (
     <div className="relative pl-8 md:pl-12 group break-inside-avoid mb-4">
-      {/* Timeline Connector */}
       <div className="absolute left-[15px] md:left-[23px] top-8 bottom-[-16px] w-0.5 bg-stone-200 dark:bg-stone-700 group-last:hidden"></div>
       <div className="absolute left-[9px] md:left-[17px] top-6 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-stone-900 bg-teal-500 shadow-sm z-10"></div>
-
       <div 
         onClick={() => setSelectedPose(pose)}
         className="cursor-pointer bg-white dark:bg-stone-800 p-4 md:p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 transition-all group relative"
@@ -432,11 +420,77 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
             </button>
           </div>
         </div>
-
         <div className="mt-3 flex items-center gap-4 text-xs text-stone-500 dark:text-stone-400">
           <span className="flex items-center gap-1 bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded font-medium text-stone-700 dark:text-stone-300">{pose.category}</span>
           <span className="flex items-center gap-1"><Wind size={12} /> {pose.duration}</span>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const MusicConfig = ({ themes, onUpdateTheme }) => {
+  const [editingId, setEditingId] = useState(null);
+  const [tempLink, setTempLink] = useState('');
+
+  const handleEdit = (theme) => {
+    setEditingId(theme.id);
+    setTempLink(theme.link);
+  };
+
+  const handleSave = (id) => {
+    onUpdateTheme(id, tempLink);
+    setEditingId(null);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-8">
+      <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-2">Music Configuration</h2>
+      <p className="text-stone-600 dark:text-stone-400 mb-8">Link your Spotify playlists to each mood.</p>
+
+      <div className="grid gap-4">
+        {themes.map(theme => (
+          <div key={theme.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl border border-stone-200 dark:border-stone-700 flex flex-col md:flex-row md:items-center gap-4 shadow-sm">
+            <div className="p-3 bg-stone-100 dark:bg-stone-900 rounded-lg text-teal-600 dark:text-teal-400">
+              {theme.icon}
+            </div>
+            
+            <div className="flex-1">
+              <h3 className="font-bold text-stone-900 dark:text-stone-100">{theme.name}</h3>
+              <p className="text-sm text-stone-500 dark:text-stone-400">{theme.description}</p>
+            </div>
+
+            <div className="flex-1 md:max-w-md w-full">
+              {editingId === theme.id ? (
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={tempLink}
+                    onChange={(e) => setTempLink(e.target.value)}
+                    placeholder="Paste Spotify Link..."
+                    className="flex-1 p-2 rounded border border-teal-500 bg-white dark:bg-stone-900 dark:text-white text-sm outline-none"
+                  />
+                  <button onClick={() => handleSave(theme.id)} className="p-2 bg-teal-600 text-white rounded hover:bg-teal-700"><Check size={18}/></button>
+                  <button onClick={() => setEditingId(null)} className="p-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded hover:opacity-80"><X size={18}/></button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between bg-stone-50 dark:bg-stone-900 p-2 rounded border border-stone-200 dark:border-stone-700">
+                  <span className="text-xs text-stone-500 truncate flex-1 mr-2 opacity-70">{theme.link || 'No link configured'}</span>
+                  <div className="flex gap-1">
+                    {theme.link && (
+                      <a href={theme.link} target="_blank" rel="noreferrer" className="p-1.5 text-stone-400 hover:text-teal-500" title="Open in Spotify">
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
+                    <button onClick={() => handleEdit(theme)} className="p-1.5 text-stone-400 hover:text-teal-500" title="Edit Link">
+                      <Edit3 size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -454,6 +508,9 @@ const PracticeMode = ({
 }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
+  
+  // Audio State
+  const embedPath = extractSpotifyId(musicTheme.link);
 
   // Auto-pause timer when Practice Mode mounts
   useEffect(() => {
@@ -480,7 +537,7 @@ const PracticeMode = ({
         </div>
 
         <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto w-full">
-           <div className="w-48 h-48 mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
+           <div className="w-32 h-32 md:w-48 md:h-48 mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
               <PoseIcon category={current.category} className="w-24 h-24" />
            </div>
            
@@ -488,12 +545,12 @@ const PracticeMode = ({
            <p className="text-xl md:text-2xl text-stone-400 italic font-serif mb-10">{current.sanskrit}</p>
            
            <div className="flex items-center gap-4 mb-10">
-              <div className="relative w-40 h-40 flex items-center justify-center">
+              <div className="relative w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl">
                   <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" />
                   <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} />
                 </svg>
-                <div className="absolute text-4xl font-mono font-bold text-white">
+                <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center text-3xl md:text-4xl font-mono font-bold text-white">
                   {Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}
                 </div>
               </div>
@@ -505,8 +562,8 @@ const PracticeMode = ({
         </div>
       </div>
 
-      <div className="bg-stone-900 border-t border-stone-800 p-6 flex items-center justify-between relative z-10">
-        <div className="w-1/3 hidden md:block">
+      <div className="bg-stone-900 border-t border-stone-800 p-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-center relative z-10">
+        <div className="hidden md:block">
           {next && (
             <div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group">
               <div className="w-12 h-12 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50">
@@ -520,7 +577,7 @@ const PracticeMode = ({
           )}
         </div>
         
-        <div className="flex items-center gap-8 justify-center w-full md:w-1/3">
+        <div className="flex items-center gap-8 justify-center">
           <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-20 h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">
             {isTimerRunning ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="ml-1" />}
           </button>
@@ -529,9 +586,27 @@ const PracticeMode = ({
           </button>
         </div>
 
-        <div className="w-1/3 flex justify-end items-center gap-3 text-stone-500">
-          <Headphones size={18} />
-          <span className="text-xs font-bold tracking-wider uppercase hidden sm:inline">{musicTheme.name}</span>
+        <div className="flex justify-center md:justify-end">
+           {/* Spotify Embed Player */}
+           {embedPath ? (
+             <div className="w-full max-w-[300px] h-[80px] rounded-xl overflow-hidden shadow-lg bg-black">
+                <iframe 
+                  style={{borderRadius: '12px'}} 
+                  src={`https://open.spotify.com/${embedPath}?theme=0`} 
+                  width="100%" 
+                  height="80" 
+                  frameBorder="0" 
+                  allowFullScreen="" 
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                  loading="lazy"
+                  title="Spotify Player"
+                ></iframe>
+             </div>
+           ) : (
+             <div className="text-stone-500 text-sm italic flex items-center gap-2">
+               <VolumeX size={16} /> No music configured
+             </div>
+           )}
         </div>
       </div>
     </div>
@@ -611,7 +686,8 @@ export default function YogaApp() {
   });
 
   const [sequence, setSequence] = useState([]);
-  // Initialize state directly from localStorage
+  
+  // -- PERSISTENCE --
   const [savedSequences, setSavedSequences] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('yoga_saved_sequences');
@@ -620,7 +696,31 @@ export default function YogaApp() {
     return [];
   });
   
-  // Initialize sidebar state
+  const [musicThemes, setMusicThemes] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('yoga_music_themes');
+      // Merge saved with default in case defaults change or first load
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure Icons are preserved (since they don't survive JSON stringify)
+        return DEFAULT_MUSIC_THEMES.map(def => {
+          const savedTheme = parsed.find(s => s.id === def.id);
+          return savedTheme ? { ...def, link: savedTheme.link } : def;
+        });
+      }
+    }
+    return DEFAULT_MUSIC_THEMES;
+  });
+
+  // Save music themes when updated
+  const updateMusicTheme = (id, newLink) => {
+    const updated = musicThemes.map(t => t.id === id ? { ...t, link: newLink } : t);
+    setMusicThemes(updated);
+    // Save only serializable data (exclude React components like icons)
+    const toSave = updated.map(({ id, link }) => ({ id, link }));
+    localStorage.setItem('yoga_music_themes', JSON.stringify(toSave));
+  };
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 1024;
@@ -632,7 +732,8 @@ export default function YogaApp() {
   const [darkMode, setDarkMode] = useState(() => 
     typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   );
-  const [musicTheme, setMusicTheme] = useState(MUSIC_THEMES[0]);
+  
+  const [selectedMusicId, setSelectedMusicId] = useState(musicThemes[0].id);
   
   // Practice Mode State
   const [practiceIndex, setPracticeIndex] = useState(0);
@@ -672,7 +773,6 @@ export default function YogaApp() {
     return pool;
   };
 
-  // Helper to bundle Cat/Cow if selected
   const ensureCatCow = (selectedPoses, pool) => {
     const hasCat = selectedPoses.some(p => p.id === 'cat');
     const hasCow = selectedPoses.some(p => p.id === 'cow');
@@ -822,9 +922,6 @@ export default function YogaApp() {
     const sava = POSE_LIBRARY.find(p => p.id === 'sava');
     if (sava && !newSequence.find(p => p.id === 'sava')) newSequence.push(sava);
 
-    // TIMING LOGIC: Total Minutes -> Seconds
-    // Reserve 5 mins (300s) for Savasana at end
-    // Divide remaining time equally among active poses
     const totalSeconds = params.duration * 60;
     const savasanaSeconds = 300; 
     const activeSeconds = Math.max(0, totalSeconds - savasanaSeconds);
@@ -884,7 +981,7 @@ export default function YogaApp() {
         </div>
 
         <nav className="hidden md:flex items-center gap-1">
-          {['generator', 'library', 'saved'].map(tab => (
+          {['generator', 'library', 'saved', 'settings'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === tab ? 'bg-stone-100 dark:bg-stone-700 text-teal-700 dark:text-teal-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'}`}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
@@ -909,13 +1006,21 @@ export default function YogaApp() {
           setIsTimerRunning={setIsTimerRunning}
           nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[practiceIndex + 1].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }}
           onClose={() => setActiveTab('generator')}
-          musicTheme={musicTheme}
+          musicTheme={musicThemes.find(t => t.id === selectedMusicId)}
         />
       )}
 
       {/* MAIN LAYOUT */}
       <div className="pt-16 flex h-screen overflow-hidden">
         
+        {/* SIDEBAR BACKDROP (Mobile) */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* SIDEBAR */}
         {activeTab === 'generator' && (
           <aside className={`
@@ -924,9 +1029,32 @@ export default function YogaApp() {
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden'}
           `}>
             <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+              
+              {/* MOBILE NAV HEADER */}
               <div className="flex justify-between items-center lg:hidden mb-6">
-                <h2 className="font-bold text-lg dark:text-stone-100">Design Class</h2>
-                <button onClick={() => setIsSidebarOpen(false)} className="text-stone-500"><X /></button>
+                <div className="flex items-center gap-2">
+                  <div className="bg-teal-600 text-white p-1 rounded-lg"><Activity size={16} /></div>
+                  <h2 className="font-bold text-lg dark:text-stone-100 font-serif">ZenFlow</h2>
+                </div>
+                <button onClick={() => setIsSidebarOpen(false)} className="text-stone-500 p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full"><X size={20}/></button>
+              </div>
+
+              {/* MOBILE MENU LINKS */}
+              <div className="lg:hidden mb-8 space-y-1 pb-6 border-b border-stone-100 dark:border-stone-700">
+                <div className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 px-2">Menu</div>
+                {['generator', 'library', 'saved', 'settings'].map(tab => (
+                  <button 
+                    key={tab} 
+                    onClick={() => { setActiveTab(tab); setIsSidebarOpen(false); }} 
+                    className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all flex items-center gap-3 ${activeTab === tab ? 'bg-teal-50 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
+                  >
+                    {tab === 'generator' && <RefreshCw size={18} />}
+                    {tab === 'library' && <BookOpen size={18} />}
+                    {tab === 'saved' && <Heart size={18} />}
+                    {tab === 'settings' && <Settings size={18} />}
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
               </div>
 
               {/* CONTROLS */}
@@ -1016,6 +1144,7 @@ export default function YogaApp() {
         <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative scrollbar-thin">
           
           {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
+          {activeTab === 'settings' && <MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} />}
 
           {activeTab === 'saved' && (
             <div className="max-w-4xl mx-auto p-8">
@@ -1078,11 +1207,11 @@ export default function YogaApp() {
                 {/* Music Themes */}
                 {!isTeacherMode && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-                    {MUSIC_THEMES.map(theme => (
+                    {musicThemes.map(theme => (
                       <button 
                         key={theme.id}
-                        onClick={() => setMusicTheme(theme)}
-                        className={`p-2 rounded-lg flex flex-col items-center text-center transition-all border ${musicTheme.id === theme.id ? 'bg-teal-50 border-teal-200 text-teal-800 dark:bg-teal-900/40 dark:border-teal-700 dark:text-teal-200 ring-1 ring-teal-500' : 'bg-stone-50 dark:bg-stone-800 border-transparent hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400'}`}
+                        onClick={() => setSelectedMusicId(theme.id)}
+                        className={`p-2 rounded-lg flex flex-col items-center text-center transition-all border ${selectedMusicId === theme.id ? 'bg-teal-50 border-teal-200 text-teal-800 dark:bg-teal-900/40 dark:border-teal-700 dark:text-teal-200 ring-1 ring-teal-500' : 'bg-stone-50 dark:bg-stone-800 border-transparent hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400'}`}
                       >
                         <div className="mb-1">{theme.icon}</div>
                         <span className="text-[10px] font-bold truncate w-full">{theme.name}</span>
