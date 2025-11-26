@@ -1,7 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@400;700&display=swap');
 @import "tailwindcss";
 
+@layer base {
+  body {
+    @apply font-sans text-stone-800 bg-stone-50 dark:bg-stone-900 dark:text-stone-100;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cinzel', serif;
+  }
+}
+
+/* Custom Scrollbar Styling */
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-stone-300 dark:bg-stone-700 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-teal-500;
+  }
+}
+
+/* Print Optimization - Teacher Mode */
 @media print {
+  @page { margin: 2cm; }
   body { 
     -webkit-print-color-adjust: exact; 
+    background: white !important;
+    color: black !important;
   }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  
+  /* Ensure grid layouts work in print */
+  .break-inside-avoid { page-break-inside: avoid; }
 }
