@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Menu, X, Play, RefreshCw, Settings, Heart, Copy, Printer, 
+  Menu, X, Play, RefreshCw, Settings, Heart, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
-  Shuffle, SkipForward, Pause, PlayCircle, Info, Download, Check, Headphones,
-  Layers, Target, Zap, Anchor, BookOpen, User, Feather, Smile, Sunrise, RotateCcw, ArrowUp,
-  Volume2, VolumeX, Edit3, Save, ExternalLink
+  Shuffle, SkipForward, Pause, PlayCircle, Info, Check, Headphones,
+  Layers, Target, Zap, Anchor, BookOpen, User, Feather, ExternalLink,
+  LogOut, LogIn, Edit3
 } from 'lucide-react';
 
-/**
- * DATA: POSE LIBRARY
- */
+// --- 1. DATA & CONSTANTS ---
+
 const POSE_CATEGORIES = {
   CENTERING: 'Centering',
   WARMUP: 'Warmup',
@@ -251,22 +250,6 @@ const POSE_LIBRARY = [
   },
 ];
 
-/**
- * DEFAULT MUSIC THEMES
- * We now store spotify URLs here by default
- */
-const DEFAULT_MUSIC_THEMES = [
-  { id: 'electronic', name: 'Tribal / House', icon: <Activity size={16}/>, description: 'Upbeat rhythm for Vinyasa.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX2vYju3k0l41' },
-  { id: 'ambient', name: 'Ambient Drone', icon: <Wind size={16}/>, description: 'Deep, spacious sounds for focus.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX1n9whBbB48g' },
-  { id: 'nature', name: 'Rain & Forest', icon: <Sun size={16}/>, description: 'Grounding natural textures.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4Pp3kIqgeV5' },
-  { id: 'lofi', name: 'Lo-Fi Beats', icon: <Headphones size={16}/>, description: 'Chill hop for a relaxed groove.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' },
-  { id: 'indian', name: 'Indian Flute', icon: <Music size={16}/>, description: 'Traditional atmosphere.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX5q67ZpWyRrZ' },
-  { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO' },
-];
-
-/**
- * SEQUENCING CONSTANTS
- */
 const SEQUENCE_METHODS = {
   STANDARD: 'standard',
   PEAK: 'peak',
@@ -276,6 +259,7 @@ const SEQUENCE_METHODS = {
 };
 
 const PEAK_POSES = POSE_LIBRARY.filter(p => p.types.includes('peak')).map(p => ({ id: p.id, name: p.name }));
+
 const THEMES = [
   { id: 'grounding', name: 'Grounding & Stability', types: ['grounding', 'balance', 'standing'] },
   { id: 'energy', name: 'Energy & Power', types: ['strength', 'core', 'backbend'] },
@@ -283,6 +267,7 @@ const THEMES = [
   { id: 'heart', name: 'Heart Opening', types: ['backbend', 'chest'] },
   { id: 'rest', name: 'Relaxation & Restore', types: ['rest', 'grounding'] }
 ];
+
 const TARGET_AREAS = [
   { id: 'hips', name: 'Hips & Emotions', types: ['hip-opener'] },
   { id: 'core', name: 'Core Fire', types: ['core'] },
@@ -291,23 +276,138 @@ const TARGET_AREAS = [
   { id: 'shoulders', name: 'Shoulders & Neck', types: ['shoulder'] }
 ];
 
-// --- UTILS ---
-const parseSpotifyLink = (url) => {
-  if (!url) return { embedPath: null, openUrl: null };
-  // Handle full URL or just ID, mostly supports playlist/album/track
-  const match = url.match(/(playlist|album|track)[/:]([a-zA-Z0-9]+)/);
-  if (match) {
-    const [, type, id] = match;
-    return {
-      embedPath: `embed/${type}/${id}`,
-      openUrl: `https://open.spotify.com/${type}/${id}`
-    };
-  }
-  return { embedPath: null, openUrl: null };
+const DEFAULT_MUSIC_THEMES = [
+  { id: 'electronic', name: 'Tribal / House', icon: <Activity size={16}/>, description: 'Upbeat rhythm for Vinyasa.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX2vYju3k0l41' },
+  { id: 'ambient', name: 'Ambient Drone', icon: <Wind size={16}/>, description: 'Deep, spacious sounds for focus.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX1n9whBbB48g' },
+  { id: 'nature', name: 'Rain & Forest', icon: <Sun size={16}/>, description: 'Grounding natural textures.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4Pp3kIqgeV5' },
+  { id: 'lofi', name: 'Lo-Fi Beats', icon: <Headphones size={16}/>, description: 'Chill hop for a relaxed groove.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' },
+  { id: 'indian', name: 'Indian Flute', icon: <Music size={16}/>, description: 'Traditional atmosphere.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX5q67ZpWyRrZ' },
+  { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO' },
+];
+
+// --- 2. SPOTIFY UTILS ---
+
+// REPLACE THIS WITH YOUR ACTUAL CLIENT ID FROM SPOTIFY DASHBOARD
+const CLIENT_ID = 'INSERT_YOUR_CLIENT_ID_HERE'; 
+
+const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
+const REDIRECT_URI = typeof window !== 'undefined' ? window.location.origin + '/' : ''; 
+
+const SCOPES = [
+  'streaming',               // Required for Web Playback SDK
+  'user-read-email',         // Required for SDK
+  'user-read-private',       // Required for SDK
+  'user-read-playback-state',// To read current status
+  'user-modify-playback-state' // To transfer playback to this device
+];
+
+const getLoginUrl = () => {
+  return `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES.join(' '))}&response_type=token&show_dialog=true`;
 };
 
+const getTokenFromUrl = () => {
+  if (typeof window === 'undefined') return {};
+  return window.location.hash
+    .substring(1)
+    .split('&')
+    .reduce((initial, item) => {
+      let parts = item.split('=');
+      initial[parts[0]] = decodeURIComponent(parts[1]);
+      return initial;
+    }, {});
+};
 
-// --- COMPONENTS ---
+const parseSpotifyUri = (link) => {
+  if (!link) return null;
+  // Convert https://open.spotify.com/playlist/ID -> spotify:playlist:ID
+  const match = link.match(/(playlist|album|track)[/:]([a-zA-Z0-9]+)/);
+  if (match) {
+    const [, type, id] = match;
+    return `spotify:${type}:${id}`;
+  }
+  return null;
+};
+
+const playSpotifyTrack = async (token, device_id, context_uri) => {
+  if (!token || !device_id || !context_uri) return;
+
+  try {
+    await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device_id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ context_uri: context_uri }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+  } catch (err) {
+    console.error("Spotify Play Error:", err);
+  }
+};
+
+// --- 3. CUSTOM HOOK ---
+
+const useSpotifyPlayer = (token) => {
+  const [player, setPlayer] = useState(undefined);
+  const [deviceId, setDeviceId] = useState(null);
+  const [isPaused, setPaused] = useState(true);
+  const [isActive, setActive] = useState(false);
+  const [currentTrack, setTrack] = useState(null);
+  const [playerError, setPlayerError] = useState(null);
+
+  useEffect(() => {
+    if (!token) return;
+
+    // Prevent multiple script injections
+    if (!document.getElementById('spotify-player-script')) {
+      const script = document.createElement("script");
+      script.id = 'spotify-player-script';
+      script.src = "https://sdk.scdn.co/spotify-player.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      const newPlayer = new window.Spotify.Player({
+        name: 'ZenFlow Web Player',
+        getOAuthToken: cb => { cb(token); },
+        volume: 0.5
+      });
+
+      setPlayer(newPlayer);
+
+      newPlayer.addListener('ready', ({ device_id }) => {
+        console.log('Ready with Device ID', device_id);
+        setDeviceId(device_id);
+      });
+
+      newPlayer.addListener('not_ready', ({ device_id }) => {
+        console.log('Device ID has gone offline', device_id);
+      });
+
+      newPlayer.addListener('player_state_changed', (state) => {
+        if (!state) return;
+        setTrack(state.track_window.current_track);
+        setPaused(state.paused);
+        setActive(true);
+      });
+
+      newPlayer.addListener('initialization_error', ({ message }) => setPlayerError(message));
+      newPlayer.addListener('authentication_error', ({ message }) => setPlayerError(message));
+      newPlayer.addListener('account_error', ({ message }) => setPlayerError("Premium account required for playback."));
+
+      newPlayer.connect();
+    };
+
+    return () => {
+       // Optional cleanup
+    };
+  }, [token]);
+
+  return { player, deviceId, isPaused, isActive, currentTrack, playerError };
+};
+
+// --- 4. UI COMPONENTS ---
 
 const PoseIcon = ({ category, className = "w-full h-full p-2" }) => {
   let Icon = User;
@@ -316,23 +416,18 @@ const PoseIcon = ({ category, className = "w-full h-full p-2" }) => {
     case POSE_CATEGORIES.WARMUP: Icon = Activity; break;
     case POSE_CATEGORIES.CENTERING: Icon = Anchor; break;
     case POSE_CATEGORIES.STANDING: Icon = User; break;
-    case POSE_CATEGORIES.BALANCE: Icon = ScaleIcon; break;
+    case POSE_CATEGORIES.BALANCE: Icon = Target; break;
     case POSE_CATEGORIES.CORE: Icon = Zap; break;
-    case POSE_CATEGORIES.BACKBEND: Icon = ArrowUp; break;
+    case POSE_CATEGORIES.BACKBEND: Icon = Activity; break; 
     case POSE_CATEGORIES.TWIST: Icon = RefreshCw; break;
     case POSE_CATEGORIES.HIP_OPENER: Icon = Target; break;
     case POSE_CATEGORIES.RESTORATIVE: Icon = Feather; break;
     case POSE_CATEGORIES.SAVASANA: Icon = Moon; break;
-    case POSE_CATEGORIES.INVERSION: Icon = RotateCcw; break;
+    case POSE_CATEGORIES.INVERSION: Icon = RefreshCw; break;
     default: Icon = User;
-  }
-  if (category === POSE_CATEGORIES.BALANCE) {
-    return <div className={`${className} flex items-center justify-center`}><Target className="w-full h-full" /></div>
   }
   return <Icon className={className} strokeWidth={1.5} />;
 };
-
-const ScaleIcon = (props) => <Target {...props} />;
 
 const PoseDetailModal = ({ pose, onClose }) => {
   if (!pose) return null;
@@ -435,7 +530,7 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
   );
 };
 
-const MusicConfig = ({ themes, onUpdateTheme }) => {
+const MusicConfig = ({ themes, onUpdateTheme, spotifyToken }) => {
   const [editingId, setEditingId] = useState(null);
   const [tempLink, setTempLink] = useState('');
 
@@ -451,10 +546,21 @@ const MusicConfig = ({ themes, onUpdateTheme }) => {
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8">
-      <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-2">Music Configuration</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100">Music Configuration</h2>
+        {!spotifyToken ? (
+           <a href={getLoginUrl()} className="flex items-center gap-2 px-4 py-2 bg-[#1DB954] text-white rounded-full font-bold text-sm hover:opacity-90">
+             <LogIn size={16} /> Connect Spotify
+           </a>
+        ) : (
+          <div className="flex items-center gap-2 text-[#1DB954] font-bold text-sm">
+             <Check size={16} /> Spotify Connected
+          </div>
+        )}
+      </div>
+      
       <p className="text-stone-600 dark:text-stone-400 mb-8">
-        Link your Spotify playlists to each mood. Shareable Spotify URLs don&apos;t need an API key, but
-        listeners must be logged into Spotify and the playlist/album/track you share must be public.
+        Link your Spotify playlists to each mood. For full playback, ensure you are connected to Spotify Premium above.
       </p>
 
       <div className="grid gap-4">
@@ -499,10 +605,6 @@ const MusicConfig = ({ themes, onUpdateTheme }) => {
                   </div>
                 </div>
               )}
-              <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-2">
-                Paste any Spotify playlist, album, or track URL (use Spotify&apos;s “Share → Copy link”) to load your full audio instead
-                of a short preview. Visitors will hear it through their own Spotify login.
-              </p>
             </div>
           </div>
         ))}
@@ -519,18 +621,25 @@ const PracticeMode = ({
     setIsTimerRunning, 
     nextPracticePose, 
     onClose, 
-    musicTheme 
+    musicTheme,
+    spotifyToken,
+    player,
+    deviceId
 }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
-  
-  // Audio State
-  const { embedPath, openUrl } = parseSpotifyLink(musicTheme.link);
 
-  // Auto-pause timer when Practice Mode mounts
   useEffect(() => {
       setIsTimerRunning(false);
   }, [setIsTimerRunning]);
+
+  const handlePlayMusic = () => {
+     if (!player || !deviceId || !spotifyToken || !musicTheme.link) return;
+     const uri = parseSpotifyUri(musicTheme.link);
+     if (uri) {
+        playSpotifyTrack(spotifyToken, deviceId, uri);
+     }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300">
@@ -546,7 +655,6 @@ const PracticeMode = ({
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 text-center relative overflow-hidden">
-        {/* Background icon effect */}
         <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center">
            <PoseIcon category={current.category} className="w-[120%] h-[120%] text-teal-500" />
         </div>
@@ -621,38 +729,34 @@ const PracticeMode = ({
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3">
-           {/* Spotify Embed Player */}
-           {embedPath ? (
-             <div className="w-full sm:max-w-[360px] h-full flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="w-full sm:max-w-[280px] h-[80px] rounded-xl overflow-hidden shadow-lg bg-black">
-                  <iframe
-                    style={{borderRadius: '12px'}}
-                    src={`https://open.spotify.com/${embedPath}?theme=0`}
-                    width="100%"
-                    height="80"
-                    frameBorder="0"
-                    allowFullScreen=""
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"
-                    title="Spotify Player"
-                  ></iframe>
+           {/* Custom Spotify Player */}
+           {spotifyToken && deviceId ? (
+             <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700">
+                <div className="p-2 bg-[#1DB954] text-white rounded-lg">
+                  <Music size={20} />
                 </div>
-                {openUrl && (
-                  <a
-                    href={openUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-stone-700 text-sm text-stone-200 hover:border-teal-500 hover:text-white transition-colors bg-stone-800/60"
-                  >
-                    <ExternalLink size={14} />
-                    Open full album
-                  </a>
+                <div className="text-left">
+                   <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Music Player</p>
+                   <button onClick={handlePlayMusic} className="text-sm font-bold text-white hover:text-[#1DB954] flex items-center gap-1">
+                     Start Playlist <Play size={12} fill="currentColor" />
+                   </button>
+                </div>
+                {player && (
+                  <div className="flex gap-2 ml-2">
+                    <button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full"><Pause size={16} /></button>
+                    <button onClick={() => player.nextTrack()} className="p-2 hover:bg-white/10 rounded-full"><SkipForward size={16} /></button>
+                  </div>
                 )}
              </div>
            ) : (
-             <div className="text-stone-500 text-sm italic flex items-center gap-2">
-               <VolumeX size={16} /> No music configured
-             </div>
+              // Fallback if not logged in
+              <div className="text-stone-500 text-sm italic flex items-center gap-2">
+                 {musicTheme.link ? (
+                   <a href={musicTheme.link} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[#1DB954] transition-colors">
+                     <ExternalLink size={16} /> Open Spotify App
+                   </a>
+                 ) : 'No music configured'}
+              </div>
            )}
         </div>
       </div>
@@ -746,10 +850,8 @@ export default function YogaApp() {
   const [musicThemes, setMusicThemes] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('yoga_music_themes');
-      // Merge saved with default in case defaults change or first load
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Ensure Icons are preserved (since they don't survive JSON stringify)
         return DEFAULT_MUSIC_THEMES.map(def => {
           const savedTheme = parsed.find(s => s.id === def.id);
           return savedTheme ? { ...def, link: savedTheme.link } : def;
@@ -759,11 +861,9 @@ export default function YogaApp() {
     return DEFAULT_MUSIC_THEMES;
   });
 
-  // Save music themes when updated
   const updateMusicTheme = (id, newLink) => {
     const updated = musicThemes.map(t => t.id === id ? { ...t, link: newLink } : t);
     setMusicThemes(updated);
-    // Save only serializable data (exclude React components like icons)
     const toSave = updated.map(({ id, link }) => ({ id, link }));
     localStorage.setItem('yoga_music_themes', JSON.stringify(toSave));
   };
@@ -789,6 +889,32 @@ export default function YogaApp() {
 
   // Pose Modal State
   const [selectedPose, setSelectedPose] = useState(null);
+
+  // --- SPOTIFY INTEGRATION ---
+  const [spotifyToken, setSpotifyToken] = useState(null);
+  
+  // Initialize Spotify Auth and Player
+  useEffect(() => {
+    const hash = getTokenFromUrl();
+    window.location.hash = ""; // Clear hash for cleanliness
+    const _token = hash.access_token;
+
+    if (_token) {
+      setSpotifyToken(_token);
+      localStorage.setItem('spotify_token', _token);
+    } else {
+      const savedToken = localStorage.getItem('spotify_token');
+      if (savedToken) setSpotifyToken(savedToken);
+    }
+  }, []);
+
+  // Initialize Custom Hook
+  const { player, deviceId, playerError } = useSpotifyPlayer(spotifyToken);
+
+  useEffect(() => {
+    if (playerError) console.warn("Spotify SDK Error:", playerError);
+  }, [playerError]);
+
 
   // Timer Logic
   useEffect(() => {
@@ -852,7 +978,6 @@ export default function YogaApp() {
     const pool = getFilteredPool();
     let newSequence = [];
 
-    // Strategy Mapping
     const strategies = {
       [SEQUENCE_METHODS.STANDARD]: () => {
         const counts = params.style === 'Yin' ? { centering: 3, warmup: 2, standing: 0, floor: 5 } : { centering: 2, warmup: 3, standing: 5, floor: 3 };
@@ -1010,6 +1135,11 @@ export default function YogaApp() {
     localStorage.setItem('yoga_saved_sequences', JSON.stringify(updated));
   };
 
+  const handleLogout = () => {
+    setSpotifyToken(null);
+    localStorage.removeItem('spotify_token');
+  };
+
   // --- UI RENDER ---
 
   return (
@@ -1036,6 +1166,11 @@ export default function YogaApp() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {spotifyToken && (
+            <button onClick={handleLogout} className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full" title="Disconnect Spotify">
+              <LogOut size={20} />
+            </button>
+          )}
           <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 transition-colors">
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -1054,6 +1189,9 @@ export default function YogaApp() {
           nextPracticePose={() => { if (practiceIndex < sequence.length - 1) { setPracticeIndex(p => p + 1); setTimerSeconds(sequence[practiceIndex + 1].timerVal); setIsTimerRunning(true); } else { setActiveTab('generator'); } }}
           onClose={() => setActiveTab('generator')}
           musicTheme={musicThemes.find(t => t.id === selectedMusicId)}
+          spotifyToken={spotifyToken}
+          player={player}
+          deviceId={deviceId}
         />
       )}
 
@@ -1069,146 +1207,129 @@ export default function YogaApp() {
         )}
 
         {/* SIDEBAR */}
-        <aside className={`
-          fixed lg:static inset-y-0 left-0 z-40 w-80 bg-white dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700
-          transform transition-transform duration-300 ease-in-out print:hidden flex flex-col
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden'}
-        `}>
-          <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
-
-            {/* MOBILE NAV HEADER */}
-            <div className="flex justify-between items-center lg:hidden mb-6">
-              <div className="flex items-center gap-2">
-                <div className="bg-teal-600 text-white p-1 rounded-lg"><Activity size={16} /></div>
-                <h2 className="font-bold text-lg dark:text-stone-100 font-serif">ZenFlow</h2>
+        {activeTab === 'generator' && (
+          <aside className={`
+            fixed lg:static inset-y-0 left-0 z-40 w-80 bg-white dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 
+            transform transition-transform duration-300 ease-in-out print:hidden flex flex-col
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden'}
+          `}>
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+              
+              {/* MOBILE NAV HEADER */}
+              <div className="flex justify-between items-center lg:hidden mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="bg-teal-600 text-white p-1 rounded-lg"><Activity size={16} /></div>
+                  <h2 className="font-bold text-lg dark:text-stone-100 font-serif">ZenFlow</h2>
+                </div>
+                <button onClick={() => setIsSidebarOpen(false)} className="text-stone-500 p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full"><X size={20}/></button>
               </div>
-              <button onClick={() => setIsSidebarOpen(false)} className="text-stone-500 p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full"><X size={20}/></button>
-            </div>
 
-            {/* MOBILE MENU LINKS */}
-            <div className="lg:hidden mb-8 space-y-1 pb-6 border-b border-stone-100 dark:border-stone-700">
-              <div className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 px-2">Menu</div>
-              {['generator', 'library', 'saved', 'settings'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => { setActiveTab(tab); setIsSidebarOpen(false); }}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all flex items-center gap-3 ${activeTab === tab ? 'bg-teal-50 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
-                >
-                  {tab === 'generator' && <RefreshCw size={18} />}
-                  {tab === 'library' && <BookOpen size={18} />}
-                  {tab === 'saved' && <Heart size={18} />}
-                  {tab === 'settings' && <Settings size={18} />}
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
+              {/* MOBILE MENU LINKS */}
+              <div className="lg:hidden mb-8 space-y-1 pb-6 border-b border-stone-100 dark:border-stone-700">
+                <div className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 px-2">Menu</div>
+                {['generator', 'library', 'saved', 'settings'].map(tab => (
+                  <button 
+                    key={tab} 
+                    onClick={() => { setActiveTab(tab); setIsSidebarOpen(false); }} 
+                    className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all flex items-center gap-3 ${activeTab === tab ? 'bg-teal-50 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
+                  >
+                    {tab === 'generator' && <RefreshCw size={18} />}
+                    {tab === 'library' && <BookOpen size={18} />}
+                    {tab === 'saved' && <Heart size={18} />}
+                    {tab === 'settings' && <Settings size={18} />}
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
+              </div>
 
-            {activeTab === 'generator' ? (
-              <>
-                {/* CONTROLS */}
-                <div className="space-y-5">
-                  <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Settings size={14} /> Configuration</div>
+              {/* CONTROLS */}
+              <div className="space-y-5">
+                <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Settings size={14} /> Configuration</div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-2 font-medium dark:text-stone-300"><span>Duration</span> <span>{params.duration} min</span></div>
+                  <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full accent-teal-600 h-2 bg-stone-200 dark:bg-stone-600 rounded-lg appearance-none cursor-pointer" />
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="flex justify-between text-sm mb-2 font-medium dark:text-stone-300"><span>Duration</span> <span>{params.duration} min</span></div>
-                    <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full accent-teal-600 h-2 bg-stone-200 dark:bg-stone-600 rounded-lg appearance-none cursor-pointer" />
+                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Style</label>
+                    <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                      {['Vinyasa', 'Hatha', 'Power', 'Yin', 'Restorative'].map(s => <option key={s}>{s}</option>)}
+                    </select>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Style</label>
-                      <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
-                        {['Vinyasa', 'Hatha', 'Power', 'Yin', 'Restorative'].map(s => <option key={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Level</label>
-                      <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
-                        {['Beginner', 'Intermediate', 'Advanced'].map(l => <option key={l}>{l}</option>)}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Level</label>
+                    <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                      {['Beginner', 'Intermediate', 'Advanced'].map(l => <option key={l}>{l}</option>)}
+                    </select>
                   </div>
                 </div>
-
-                <div className="space-y-4 pt-4 border-t border-stone-100 dark:border-stone-700">
-                   <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Layers size={14} /> Method</div>
-                   <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: SEQUENCE_METHODS.STANDARD, label: 'Standard', icon: Layers },
-                        { id: SEQUENCE_METHODS.PEAK, label: 'Peak Pose', icon: Target },
-                        { id: SEQUENCE_METHODS.THEME, label: 'Themed', icon: Zap },
-                        { id: SEQUENCE_METHODS.TARGET, label: 'Body Area', icon: Anchor },
-                        { id: SEQUENCE_METHODS.LADDER, label: 'Ladder', icon: Layers }
-                      ].map(m => (
-                        <button
-                          key={m.id}
-                          onClick={() => setParams({...params, method: m.id})}
-                          className={`p-3 rounded-lg text-xs font-bold border transition-all flex flex-col items-center gap-1 ${params.method === m.id ? 'bg-teal-50 border-teal-500 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100 dark:border-teal-500' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-teal-300 dark:hover:border-stone-500'}`}
-                        >
-                          <m.icon size={16} /> {m.label}
-                        </button>
-                      ))}
-                   </div>
-
-                   {params.method === SEQUENCE_METHODS.PEAK && (
-                      <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                        {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                   )}
-
-                   {params.method === SEQUENCE_METHODS.THEME && (
-                      <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                        {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                   )}
-
-                   {params.method === SEQUENCE_METHODS.TARGET && (
-                      <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                        {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                   )}
-                </div>
-
-                <div className="space-y-3 pt-4 border-t border-stone-100 dark:border-stone-700">
-                   <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Activity size={14} /> Filters</div>
-                   {['noWrists', 'kneeFriendly', 'pregnancySafe'].map(f => (
-                     <label key={f} className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 p-2 hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded text-stone-700 dark:text-stone-300">
-                       <input type="checkbox" checked={params.filters[f]} onChange={() => setParams(p => ({...p, filters: {...p.filters, [f]: !p.filters[f]}}))} className="accent-teal-600 w-4 h-4 rounded" />
-                       <span className="capitalize">{f.replace(/([A-Z])/g, ' $1').trim()}</span>
-                     </label>
-                   ))}
-                </div>
-              </>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 text-sm text-stone-700 dark:text-stone-300">
-                  <p className="font-semibold mb-1">Navigation</p>
-                  <p className="opacity-80">Use the menu above to jump between tabs or head back to the generator to customize a new flow.</p>
-                </div>
-                <button
-                  onClick={() => { setActiveTab('generator'); setIsSidebarOpen(false); }}
-                  className="w-full py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-900/20"
-                >
-                  <Activity size={18} /> Return to Generator
-                </button>
               </div>
-            )}
-          </div>
 
-          {activeTab === 'generator' && (
+              <div className="space-y-4 pt-4 border-t border-stone-100 dark:border-stone-700">
+                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Layers size={14} /> Method</div>
+                 <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: SEQUENCE_METHODS.STANDARD, label: 'Standard', icon: Layers },
+                      { id: SEQUENCE_METHODS.PEAK, label: 'Peak Pose', icon: Target },
+                      { id: SEQUENCE_METHODS.THEME, label: 'Themed', icon: Zap },
+                      { id: SEQUENCE_METHODS.TARGET, label: 'Body Area', icon: Anchor },
+                      { id: SEQUENCE_METHODS.LADDER, label: 'Ladder', icon: Layers }
+                    ].map(m => (
+                      <button 
+                        key={m.id}
+                        onClick={() => setParams({...params, method: m.id})} 
+                        className={`p-3 rounded-lg text-xs font-bold border transition-all flex flex-col items-center gap-1 ${params.method === m.id ? 'bg-teal-50 border-teal-500 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100 dark:border-teal-500' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-teal-300 dark:hover:border-stone-500'}`}
+                      >
+                        <m.icon size={16} /> {m.label}
+                      </button>
+                    ))}
+                 </div>
+
+                 {params.method === SEQUENCE_METHODS.PEAK && (
+                    <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                      {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                 )}
+                 
+                 {params.method === SEQUENCE_METHODS.THEME && (
+                    <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                      {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                 )}
+
+                 {params.method === SEQUENCE_METHODS.TARGET && (
+                    <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
+                      {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                 )}
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-stone-100 dark:border-stone-700">
+                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Activity size={14} /> Filters</div>
+                 {['noWrists', 'kneeFriendly', 'pregnancySafe'].map(f => (
+                   <label key={f} className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 p-2 hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded text-stone-700 dark:text-stone-300">
+                     <input type="checkbox" checked={params.filters[f]} onChange={() => setParams(p => ({...p, filters: {...p.filters, [f]: !p.filters[f]}}))} className="accent-teal-600 w-4 h-4 rounded" />
+                     <span className="capitalize">{f.replace(/([A-Z])/g, ' $1').trim()}</span>
+                   </label>
+                 ))}
+              </div>
+            </div>
+
             <div className="p-4 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
               <button onClick={generateSequence} className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg shadow-teal-900/20 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95">
                 <RefreshCw size={18} /> Generate Flow
               </button>
             </div>
-          )}
-        </aside>
+          </aside>
+        )}
 
         {/* WORKSPACE */}
         <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative scrollbar-thin">
           
           {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
-          {activeTab === 'settings' && <MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} />}
+          {activeTab === 'settings' && <MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} spotifyToken={spotifyToken} />}
 
           {activeTab === 'saved' && (
             <div className="max-w-4xl mx-auto p-8">
