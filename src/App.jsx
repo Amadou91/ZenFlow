@@ -289,7 +289,13 @@ const DEFAULT_MUSIC_THEMES = [
 
 const API_BASE =
   typeof window !== 'undefined'
-    ? (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+    ? (
+        import.meta.env.VITE_API_BASE_URL ||
+        // Helpful local dev default: UI runs on 5173, auth server on 5174
+        (window.location.hostname === 'localhost' && window.location.port === '5173'
+          ? 'http://localhost:5174'
+          : window.location.origin)
+      )
     : '';
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
@@ -1017,14 +1023,14 @@ export default function YogaApp() {
       setSpotifyToken(null);
       return null;
     }
-  }, [API_BASE, clearStoredToken, storeToken, useDirectSpotifyAuth]);
+  }, [clearStoredToken, storeToken]);
 
-  const bootstrapTokenFromHash = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const searchParams = new URLSearchParams(window.location.search);
-    const token = searchParams.get('access_token') || hashParams.get('access_token');
-    const expiresIn = Number(searchParams.get('expires_in') || hashParams.get('expires_in') || '0');
+const bootstrapTokenFromHash = useCallback(async () => {
+  if (typeof window === 'undefined') return;
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(window.location.search);
+  const token = searchParams.get('access_token') || hashParams.get('access_token');
+  const expiresIn = Number(searchParams.get('expires_in') || hashParams.get('expires_in') || '0');
 
     if (token) {
       const expiresAt = Date.now() + (expiresIn || 3600) * 1000;
@@ -1039,12 +1045,19 @@ export default function YogaApp() {
 
     if (storedToken && storedExpiry > Date.now()) {
       setTokenError(null);
-      setSpotifyToken(storedToken);
-      setTokenExpiry(storedExpiry);
-    } else {
-      clearStoredToken();
-    }
-  }, [clearStoredToken, storeToken]);
+    setSpotifyToken(storedToken);
+    setTokenExpiry(storedExpiry);
+  } else {
+    clearStoredToken();
+  }
+
+  // If we're using the backend (authorization code flow) and the user has a
+  // refresh token cookie, pull a fresh access token automatically so they can
+  // resume playback without clicking Connect again.
+  if (!useDirectSpotifyAuth && (!token || expiresIn === 0) && !storedToken) {
+    await refreshAccessToken();
+  }
+}, [clearStoredToken, refreshAccessToken, storeToken]);
 
   const ensureAccessToken = useCallback(async () => {
     if (spotifyToken && (!tokenExpiry || tokenExpiry > Date.now())) return spotifyToken;
@@ -1056,7 +1069,7 @@ export default function YogaApp() {
     }
 
     return refreshAccessToken();
-  }, [refreshAccessToken, spotifyToken, tokenExpiry, useDirectSpotifyAuth]);
+  }, [refreshAccessToken, spotifyToken, tokenExpiry]);
 
   useEffect(() => {
     bootstrapTokenFromHash();
