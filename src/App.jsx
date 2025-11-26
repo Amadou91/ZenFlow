@@ -285,7 +285,7 @@ const DEFAULT_MUSIC_THEMES = [
   { id: 'piano', name: 'Soft Piano', icon: <Music size={16}/>, description: 'Gentle, emotional classical keys.', link: 'https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO' },
 ];
 
-// --- 2. SPOTIFY UTILS ---
+// --- 2. SPOTIFY UTILS -
 
 // REPLACE THIS WITH YOUR ACTUAL CLIENT ID FROM SPOTIFY DASHBOARD
 const CLIENT_ID = '4de853bd5af346d5bd03ad30dfa84bff'; 
