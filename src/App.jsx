@@ -287,13 +287,17 @@ const DEFAULT_MUSIC_THEMES = [
 
 // --- 2. SPOTIFY UTILS ---
 
+// FORCED 127.0.0.1 LOGIC:
+// Spotify only supports exact URI matches. 'localhost' and '127.0.0.1' are different origins.
+// We force 127.0.0.1 to be safe for local dev, assuming the backend runs on port 5174.
 const API_BASE =
   typeof window !== 'undefined'
     ? (
         import.meta.env.VITE_API_BASE_URL ||
-        // Helpful local dev default: UI runs on 5173, auth server on 5174
+        // If we detect we are running locally (localhost OR 127.0.0.1 on port 5173),
+        // we force the API base to be http://127.0.0.1:5174 to match Spotify allowlists.
         (['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '5173'
-          ? `http://${window.location.hostname}:5174`
+          ? `http://127.0.0.1:5174`
           : window.location.origin)
       )
     : '';
@@ -305,10 +309,16 @@ const useDirectSpotifyAuth = Boolean(SPOTIFY_CLIENT_ID);
 const getLoginUrl = () => {
   if (!useDirectSpotifyAuth) return `${API_BASE}/api/spotify/login`;
 
+  // For frontend-only auth, we also need to ensure the redirect URI uses 127.0.0.1 if local
+  let currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  if (currentOrigin.includes('localhost')) {
+      currentOrigin = currentOrigin.replace('localhost', '127.0.0.1');
+  }
+
   const redirectUri =
     SPOTIFY_REDIRECT_URI ||
     (typeof window !== 'undefined'
-      ? `${window.location.origin}${window.location.pathname}`
+      ? `${currentOrigin}${window.location.pathname}`
       : '');
 
   const params = new URLSearchParams({
