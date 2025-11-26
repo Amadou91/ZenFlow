@@ -7,7 +7,7 @@ import {
   LogOut, LogIn, Edit3, Clock
 } from 'lucide-react';
 
-// --- 1. DATA & CONSTANTS ---
+// --- 1. DATA & CONSTANTS (GLOBAL SCOPE) ---
 
 const POSE_CATEGORIES = {
   CENTERING: 'Centering',
@@ -529,7 +529,7 @@ const PoseDetailModal = ({ pose, onClose }) => {
   );
 };
 
-const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode, isLast }) => {
+const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode, isLast, isFirst }) => {
   if (isTeacherMode) {
     return (
       <div className="flex items-center gap-4 p-3 border-b border-stone-200 dark:border-stone-700 break-inside-avoid hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors">
@@ -548,11 +548,17 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode, isLast 
   }
   return (
     <div className="relative pl-8 md:pl-12 group break-inside-avoid mb-4">
-      {/* Connector Line */}
-      {!isLast && (
-        <div className="absolute left-[15px] md:left-[23px] top-10 bottom-[-16px] w-0.5 bg-stone-200 dark:bg-stone-700 -z-10" />
+      {/* Seamless Connector Line */}
+      {!isFirst && (
+         <div className="absolute left-[15px] md:left-[23px] top-[-16px] h-[calc(100%+16px)] md:h-[calc(100%+20px)] w-0.5 bg-stone-200 dark:bg-stone-700 -z-10" style={{ height: '52px' }} />
       )}
-      <div className="absolute left-[9px] md:left-[17px] top-6 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-stone-900 bg-teal-500 shadow-sm z-10"></div>
+      {!isLast && (
+        <div className="absolute left-[15px] md:left-[23px] top-9 md:top-10 bottom-[-16px] w-0.5 bg-stone-200 dark:bg-stone-700 -z-10" />
+      )}
+
+      {/* Dot with Ring Halo */}
+      <div className="absolute left-[9px] md:left-[17px] top-9 md:top-10 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-stone-900 bg-teal-500 shadow-sm z-10 ring-4 ring-stone-50 dark:ring-stone-900 box-content"></div>
+      
       <div
         onClick={() => setSelectedPose(pose)}
         className="cursor-pointer bg-white dark:bg-stone-800 p-4 md:p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 transition-all group relative"
@@ -1504,7 +1510,7 @@ export default function YogaApp() {
                     <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
                   </div>
                 ) : (
-                  sequence.map((pose, idx) => (<PoseCard key={pose.uniqueId} pose={pose} index={idx} onSwap={swapPose} setSelectedPose={setSelectedPose} isTeacherMode={isTeacherMode} isLast={idx === sequence.length - 1} />))
+                  sequence.map((pose, idx) => (<PoseCard key={pose.uniqueId} pose={pose} index={idx} onSwap={swapPose} setSelectedPose={setSelectedPose} isTeacherMode={isTeacherMode} isLast={idx === sequence.length - 1} isFirst={idx === 0} />))
                 )}
               </div>
             </div>
