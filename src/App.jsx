@@ -289,7 +289,13 @@ const DEFAULT_MUSIC_THEMES = [
 
 const API_BASE =
   typeof window !== 'undefined'
-    ? (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+    ? (
+        import.meta.env.VITE_API_BASE_URL ||
+        // Helpful local dev default: UI runs on 5173, auth server on 5174
+        (window.location.hostname === 'localhost' && window.location.port === '5173'
+          ? 'http://localhost:5174'
+          : window.location.origin)
+      )
     : '';
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
@@ -1017,7 +1023,7 @@ export default function YogaApp() {
       setSpotifyToken(null);
       return null;
     }
-  }, [API_BASE, clearStoredToken, storeToken, useDirectSpotifyAuth]);
+  }, [clearStoredToken, storeToken]);
 
 const bootstrapTokenFromHash = useCallback(async () => {
   if (typeof window === 'undefined') return;
@@ -1051,7 +1057,7 @@ const bootstrapTokenFromHash = useCallback(async () => {
   if (!useDirectSpotifyAuth && (!token || expiresIn === 0) && !storedToken) {
     await refreshAccessToken();
   }
-}, [clearStoredToken, refreshAccessToken, storeToken, useDirectSpotifyAuth]);
+}, [clearStoredToken, refreshAccessToken, storeToken]);
 
   const ensureAccessToken = useCallback(async () => {
     if (spotifyToken && (!tokenExpiry || tokenExpiry > Date.now())) return spotifyToken;
@@ -1063,7 +1069,7 @@ const bootstrapTokenFromHash = useCallback(async () => {
     }
 
     return refreshAccessToken();
-  }, [refreshAccessToken, spotifyToken, tokenExpiry, useDirectSpotifyAuth]);
+  }, [refreshAccessToken, spotifyToken, tokenExpiry]);
 
   useEffect(() => {
     bootstrapTokenFromHash();

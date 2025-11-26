@@ -7,7 +7,7 @@ A Vite + React yoga sequence builder with integrated Spotify Web Playback SDK su
 - A Spotify Developer application with a Premium account for playback
 
 ## Environment
-Copy `.env.example` to `.env` and set the values from your Spotify app (the `.env` file lives next to the `package.json` and is loaded by the backend server). If you are not running the backend auth server, you can instead expose the client-side vars shown in the **Frontend-only auth** section below.
+Copy `.env.example` to `.env` and set the values from your Spotify app (the `.env` file lives next to the `package.json` and is loaded by the backend server). The example includes both the backend variables and the optional frontend-only variables so you can choose either flow. If you are not running the backend auth server, you can instead expose the client-side vars shown in the **Frontend-only auth** section below.
 
 ```
 SPOTIFY_CLIENT_ID=your_spotify_client_id
@@ -37,7 +37,7 @@ If your frontend is deployed separately from the Node auth server (for example, 
 ```
 VITE_API_BASE_URL=https://yoga.johnnyautomates.com:8080
 ```
-Otherwise the client will default to using the same origin as the page, which works when nginx proxies `/api/spotify/*` to the server on its internal port.
+Otherwise the client will default to using the same origin as the page, which works when nginx proxies `/api/spotify/*` to the server on its internal port. In local development, the UI runs on port `5173` while the auth server runs on port `5174`; if you do not set `VITE_API_BASE_URL`, the app will automatically fall back to `http://localhost:5174` to reach the backend.
 
 Why both the client ID **and** client secret? The backend exchanges the Spotify authorization code for access/refresh tokens, and that exchange requires the secret. Keep the secret in the server-only `.env` file shown above; it is never sent to the browser.
 
