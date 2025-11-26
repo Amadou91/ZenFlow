@@ -751,11 +751,7 @@ const PracticeMode = ({
            ) : (
               // Fallback if not logged in
               <div className="text-stone-500 text-sm italic flex items-center gap-2">
-                 {musicTheme.link ? (
-                   <a href={musicTheme.link} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[#1DB954] transition-colors">
-                     <ExternalLink size={16} /> Open Spotify App
-                   </a>
-                 ) : 'No music configured'}
+                 {!musicTheme.link && 'No music configured'}
               </div>
            )}
         </div>
