@@ -342,7 +342,7 @@ const PoseDetailModal = ({ pose, onClose }) => {
             <X size={20} />
           </button>
         </div>
-        <div className="p-8 overflow-y-auto">
+        <div className="p-5 md:p-8 overflow-y-auto">
           <div className="flex justify-between items-start mb-6">
             <div>
               <span className="text-teal-700 dark:text-teal-400 font-bold uppercase tracking-widest text-xs mb-1 block">{pose.category}</span>
@@ -537,7 +537,7 @@ const PracticeMode = ({
         </div>
 
         <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto w-full">
-           <div className="w-48 h-48 mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
+           <div className="w-32 h-32 md:w-48 md:h-48 mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
               <PoseIcon category={current.category} className="w-24 h-24" />
            </div>
            
@@ -545,12 +545,12 @@ const PracticeMode = ({
            <p className="text-xl md:text-2xl text-stone-400 italic font-serif mb-10">{current.sanskrit}</p>
            
            <div className="flex items-center gap-4 mb-10">
-              <div className="relative w-40 h-40 flex items-center justify-center">
+              <div className="relative w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl">
                   <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" />
                   <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} />
                 </svg>
-                <div className="absolute text-4xl font-mono font-bold text-white">
+                <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center text-3xl md:text-4xl font-mono font-bold text-white">
                   {Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}
                 </div>
               </div>
@@ -1013,6 +1013,14 @@ export default function YogaApp() {
       {/* MAIN LAYOUT */}
       <div className="pt-16 flex h-screen overflow-hidden">
         
+        {/* SIDEBAR BACKDROP (Mobile) */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* SIDEBAR */}
         {activeTab === 'generator' && (
           <aside className={`
@@ -1021,9 +1029,32 @@ export default function YogaApp() {
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden'}
           `}>
             <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+              
+              {/* MOBILE NAV HEADER */}
               <div className="flex justify-between items-center lg:hidden mb-6">
-                <h2 className="font-bold text-lg dark:text-stone-100">Design Class</h2>
-                <button onClick={() => setIsSidebarOpen(false)} className="text-stone-500"><X /></button>
+                <div className="flex items-center gap-2">
+                  <div className="bg-teal-600 text-white p-1 rounded-lg"><Activity size={16} /></div>
+                  <h2 className="font-bold text-lg dark:text-stone-100 font-serif">ZenFlow</h2>
+                </div>
+                <button onClick={() => setIsSidebarOpen(false)} className="text-stone-500 p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full"><X size={20}/></button>
+              </div>
+
+              {/* MOBILE MENU LINKS */}
+              <div className="lg:hidden mb-8 space-y-1 pb-6 border-b border-stone-100 dark:border-stone-700">
+                <div className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 px-2">Menu</div>
+                {['generator', 'library', 'saved', 'settings'].map(tab => (
+                  <button 
+                    key={tab} 
+                    onClick={() => { setActiveTab(tab); setIsSidebarOpen(false); }} 
+                    className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all flex items-center gap-3 ${activeTab === tab ? 'bg-teal-50 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
+                  >
+                    {tab === 'generator' && <RefreshCw size={18} />}
+                    {tab === 'library' && <BookOpen size={18} />}
+                    {tab === 'saved' && <Heart size={18} />}
+                    {tab === 'settings' && <Settings size={18} />}
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
               </div>
 
               {/* CONTROLS */}
