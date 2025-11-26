@@ -1122,7 +1122,10 @@ export default function YogaApp() {
                  <label className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80"><input type="checkbox" checked={params.filters.pregnancySafe} onChange={() => setParams(p => ({...p, filters: {...p.filters, pregnancySafe: !p.filters.pregnancySafe}}))} className="accent-teal-600 w-4 h-4" /><span>Pregnancy Safe</span></label>
               </div>
 
-              <button onClick={() => { generateSequence(); setIsSidebarOpen(false); }} className="w-full py-4 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg shadow-teal-700/20 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95">
+              <button onClick={() => { 
+                generateSequence(); 
+                if (window.innerWidth < 1024) setIsSidebarOpen(false); 
+              }} className="w-full py-4 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg shadow-teal-700/20 font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95">
                 <RefreshCw size={20} /> Generate Sequence
               </button>
             </div>
