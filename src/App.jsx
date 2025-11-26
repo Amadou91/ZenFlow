@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Menu, X, Play, RefreshCw, Settings, Heart, Copy, Printer, 
   Sun, Moon, Music, Wind, Activity, Trash2, Search, 
-  Shuffle, SkipForward, Pause, PlayCircle, Info, Download, Check, Headphones
+  Shuffle, SkipForward, Pause, PlayCircle, Info, Download, Check, Headphones,
+  Layers, Target, Zap, Anchor // New icons for methods
 } from 'lucide-react';
 
 /**
  * DATA: POSE LIBRARY
- * Now includes 'prompt' for real-time generation if local image is missing.
  */
 const POSE_CATEGORIES = {
   CENTERING: 'Centering',
@@ -30,21 +30,21 @@ const POSE_LIBRARY = [
     id: 'suc', name: 'Easy Pose', sanskrit: 'Sukhasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Sit tall, ground sit bones, hands on knees.', 
     benefits: ['Calms the brain', 'Strengthens the back', 'Stretches knees and ankles'],
-    types: ['grounding'],
+    types: ['grounding', 'meditation'],
     prompt: 'Clean minimalist vector flat illustration of a person sitting cross-legged in Sukhasana (Easy Pose), neutral spine, hands resting on knees, relaxed shoulders. White background, soft teal and slate grey palette, simple crisp lines, animation-ready.'
   },
   { 
     id: 'vir', name: 'Hero Pose', sanskrit: 'Virasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Knees together, feet apart, sit between heels.', 
     benefits: ['Stretches thighs and knees', 'Improves digestion', 'Relieves tired legs'],
-    types: ['grounding'],
+    types: ['grounding', 'knees'],
     prompt: 'Clean minimalist vector flat illustration of a person in Virasana (Hero Pose), seated between heels, knees together, torso upright, hands resting on thighs. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'chi', name: 'Child\'s Pose', sanskrit: 'Balasana', category: POSE_CATEGORIES.CENTERING, difficulty: 1, wrist: false, knee: true, pregnant: true, 
     cues: 'Knees wide, big toes touch, forehead to mat.', 
     benefits: ['Gently stretches hips and thighs', 'Calms the mind', 'Relieves back and neck pain'],
-    types: ['grounding', 'hip-opener'],
+    types: ['grounding', 'hip-opener', 'rest'],
     prompt: 'Clean minimalist vector flat illustration of a person in Balasana (Child’s Pose), knees wide, torso folded down, forehead on mat, arms extended forward. White background, soft teal and slate grey palette.'
   },
 
@@ -53,14 +53,14 @@ const POSE_LIBRARY = [
     id: 'cat', name: 'Cat Pose', sanskrit: 'Marjaryasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Exhale, round spine to ceiling, chin to chest.', 
     benefits: ['Increases spine flexibility', 'Stretches back torso and neck', 'Stimulates abdominal organs'],
-    types: ['spine'],
+    types: ['spine', 'warmup'],
     prompt: 'Clean minimalist vector flat illustration of a person in Cat Pose (Marjaryasana), rounded spine, head dropped, on all fours. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'cow', name: 'Cow Pose', sanskrit: 'Bitilasana', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: true, knee: true, pregnant: true, 
     cues: 'Inhale, drop belly, lift gaze.', 
     benefits: ['Stretches front torso and neck', 'Massages spine', 'Calms the mind'],
-    types: ['spine'],
+    types: ['spine', 'warmup'],
     prompt: 'Clean minimalist vector flat illustration of a person in Cow Pose (Bitilasana), spine arched, chest open, head lifted, on all fours. White background, soft teal and slate grey palette.'
   },
   { 
@@ -74,14 +74,14 @@ const POSE_LIBRARY = [
     id: 'dd', name: 'Downward Facing Dog', sanskrit: 'Adho Mukha Svanasana', category: POSE_CATEGORIES.WARMUP, difficulty: 2, wrist: true, knee: false, pregnant: true, 
     cues: 'Hips high, heels down, press into knuckles.', 
     benefits: ['Energizes the body', 'Stretches shoulders, hamstrings, calves', 'Strengthens arms and legs'],
-    types: ['hamstring', 'inversion'],
+    types: ['hamstring', 'inversion', 'strength'],
     prompt: 'Clean minimalist vector flat illustration of a person in Downward Facing Dog, hips lifted, arms straight, legs straight, forming an inverted V. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'rag', name: 'Ragdoll Fold', sanskrit: 'Uttanasana Variation', category: POSE_CATEGORIES.WARMUP, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Hold opposite elbows, sway gently side to side.', 
     benefits: ['Releases lower back', 'Calms the nervous system', 'Stretches hamstrings'],
-    types: ['hamstring'],
+    types: ['hamstring', 'spine'],
     prompt: 'Clean minimalist vector flat illustration of a person in Ragdoll Forward Fold, knees soft, torso hanging over legs, arms hanging or holding elbows. White background, soft teal and slate grey palette.'
   },
 
@@ -90,7 +90,7 @@ const POSE_LIBRARY = [
     id: 'mtn', name: 'Mountain Pose', sanskrit: 'Tadasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Feet grounded, palms forward, crown lifts.', 
     benefits: ['Improves posture', 'Strengthens thighs, knees, and ankles', 'Firms abdomen and buttocks'],
-    types: ['standing'],
+    types: ['standing', 'grounding'],
     prompt: 'Clean minimalist vector flat illustration of a person standing tall in Tadasana, feet hip-width, neutral spine, arms by sides. White background, soft teal and slate grey palette.'
   },
   { 
@@ -104,21 +104,21 @@ const POSE_LIBRARY = [
     id: 'chat', name: 'Chaturanga', sanskrit: 'Chaturanga Dandasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Lower halfway, elbows hug ribs.', 
     benefits: ['Develops core stability', 'Strengthens arms and wrists', 'Tones abdomen'],
-    types: ['strength'],
+    types: ['strength', 'arm-balance'],
     prompt: 'Clean minimalist vector flat illustration of a person in Chaturanga, elbows bent at 90 degrees, body parallel to floor, tight core. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'cobra', name: 'Cobra Pose', sanskrit: 'Bhujangasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 1, wrist: true, knee: false, pregnant: false, 
     cues: 'Lift chest, little weight in hands, press tops of feet.', 
     benefits: ['Strengthens the spine', 'Stretches chest and lungs, shoulders, and abdomen', 'Stimulates abdominal organs'],
-    types: ['backbend'],
+    types: ['backbend', 'spine'],
     prompt: 'Clean minimalist vector flat illustration of a person in Cobra Pose, chest lifted, elbows bent close to ribs, legs on ground. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'updog', name: 'Upward Facing Dog', sanskrit: 'Urdhva Mukha Svanasana', category: POSE_CATEGORIES.SUN_SALUTATION, difficulty: 2, wrist: true, knee: false, pregnant: false, 
     cues: 'Thighs lifted, chest open, shoulders down.', 
     benefits: ['Improves posture', 'Strengthens spine, arms, wrists', 'Stretches chest and lungs'],
-    types: ['backbend'],
+    types: ['backbend', 'strength'],
     prompt: 'Clean minimalist vector flat illustration of a person in Upward Facing Dog, arms straight, thighs lifted off ground, chest open. White background, soft teal and slate grey palette.'
   },
 
@@ -127,49 +127,49 @@ const POSE_LIBRARY = [
     id: 'w1', name: 'Warrior I', sanskrit: 'Virabhadrasana I', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Back heel down 45 degrees, hips square to front.', 
     benefits: ['Stretches chest and lungs', 'Strengthens shoulders and arms', 'Strengthens and stretches thighs and calves'],
-    types: ['strength', 'hip-opener'],
+    types: ['strength', 'hip-opener', 'standing'],
     prompt: 'Clean minimalist vector flat illustration of a person in Warrior I, front knee bent 90 degrees, back leg straight, hips squared, arms overhead. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'w2', name: 'Warrior II', sanskrit: 'Virabhadrasana II', category: POSE_CATEGORIES.STANDING, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Front knee over ankle, gaze over front middle finger.', 
     benefits: ['Increases stamina', 'Strengthens legs and ankles', 'Stretches groins, chest and shoulders'],
-    types: ['strength', 'hip-opener'],
+    types: ['strength', 'hip-opener', 'standing'],
     prompt: 'Clean minimalist vector flat illustration of a person in Warrior II, front knee bent, arms extended parallel, hips open, strong T-shape. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'tri', name: 'Triangle Pose', sanskrit: 'Trikonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Lengthen side body, hand to shin or block.', 
     benefits: ['Stretches hips, groins, hamstrings', 'Opens chest and shoulders', 'Relieves backache'],
-    types: ['hamstring', 'hip-opener'],
+    types: ['hamstring', 'hip-opener', 'standing'],
     prompt: 'Clean minimalist vector flat illustration of a person in Triangle Pose, front leg straight, torso extended sideways, bottom hand to shin, top arm vertical. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'extside', name: 'Extended Side Angle', sanskrit: 'Utthita Parsvakonasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Forearm to thigh or hand to floor, long diagonal line.', 
     benefits: ['Strengthens legs, knees, and ankles', 'Stretches groins, spine, waist', 'Stimulates abdominal organs'],
-    types: ['strength', 'side-stretch'],
+    types: ['strength', 'side-stretch', 'standing'],
     prompt: 'Clean minimalist vector flat illustration of a person in Extended Side Angle, front knee bent, forearm on thigh or hand to floor, top arm extended overhead on a diagonal. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'lunge', name: 'High Lunge', sanskrit: 'Ashta Chandrasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Back heel lifted, hips square, arms reach up.', 
     benefits: ['Strengthens legs and arms', 'Stretches hip flexors', 'Develops balance and stability'],
-    types: ['strength', 'balance'],
+    types: ['strength', 'balance', 'standing'],
     prompt: 'Clean minimalist vector flat illustration of a person in High Lunge, front knee bent, back leg straight, arms overhead, torso upright. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'goddess', name: 'Goddess Pose', sanskrit: 'Utkata Konasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Toes out, heels in, sink hips, cactus arms.', 
     benefits: ['Opens hips and chest', 'Strengthens legs and glutes', 'Builds heat'],
-    types: ['strength', 'hip-opener'],
+    types: ['strength', 'hip-opener', 'standing'],
     prompt: 'Clean minimalist vector flat illustration of a person in Goddess Pose, wide stance, knees bent, toes turned out, arms bent at 90 degrees. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', category: POSE_CATEGORIES.STANDING, difficulty: 2, wrist: false, knee: false, pregnant: true, 
     cues: 'Sit back into heels, lift chest, tuck tailbone slightly.', 
     benefits: ['Strengthens ankles, thighs, calves, and spine', 'Stretches shoulders and chest', 'Stimulates heart and diaphragm'],
-    types: ['strength'],
+    types: ['strength', 'standing'],
     prompt: 'Clean minimalist vector flat illustration of a person in Chair Pose, knees bent deeply, hips back, arms overhead, spine long. White background, soft teal and slate grey palette.'
   },
 
@@ -185,21 +185,21 @@ const POSE_LIBRARY = [
     id: 'eagle', name: 'Eagle Pose', sanskrit: 'Garudasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'Wrap right leg over left, right arm under left.', 
     benefits: ['Strengthens and stretches ankles and calves', 'Stretches thighs, hips, shoulders, and upper back', 'Improves concentration'],
-    types: ['balance', 'twist'],
+    types: ['balance', 'twist', 'peak'],
     prompt: 'Clean minimalist vector flat illustration of a person in Eagle Pose, one leg wrapped around the other, arms wrapped, slight squat, elbows lifted. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'w3', name: 'Warrior III', sanskrit: 'Virabhadrasana III', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'T-shape body, hips square to floor.', 
     benefits: ['Strengthens ankles and legs', 'Strengthens shoulders and muscles of the back', 'Tones the abdomen'],
-    types: ['balance', 'strength'],
+    types: ['balance', 'strength', 'hamstring'],
     prompt: 'Clean minimalist vector flat illustration of a person in Warrior III, standing on one leg, torso forward, back leg lifted straight, arms extended. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'dancer', name: 'Dancer Pose', sanskrit: 'Natarajasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: false, knee: false, pregnant: true, 
     cues: 'Catch inside of back foot, kick into hand.', 
     benefits: ['Stretches shoulders, chest, thighs, groins, and abdomen', 'Strengthens legs and ankles', 'Improves balance'],
-    types: ['balance', 'backbend'],
+    types: ['balance', 'backbend', 'peak'],
     prompt: 'Clean minimalist vector flat illustration of a person in Dancer Pose, standing on one leg, back leg bent and held by the hand, opposite arm reaching forward. White background, soft teal and slate grey palette.'
   },
 
@@ -208,42 +208,42 @@ const POSE_LIBRARY = [
     id: 'pigeon', name: 'Half Pigeon', sanskrit: 'Eka Pada Rajakapotasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 2, wrist: true, knee: true, pregnant: true, 
     cues: 'Right knee to right wrist, shin diagonal.', 
     benefits: ['Stretches thighs, groins and psoas', 'Opens hips', 'Stimulates abdominal organs'],
-    types: ['hip-opener'],
+    types: ['hip-opener', 'rest'],
     prompt: 'Clean minimalist vector flat illustration of a person in Half Pigeon Pose, front leg folded, back leg extended, torso upright or folding forward. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Lift hips, interlace fingers under back.', 
     benefits: ['Stretches chest, neck, and spine', 'Calms the brain', 'Rejuvenates tired legs'],
-    types: ['backbend'],
+    types: ['backbend', 'spine'],
     prompt: 'Clean minimalist vector flat illustration of a person in Bridge Pose, lying on back with knees bent, hips lifted, chest open. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Dhanurasana', category: POSE_CATEGORIES.BACKBEND, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Press into hands and feet, lift entire body.', 
     benefits: ['Strengthens arms, wrists, legs, buttocks, abdomen, and spine', 'Stimulates thyroid and pituitary', 'Increases energy'],
-    types: ['backbend', 'peak'],
+    types: ['backbend', 'peak', 'strength'],
     prompt: 'Clean minimalist vector flat illustration of a person in Wheel Pose, full backbend, hands and feet on ground, chest lifted. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'boat', name: 'Boat Pose', sanskrit: 'Navasana', category: POSE_CATEGORIES.CORE, difficulty: 2, wrist: false, knee: false, pregnant: false, 
     cues: 'Lift feet, balance on sit bones, chest open.', 
     benefits: ['Strengthens abdomen, hip flexors, and spine', 'Stimulates kidneys', 'Improves digestion'],
-    types: ['core'],
+    types: ['core', 'strength'],
     prompt: 'Clean minimalist vector flat illustration of a person in Boat Pose, balanced on sit bones, legs lifted straight, torso leaning back, arms extended forward. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'crow', name: 'Crow Pose', sanskrit: 'Bakasana', category: POSE_CATEGORIES.BALANCE, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Knees to armpits, lean forward, float feet.', 
     benefits: ['Strengthens arms and wrists', 'Stretches upper back', 'Strengthens abdominal muscles'],
-    types: ['arm-balance', 'peak'],
+    types: ['arm-balance', 'peak', 'core'],
     prompt: 'Clean minimalist vector flat illustration of a person in Crow Pose, balancing on hands, knees on upper arms, feet lifted, compact body. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', category: POSE_CATEGORIES.INVERSION, difficulty: 3, wrist: true, knee: false, pregnant: false, 
     cues: 'Forearms down, interlace fingers, crown of head lightly down.', 
     benefits: ['Calms the brain', 'Strengthens arms, legs and spine', 'Improves digestion'],
-    types: ['inversion', 'peak'],
+    types: ['inversion', 'peak', 'core'],
     prompt: 'Clean minimalist vector flat illustration of a person in Supported Headstand, forearm base, straight legs stacked over hips. White background, soft teal and slate grey palette.'
   },
   
@@ -252,35 +252,35 @@ const POSE_LIBRARY = [
     id: 'paschi', name: 'Seated Forward Fold', sanskrit: 'Paschimottanasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Lengthen spine then fold, keep feet flexed.', 
     benefits: ['Calms the brain', 'Stretches the spine, shoulders and hamstrings', 'Stimulates liver and kidneys'],
-    types: ['hamstring'],
+    types: ['hamstring', 'spine', 'rest'],
     prompt: 'Clean minimalist vector flat illustration of a person in Seated Forward Fold, legs straight, torso folding over legs, hands reaching toward feet. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'janu', name: 'Head to Knee', sanskrit: 'Janu Sirsasana', category: POSE_CATEGORIES.RESTORATIVE, difficulty: 1, wrist: false, knee: true, pregnant: true, 
     cues: 'One leg straight, one foot to inner thigh, fold.', 
     benefits: ['Calms the brain', 'Stretches spine, shoulders, hamstrings, and groins', 'Stimulates liver and kidneys'],
-    types: ['hamstring', 'hip-opener'],
+    types: ['hamstring', 'hip-opener', 'rest'],
     prompt: 'Clean minimalist vector flat illustration of a person in Head-to-Knee Pose, one leg extended, other foot against inner thigh, torso folding over extended leg. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'twist', name: 'Supine Twist', sanskrit: 'Supta Matsyendrasana', category: POSE_CATEGORIES.TWIST, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Knees to one side, gaze opposite.', 
     benefits: ['Stretches the back muscles and glutes', 'Massages back and hips', 'Helps hydrate spinal disks'],
-    types: ['twist', 'spine'],
+    types: ['twist', 'spine', 'rest'],
     prompt: 'Clean minimalist vector flat illustration of a person lying on their back in a Supine Twist, one knee crossed over the body, opposite arm extended. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'happy', name: 'Happy Baby', sanskrit: 'Ananda Balasana', category: POSE_CATEGORIES.HIP_OPENER, difficulty: 1, wrist: false, knee: false, pregnant: true, 
     cues: 'Grab outer feet, pull knees toward armpits.', 
     benefits: ['Gently releases hips', 'Calms the brain', 'Relieves lower back pain'],
-    types: ['hip-opener'],
+    types: ['hip-opener', 'rest'],
     prompt: 'Clean minimalist vector flat illustration of a person on their back in Happy Baby Pose, knees bent wide, hands holding feet, spine grounded. White background, soft teal and slate grey palette.'
   },
   { 
     id: 'sava', name: 'Corpse Pose', sanskrit: 'Savasana', category: POSE_CATEGORIES.SAVASANA, difficulty: 0, wrist: false, knee: false, pregnant: true, 
     cues: 'Complete relaxation. Let go of breath control.', 
     benefits: ['Calms the brain', 'Relieves stress', 'Relaxes the body'],
-    types: ['rest'],
+    types: ['rest', 'grounding'],
     prompt: 'Clean minimalist vector flat illustration of a person lying flat on back in Savasana, arms relaxed by sides, legs extended, neutral alignment. White background, soft teal and slate grey palette.'
   },
 ];
@@ -299,6 +299,33 @@ const MUSIC_THEMES = [
   { id: 'silence', name: 'Breath Only', icon: <Moon size={16}/>, description: 'Pure silence to focus on Ujjayi breath.' },
 ];
 
+/**
+ * SEQUENCING CONSTANTS
+ */
+const SEQUENCE_METHODS = {
+  STANDARD: 'standard',
+  PEAK: 'peak',
+  THEME: 'theme',
+  TARGET: 'target',
+  LADDER: 'ladder'
+};
+
+const PEAK_POSES = POSE_LIBRARY.filter(p => p.types.includes('peak')).map(p => ({ id: p.id, name: p.name }));
+const THEMES = [
+  { id: 'grounding', name: 'Grounding & Stability', types: ['grounding', 'balance', 'standing'] },
+  { id: 'energy', name: 'Energy & Power', types: ['strength', 'core', 'backbend'] },
+  { id: 'detox', name: 'Detox & Twist', types: ['twist', 'core'] },
+  { id: 'heart', name: 'Heart Opening', types: ['backbend', 'chest'] },
+  { id: 'rest', name: 'Relaxation & Restore', types: ['rest', 'grounding'] }
+];
+const TARGET_AREAS = [
+  { id: 'hips', name: 'Hips & Emotions', types: ['hip-opener'] },
+  { id: 'core', name: 'Core Fire', types: ['core'] },
+  { id: 'spine', name: 'Spine Health', types: ['spine'] },
+  { id: 'hamstrings', name: 'Hamstrings & Release', types: ['hamstring'] },
+  { id: 'shoulders', name: 'Shoulders & Neck', types: ['shoulder'] }
+];
+
 
 // --- EXTRACTED SUB-COMPONENTS TO FIX RE-MOUNTING ISSUES ---
 
@@ -306,7 +333,6 @@ const PoseDetailModal = ({ pose, onClose }) => {
   if (!pose) return null;
 
   const imagePath = `/poses/${pose.id}.png`; 
-  // UPDATED: Now falls back to a real AI generated image via Pollinations.ai if local file is missing!
   const fallbackImage = `https://image.pollinations.ai/prompt/${encodeURIComponent(pose.prompt || pose.name)}?nologo=true`;
 
   return (
@@ -487,7 +513,6 @@ const PracticeMode = ({
       setIsTimerRunning(false);
   }, []);
 
-  // Use Pollinations for background if local image missing
   const bgImage = `https://image.pollinations.ai/prompt/${encodeURIComponent(current.prompt || current.name)}?nologo=true`;
 
   return (
@@ -571,7 +596,11 @@ export default function YogaApp() {
     duration: 60,
     difficulty: 'Intermediate',
     style: 'Vinyasa',
-    filters: { noWrists: false, kneeFriendly: false, pregnancySafe: false }
+    filters: { noWrists: false, kneeFriendly: false, pregnancySafe: false },
+    method: SEQUENCE_METHODS.STANDARD,
+    selectedPeakPose: PEAK_POSES[0].id,
+    selectedTheme: THEMES[0].id,
+    selectedTarget: TARGET_AREAS[0].id
   });
 
   const [sequence, setSequence] = useState([]);
@@ -597,14 +626,13 @@ export default function YogaApp() {
     if (saved) setSavedSequences(JSON.parse(saved));
   }, []);
 
-  // Timer Logic - IMPROVED for stability
+  // Timer Logic
   useEffect(() => {
     let interval = null;
     if (isTimerRunning) {
       interval = setInterval(() => {
         setTimerSeconds(prev => {
           if (prev <= 1) {
-             // Handle timer finish
              setIsTimerRunning(false);
              return 0;
           }
@@ -616,20 +644,26 @@ export default function YogaApp() {
   }, [isTimerRunning]);
 
 
-  // --- CORE FUNCTIONS ---
+  // --- CORE GENERATION LOGIC ---
 
-  const generateSequence = () => {
+  const getFilteredPool = () => {
     let pool = [...POSE_LIBRARY];
-
-    // Filters
     if (params.filters.noWrists) pool = pool.filter(p => !p.wrist);
     if (params.filters.kneeFriendly) pool = pool.filter(p => !p.knee);
     if (params.filters.pregnancySafe) pool = pool.filter(p => p.pregnant);
     if (params.difficulty === 'Beginner') pool = pool.filter(p => p.difficulty <= 1);
     if (params.difficulty === 'Intermediate') pool = pool.filter(p => p.difficulty <= 2);
+    return pool;
+  };
 
-    // Structure
-    const minutes = params.duration;
+  const pick = (pool, category, count, filterFn = null) => {
+    let candidates = pool.filter(p => p.category === category);
+    if (filterFn) candidates = candidates.filter(filterFn);
+    candidates = candidates.sort(() => 0.5 - Math.random());
+    return candidates.slice(0, Math.max(1, count));
+  };
+
+  const generateStandardSequence = (pool, minutes) => {
     let counts = {
       centering: 2, warmup: Math.floor(minutes * 0.15), sunSal: Math.floor(minutes * 0.15),
       standing: Math.floor(minutes * 0.30), balance: Math.floor(minutes * 0.10),
@@ -640,32 +674,220 @@ export default function YogaApp() {
       counts = { centering: 3, warmup: 2, sunSal: 0, standing: 0, balance: 0, floor: Math.floor(minutes / 4), savasana: 1 };
     }
 
-    const pick = (category, count) => {
-      let candidates = pool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
-      return candidates.slice(0, Math.max(1, count));
-    };
-
     let newSequence = [];
-    newSequence.push(...pick(POSE_CATEGORIES.CENTERING, counts.centering));
-    newSequence.push(...pick(POSE_CATEGORIES.WARMUP, counts.warmup));
+    newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, counts.centering));
+    newSequence.push(...pick(pool, POSE_CATEGORIES.WARMUP, counts.warmup));
 
     if (counts.sunSal > 0) {
       const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
-      const sunFlow = sunAIds.map(id => POSE_LIBRARY.find(p => p.id === id)).filter(Boolean);
+      const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
       if (sunFlow.length === 5) {
         newSequence.push(...sunFlow);
         if (params.duration > 45) newSequence.push(...sunFlow);
       }
     }
 
-    newSequence.push(...pick(POSE_CATEGORIES.STANDING, counts.standing));
-    newSequence.push(...pick(POSE_CATEGORIES.BALANCE, counts.balance));
+    newSequence.push(...pick(pool, POSE_CATEGORIES.STANDING, counts.standing));
+    newSequence.push(...pick(pool, POSE_CATEGORIES.BALANCE, counts.balance));
 
+    // Floor Mix
     let floorCandidates = pool.filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category)).sort(() => 0.5 - Math.random());
     newSequence.push(...floorCandidates.slice(0, counts.floor));
 
     const sava = POSE_LIBRARY.find(p => p.id === 'sava');
     if (sava) newSequence.push(sava);
+
+    return newSequence;
+  };
+
+  const generatePeakPoseSequence = (pool, minutes) => {
+    // Structure: Warmup -> SunSal -> Prep Poses -> Peak Pose -> Counter Poses -> Savasana
+    const peakPose = POSE_LIBRARY.find(p => p.id === params.selectedPeakPose);
+    if (!peakPose) return generateStandardSequence(pool, minutes);
+
+    let newSequence = [];
+    newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
+    newSequence.push(...pick(pool, POSE_CATEGORIES.WARMUP, 3));
+
+    // Sun Salutations
+    const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
+    const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
+    if (sunFlow.length === 5) newSequence.push(...sunFlow);
+
+    // Prep Poses (Standing/Core) that share types with Peak
+    const prepCount = Math.floor(minutes * 0.3);
+    const relatedTypes = peakPose.types.filter(t => t !== 'peak'); // e.g., 'balance', 'hip-opener'
+    
+    // Find standing/balance poses that match at least one type of the peak pose
+    const prepPoses = pool.filter(p => 
+      (p.category === POSE_CATEGORIES.STANDING || p.category === POSE_CATEGORIES.BALANCE || p.category === POSE_CATEGORIES.CORE) &&
+      p.id !== peakPose.id &&
+      p.types.some(t => relatedTypes.includes(t))
+    ).sort(() => 0.5 - Math.random()).slice(0, prepCount);
+
+    newSequence.push(...prepPoses);
+
+    // THE PEAK
+    newSequence.push(peakPose);
+
+    // Cool down / Counter poses (Floor)
+    const coolCount = Math.floor(minutes * 0.2);
+    const coolPoses = pool.filter(p => [POSE_CATEGORIES.TWIST, POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.RESTORATIVE].includes(p.category)).sort(() => 0.5 - Math.random()).slice(0, coolCount);
+    newSequence.push(...coolPoses);
+
+    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
+    if (sava) newSequence.push(sava);
+
+    return newSequence;
+  };
+
+  const generateThemedSequence = (pool, minutes) => {
+    const theme = THEMES.find(t => t.id === params.selectedTheme);
+    if (!theme) return generateStandardSequence(pool, minutes);
+
+    // Filter pool to heavily favor theme types
+    // We don't exclude others entirely, but we prioritize them
+    const prioritizedPool = pool.filter(p => p.types.some(t => theme.types.includes(t)));
+    const otherPool = pool.filter(p => !p.types.some(t => theme.types.includes(t)));
+
+    // Helper to get mostly themed poses, but fill with others if needed
+    const smartPick = (category, count) => {
+      let themedCandidates = prioritizedPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
+      let others = otherPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
+      return [...themedCandidates, ...others].slice(0, Math.max(1, count));
+    };
+
+    let newSequence = [];
+    newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
+    newSequence.push(...smartPick(POSE_CATEGORIES.WARMUP, 3));
+    
+    // Sun Sal only if appropriate for theme (skip for 'Rest')
+    if (theme.id !== 'rest') {
+       const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
+       const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
+       if (sunFlow.length === 5) newSequence.push(...sunFlow);
+    }
+
+    newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, Math.floor(minutes * 0.25)));
+    newSequence.push(...smartPick(POSE_CATEGORIES.BALANCE, Math.floor(minutes * 0.1)));
+    
+    // Floor
+    let floorCandidates = [...prioritizedPool, ...otherPool].filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category));
+    newSequence.push(...floorCandidates.slice(0, Math.floor(minutes * 0.25)));
+
+    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
+    if (sava) newSequence.push(sava);
+
+    return newSequence;
+  };
+
+  const generateTargetAreaSequence = (pool, minutes) => {
+    const target = TARGET_AREAS.find(t => t.id === params.selectedTarget);
+    if (!target) return generateStandardSequence(pool, minutes);
+
+    // Similar logic to Theme, but strictly filtering for benefits/types related to body part
+    const targetPool = pool.filter(p => p.types.some(t => target.types.includes(t)));
+    const generalPool = pool.filter(p => !p.types.some(t => target.types.includes(t))); // Fillers
+
+    const smartPick = (category, count) => {
+      let main = targetPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
+      let fill = generalPool.filter(p => p.category === category).sort(() => 0.5 - Math.random());
+      return [...main, ...fill].slice(0, Math.max(1, count));
+    };
+
+    let newSequence = [];
+    newSequence.push(...smartPick(POSE_CATEGORIES.CENTERING, 2));
+    newSequence.push(...smartPick(POSE_CATEGORIES.WARMUP, 3));
+    
+    // Sun Sal
+    const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
+    const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
+    if (sunFlow.length === 5) newSequence.push(...sunFlow);
+
+    // Heavy focus on the target area in Standing/Floor
+    newSequence.push(...smartPick(POSE_CATEGORIES.STANDING, Math.floor(minutes * 0.3)));
+    
+    // Floor work is where target areas usually shine (hips, hamstrings, spine)
+    let floorTarget = targetPool.filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category));
+    let floorFill = generalPool.filter(p => [POSE_CATEGORIES.HIP_OPENER, POSE_CATEGORIES.TWIST, POSE_CATEGORIES.BACKBEND, POSE_CATEGORIES.RESTORATIVE].includes(p.category));
+    
+    newSequence.push(...[...floorTarget, ...floorFill].slice(0, Math.floor(minutes * 0.3)));
+
+    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
+    if (sava) newSequence.push(sava);
+
+    return newSequence;
+  };
+
+  const generateLadderFlowSequence = (pool, minutes) => {
+    // Ladder Flow: Build a sequence A, then A+B, then A+B+C.
+    // We need about 3-4 standing poses to build the ladder.
+    const ladderPoses = pick(pool, POSE_CATEGORIES.STANDING, 3);
+    if (ladderPoses.length < 3) return generateStandardSequence(pool, minutes);
+
+    let newSequence = [];
+    
+    // Warmup
+    newSequence.push(...pick(pool, POSE_CATEGORIES.CENTERING, 2));
+    newSequence.push(...pick(pool, POSE_CATEGORIES.WARMUP, 2));
+
+    // Sun Sal A (Once)
+    const sunAIds = ['mtn', 'plk', 'chat', 'cobra', 'dd'];
+    const sunFlow = sunAIds.map(id => pool.find(p => p.id === id)).filter(Boolean);
+    newSequence.push(...sunFlow);
+
+    // The Ladder Construction
+    // Round 1: Pose 1 -> Vinyasa
+    newSequence.push(ladderPoses[0]);
+    newSequence.push(pool.find(p => p.id === 'plk')); // Mini vinyasa
+    newSequence.push(pool.find(p => p.id === 'dd'));
+
+    // Round 2: Pose 1 -> Pose 2 -> Vinyasa
+    newSequence.push(ladderPoses[0]);
+    newSequence.push(ladderPoses[1]);
+    newSequence.push(pool.find(p => p.id === 'plk')); 
+    newSequence.push(pool.find(p => p.id === 'dd'));
+
+    // Round 3: Pose 1 -> Pose 2 -> Pose 3 -> Vinyasa
+    newSequence.push(ladderPoses[0]);
+    newSequence.push(ladderPoses[1]);
+    newSequence.push(ladderPoses[2]);
+    newSequence.push(pool.find(p => p.id === 'plk')); 
+    newSequence.push(pool.find(p => p.id === 'dd'));
+
+    // Cool down
+    newSequence.push(...pick(pool, POSE_CATEGORIES.HIP_OPENER, 2));
+    newSequence.push(...pick(pool, POSE_CATEGORIES.TWIST, 1));
+
+    const sava = POSE_LIBRARY.find(p => p.id === 'sava');
+    if (sava) newSequence.push(sava);
+
+    return newSequence;
+  };
+
+
+  const generateSequence = () => {
+    const pool = getFilteredPool();
+    const minutes = params.duration;
+    let newSequence = [];
+
+    switch (params.method) {
+      case SEQUENCE_METHODS.PEAK:
+        newSequence = generatePeakPoseSequence(pool, minutes);
+        break;
+      case SEQUENCE_METHODS.THEME:
+        newSequence = generateThemedSequence(pool, minutes);
+        break;
+      case SEQUENCE_METHODS.TARGET:
+        newSequence = generateTargetAreaSequence(pool, minutes);
+        break;
+      case SEQUENCE_METHODS.LADDER:
+        newSequence = generateLadderFlowSequence(pool, minutes);
+        break;
+      default:
+        newSequence = generateStandardSequence(pool, minutes);
+        break;
+    }
 
     const finalSequence = newSequence.map((pose, idx) => ({
       ...pose,
@@ -734,7 +956,6 @@ export default function YogaApp() {
   // --- RENDER ---
 
   // Init Generator on Load
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if(sequence.length === 0) generateSequence(); }, []);
 
   return (
@@ -793,7 +1014,7 @@ export default function YogaApp() {
             transform transition-transform duration-300 overflow-y-auto print:hidden
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-none lg:overflow-hidden'}
           `}>
-            <div className="p-6 space-y-8">
+            <div className="p-6 space-y-8 pb-32">
               <div className="flex justify-between items-center lg:hidden">
                 <h2 className="font-bold text-lg">Class Settings</h2>
                 <button onClick={() => setIsSidebarOpen(false)}><X /></button>
@@ -825,7 +1046,73 @@ export default function YogaApp() {
                 </div>
               </div>
 
-              <div className="space-y-3">
+              {/* SEQUENCING METHOD SECTION */}
+              <div className="space-y-4 border-t border-stone-100 dark:border-stone-700 pt-4">
+                 <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold uppercase text-xs tracking-wider"><Layers size={14} /> Sequence Method</div>
+                 
+                 <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.STANDARD})} 
+                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.STANDARD ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
+                    >
+                      Standard Flow
+                    </button>
+                    <button 
+                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.PEAK})} 
+                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.PEAK ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
+                    >
+                      <Target size={14} className="inline mb-1 mr-1"/> Peak Pose
+                    </button>
+                    <button 
+                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.THEME})} 
+                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.THEME ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
+                    >
+                      <Zap size={14} className="inline mb-1 mr-1"/> Themed
+                    </button>
+                    <button 
+                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.TARGET})} 
+                      className={`p-3 rounded-lg text-xs font-bold border transition-all ${params.method === SEQUENCE_METHODS.TARGET ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
+                    >
+                      <Anchor size={14} className="inline mb-1 mr-1"/> Body Area
+                    </button>
+                    <button 
+                      onClick={() => setParams({...params, method: SEQUENCE_METHODS.LADDER})} 
+                      className={`p-3 rounded-lg text-xs font-bold border transition-all col-span-2 ${params.method === SEQUENCE_METHODS.LADDER ? 'bg-teal-50 border-teal-500 text-teal-800' : 'bg-stone-50 border-transparent hover:bg-stone-100 text-stone-600'}`}
+                    >
+                      <Layers size={14} className="inline mb-1 mr-1"/> Ladder Flow
+                    </button>
+                 </div>
+
+                 {/* DYNAMIC OPTIONS BASED ON METHOD */}
+                 {params.method === SEQUENCE_METHODS.PEAK && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="block text-sm font-medium mb-1">Select Peak Pose</label>
+                      <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
+                        {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    </div>
+                 )}
+
+                 {params.method === SEQUENCE_METHODS.THEME && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="block text-sm font-medium mb-1">Select Theme</label>
+                      <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
+                        {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                 )}
+
+                 {params.method === SEQUENCE_METHODS.TARGET && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="block text-sm font-medium mb-1">Target Area</label>
+                      <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm">
+                        {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                 )}
+              </div>
+
+              <div className="space-y-3 border-t border-stone-100 dark:border-stone-700 pt-4">
                  <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold uppercase text-xs tracking-wider"><Activity size={14} /> Filters</div>
                  <label className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80"><input type="checkbox" checked={params.filters.noWrists} onChange={() => setParams(p => ({...p, filters: {...p.filters, noWrists: !p.filters.noWrists}}))} className="accent-teal-600 w-4 h-4" /><span>Wrist-Friendly</span></label>
                  <label className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80"><input type="checkbox" checked={params.filters.kneeFriendly} onChange={() => setParams(p => ({...p, filters: {...p.filters, kneeFriendly: !p.filters.kneeFriendly}}))} className="accent-teal-600 w-4 h-4" /><span>Knee-Friendly</span></label>
@@ -871,10 +1158,17 @@ export default function YogaApp() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-100 dark:border-stone-700 pb-6 mb-6">
                   <div>
                     <span className="text-xs font-bold tracking-widest text-teal-600 uppercase mb-1 block">Class Plan</span>
-                    <h2 className="text-3xl font-serif text-stone-900 dark:text-white">{params.difficulty} {params.style} Flow</h2>
+                    <h2 className="text-3xl font-serif text-stone-900 dark:text-white">
+                        {params.method === SEQUENCE_METHODS.STANDARD ? `${params.style} Flow` : 
+                         params.method === SEQUENCE_METHODS.PEAK ? `Peak: ${POSE_LIBRARY.find(p=>p.id===params.selectedPeakPose)?.name}` : 
+                         params.method === SEQUENCE_METHODS.THEME ? `${THEMES.find(t=>t.id===params.selectedTheme)?.name}` :
+                         params.method === SEQUENCE_METHODS.TARGET ? `${TARGET_AREAS.find(t=>t.id===params.selectedTarget)?.name} Focus` :
+                         'Ladder Flow'}
+                    </h2>
                     <div className="flex gap-4 mt-2 text-sm opacity-60">
                       <span className="flex items-center gap-1"><Wind size={14}/> {params.duration} Mins</span>
                       <span className="flex items-center gap-1"><Activity size={14}/> {sequence.length} Poses</span>
+                      <span className="flex items-center gap-1"><Layers size={14}/> {params.difficulty}</span>
                     </div>
                   </div>
                   
@@ -895,7 +1189,7 @@ export default function YogaApp() {
                   </div>
                 </div>
 
-                {/* SOUNDSCAPE SELECTOR (8 options now) */}
+                {/* SOUNDSCAPE SELECTOR */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
                   {MUSIC_THEMES.map(theme => (
                     <button 
