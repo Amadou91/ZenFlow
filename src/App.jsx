@@ -288,7 +288,7 @@ const DEFAULT_MUSIC_THEMES = [
 // --- 2. SPOTIFY UTILS ---
 
 // REPLACE THIS WITH YOUR ACTUAL CLIENT ID FROM SPOTIFY DASHBOARD
-const CLIENT_ID = 'INSERT_YOUR_CLIENT_ID_HERE'; 
+const CLIENT_ID = '4de853bd5af346d5bd03ad30dfa84bff'; 
 
 const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
 const REDIRECT_URI = typeof window !== 'undefined' ? window.location.origin + '/' : ''; 
