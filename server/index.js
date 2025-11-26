@@ -5,32 +5,31 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
-// Load .env based on environment
+// Load .env from project root
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// DEV loads .env from project root
-// PROD loads .env already mounted inside container
 dotenv.config({ path: resolve(__dirname, '../.env') });
 
-// Determine environment
+// Detect environment
 const isProd = process.env.NODE_ENV === 'production';
 
-// Required values
+// Required env vars
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
+// Redirect URIs
 const SPOTIFY_REDIRECT_URI = isProd
-  ? process.env.SPOTIFY_REDIRECT_URI                   // PRODUCTION CALLBACK
-  : process.env.DEV_SPOTIFY_REDIRECT_URI || `http://localhost:5174/api/spotify/callback`;
+  ? process.env.SPOTIFY_REDIRECT_URI
+  : process.env.DEV_SPOTIFY_REDIRECT_URI || `http://127.0.0.1:5174/api/spotify/callback`;
 
 const FRONTEND_URI = isProd
-  ? process.env.FRONTEND_URI                           // PROD FRONTEND
-  : process.env.DEV_FRONTEND_URI || `http://localhost:5173`;
+  ? process.env.FRONTEND_URI
+  : process.env.DEV_FRONTEND_URI || `http://127.0.0.1:5173`;
 
 const ALLOWED_ORIGIN = isProd
   ? process.env.ALLOWED_ORIGIN
-  : process.env.DEV_ALLOWED_ORIGIN || `http://localhost:5173`;
+  : process.env.DEV_ALLOWED_ORIGIN || `http://127.0.0.1:5173`;
 
 const SPOTIFY_SCOPES =
   process.env.SPOTIFY_SCOPES ||
@@ -48,7 +47,7 @@ console.log('Frontend URI:', FRONTEND_URI);
 console.log('Allowed Origin:', ALLOWED_ORIGIN);
 console.log('=================================');
 
-// Validate env
+// Validations
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
   console.error('ERROR: Missing CLIENT_ID or CLIENT_SECRET');
 }
@@ -64,7 +63,6 @@ app.use(
 
 app.use(cookieParser());
 
-// Util
 const genState = (len) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   return [...Array(len)].map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -140,7 +138,6 @@ app.get('/api/spotify/callback', async (req, res) => {
       });
     }
 
-    // send access token to frontend
     const url = new URL(FRONTEND_URI);
     url.searchParams.set('access_token', access_token);
     url.searchParams.set('expires_in', expires_in);
