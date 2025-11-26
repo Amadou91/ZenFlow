@@ -487,9 +487,8 @@ const PoseCard = ({ pose, index, onSwap, setSelectedPose, isTeacherMode }) => {
   }
   return (
     <div className="relative pl-8 md:pl-12 group break-inside-avoid mb-4">
-      <div className="absolute left-[15px] md:left-[23px] top-8 bottom-[-16px] w-0.5 bg-stone-200 dark:bg-stone-700 group-last:hidden"></div>
       <div className="absolute left-[9px] md:left-[17px] top-6 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-stone-900 bg-teal-500 shadow-sm z-10"></div>
-      <div 
+      <div
         onClick={() => setSelectedPose(pose)}
         className="cursor-pointer bg-white dark:bg-stone-800 p-4 md:p-5 rounded-xl border border-stone-200 dark:border-stone-700 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 transition-all group relative"
       >
@@ -1149,7 +1148,7 @@ export default function YogaApp() {
                 <p className="text-sm text-gray-500">{params.style} • {params.difficulty} • {params.duration} mins</p>
               </div>
 
-              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : `space-y-1 ${sequence.length > 0 ? "relative before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-200 dark:before:bg-stone-700 print:before:hidden" : ""}`}>
+              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : "space-y-1"}>
                 {sequence.length === 0 ? (
                   <div className="text-center py-20 opacity-40 text-stone-600 dark:text-stone-400 px-4">
                     <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
