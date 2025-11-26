@@ -292,12 +292,18 @@ const TARGET_AREAS = [
 ];
 
 // --- UTILS ---
-const extractSpotifyId = (url) => {
-  if (!url) return null;
+const parseSpotifyLink = (url) => {
+  if (!url) return { embedPath: null, openUrl: null };
   // Handle full URL or just ID, mostly supports playlist/album/track
   const match = url.match(/(playlist|album|track)[/:]([a-zA-Z0-9]+)/);
-  if (match) return `embed/${match[1]}/${match[2]}`;
-  return null;
+  if (match) {
+    const [, type, id] = match;
+    return {
+      embedPath: `embed/${type}/${id}`,
+      openUrl: `https://open.spotify.com/${type}/${id}`
+    };
+  }
+  return { embedPath: null, openUrl: null };
 };
 
 
@@ -446,7 +452,10 @@ const MusicConfig = ({ themes, onUpdateTheme }) => {
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8">
       <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-2">Music Configuration</h2>
-      <p className="text-stone-600 dark:text-stone-400 mb-8">Link your Spotify playlists to each mood.</p>
+      <p className="text-stone-600 dark:text-stone-400 mb-8">
+        Link your Spotify playlists to each mood. Shareable Spotify URLs don&apos;t need an API key, but
+        listeners must be logged into Spotify and the playlist/album/track you share must be public.
+      </p>
 
       <div className="grid gap-4">
         {themes.map(theme => (
@@ -462,16 +471,18 @@ const MusicConfig = ({ themes, onUpdateTheme }) => {
 
             <div className="flex-1 md:max-w-md w-full">
               {editingId === theme.id ? (
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
                     value={tempLink}
                     onChange={(e) => setTempLink(e.target.value)}
                     placeholder="Paste Spotify Link..."
                     className="flex-1 p-2 rounded border border-teal-500 bg-white dark:bg-stone-900 dark:text-white text-sm outline-none"
                   />
-                  <button onClick={() => handleSave(theme.id)} className="p-2 bg-teal-600 text-white rounded hover:bg-teal-700"><Check size={18}/></button>
-                  <button onClick={() => setEditingId(null)} className="p-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded hover:opacity-80"><X size={18}/></button>
+                  <div className="flex gap-2 sm:flex-row sm:items-center">
+                    <button onClick={() => handleSave(theme.id)} className="p-2 bg-teal-600 text-white rounded hover:bg-teal-700"><Check size={18}/></button>
+                    <button onClick={() => setEditingId(null)} className="p-2 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded hover:opacity-80"><X size={18}/></button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-between bg-stone-50 dark:bg-stone-900 p-2 rounded border border-stone-200 dark:border-stone-700">
@@ -488,6 +499,10 @@ const MusicConfig = ({ themes, onUpdateTheme }) => {
                   </div>
                 </div>
               )}
+              <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-2">
+                Paste any Spotify playlist, album, or track URL (use Spotify&apos;s “Share → Copy link”) to load your full audio instead
+                of a short preview. Visitors will hear it through their own Spotify login.
+              </p>
             </div>
           </div>
         ))}
@@ -510,7 +525,7 @@ const PracticeMode = ({
   const next = sequence[practiceIndex + 1];
   
   // Audio State
-  const embedPath = extractSpotifyId(musicTheme.link);
+  const { embedPath, openUrl } = parseSpotifyLink(musicTheme.link);
 
   // Auto-pause timer when Practice Mode mounts
   useEffect(() => {
@@ -519,7 +534,7 @@ const PracticeMode = ({
 
   return (
     <div className="fixed inset-0 z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300">
-      <div className="flex justify-between items-center p-6 border-b border-stone-800">
+      <div className="flex justify-between items-center p-4 sm:p-6 border-b border-stone-800">
         <div className="flex items-center gap-3">
           <div className="bg-teal-900/30 p-2 rounded-lg"><Activity className="text-teal-400" size={20} /></div>
           <div>
@@ -530,39 +545,53 @@ const PracticeMode = ({
         <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full text-stone-400 hover:text-white"><X /></button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 text-center relative overflow-hidden">
         {/* Background icon effect */}
         <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center">
            <PoseIcon category={current.category} className="w-[120%] h-[120%] text-teal-500" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto w-full">
-           <div className="w-32 h-32 md:w-48 md:h-48 mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
-              <PoseIcon category={current.category} className="w-24 h-24" />
+           <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 mb-6 sm:mb-8 md:mb-10 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
+              <PoseIcon category={current.category} className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24" />
            </div>
-           
-           <h1 className="text-4xl md:text-6xl font-serif mb-3 text-white tracking-tight">{current.name}</h1>
-           <p className="text-xl md:text-2xl text-stone-400 italic font-serif mb-10">{current.sanskrit}</p>
-           
-           <div className="flex items-center gap-4 mb-10">
-              <div className="relative w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl">
+
+           <h1 className="text-3xl sm:text-4xl md:text-6xl font-serif mb-2 sm:mb-3 text-white tracking-tight">{current.name}</h1>
+           <p className="text-lg sm:text-xl md:text-2xl text-stone-400 italic font-serif mb-6 sm:mb-8 md:mb-10">{current.sanskrit}</p>
+
+           <div className="flex items-center gap-4 mb-8 md:mb-10">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160">
                   <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" />
                   <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} />
                 </svg>
-                <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center text-3xl md:text-4xl font-mono font-bold text-white">
+                <div className="absolute inset-0 flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-mono font-bold text-white">
                   {Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}
                 </div>
               </div>
            </div>
 
-           <div className="bg-stone-800/80 backdrop-blur-md p-8 rounded-2xl border border-stone-700/50 max-w-2xl shadow-xl">
-             <p className="text-xl leading-relaxed text-stone-200 font-medium">{current.cues}</p>
+           <div className="bg-stone-800/80 backdrop-blur-md p-6 sm:p-8 rounded-2xl border border-stone-700/50 max-w-2xl shadow-xl w-full">
+             <p className="text-lg sm:text-xl leading-relaxed text-stone-200 font-medium">{current.cues}</p>
            </div>
         </div>
       </div>
 
-      <div className="bg-stone-900 border-t border-stone-800 p-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-center relative z-10">
+      <div className="bg-stone-900 border-t border-stone-800 p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-center relative z-10">
+        <div className="md:hidden">
+          {next && (
+            <div className="flex items-center gap-3 rounded-xl bg-stone-800/80 border border-stone-700 p-3">
+              <div className="w-10 h-10 bg-stone-900 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700">
+                <PoseIcon category={next.category} className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] uppercase tracking-wider block text-teal-500 font-bold">Up Next</span>
+                <span className="font-bold text-sm text-white">{next.name}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="hidden md:block">
           {next && (
             <div className="flex items-center gap-4 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group">
@@ -576,31 +605,49 @@ const PracticeMode = ({
             </div>
           )}
         </div>
-        
-        <div className="flex items-center gap-8 justify-center">
-          <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-20 h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">
-            {isTimerRunning ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="ml-1" />}
+
+        <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap">
+          <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 sm:w-20 sm:h-20 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95">
+            {isTimerRunning ? (
+              <Pause className="w-7 h-7 sm:w-8 sm:h-8" />
+            ) : (
+              <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-0.5 sm:ml-1" />
+            )}
           </button>
-          <button onClick={nextPracticePose} className="p-4 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white">
-            <SkipForward size={32} />
+          <button onClick={nextPracticePose} className="p-3 sm:p-4 hover:bg-stone-800 rounded-full transition-colors text-stone-400 hover:text-white">
+            <SkipForward size={28} className="sm:hidden" />
+            <SkipForward size={32} className="hidden sm:block" />
           </button>
         </div>
 
-        <div className="flex justify-center md:justify-end">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-end gap-3">
            {/* Spotify Embed Player */}
            {embedPath ? (
-             <div className="w-full max-w-[300px] h-[80px] rounded-xl overflow-hidden shadow-lg bg-black">
-                <iframe 
-                  style={{borderRadius: '12px'}} 
-                  src={`https://open.spotify.com/${embedPath}?theme=0`} 
-                  width="100%" 
-                  height="80" 
-                  frameBorder="0" 
-                  allowFullScreen="" 
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                  loading="lazy"
-                  title="Spotify Player"
-                ></iframe>
+             <div className="w-full sm:max-w-[360px] h-full flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="w-full sm:max-w-[280px] h-[80px] rounded-xl overflow-hidden shadow-lg bg-black">
+                  <iframe
+                    style={{borderRadius: '12px'}}
+                    src={`https://open.spotify.com/${embedPath}?theme=0`}
+                    width="100%"
+                    height="80"
+                    frameBorder="0"
+                    allowFullScreen=""
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"
+                    title="Spotify Player"
+                  ></iframe>
+                </div>
+                {openUrl && (
+                  <a
+                    href={openUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-stone-700 text-sm text-stone-200 hover:border-teal-500 hover:text-white transition-colors bg-stone-800/60"
+                  >
+                    <ExternalLink size={14} />
+                    Open full album
+                  </a>
+                )}
              </div>
            ) : (
              <div className="text-stone-500 text-sm italic flex items-center gap-2">
