@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Menu, X, PlayCircle, RefreshCw, Settings, Heart, Printer, Sun, Moon, Music, Activity, BookOpen, LogOut, LogIn, Layers, Target, Zap, Anchor, Wind } from 'lucide-react';
+import { Menu, X, PlayCircle, RefreshCw, Settings, Heart, Printer, Sun, Moon, Music, Activity, BookOpen, LogOut, LogIn, Layers, Target, Zap, Anchor, Wind, Trash2 } from 'lucide-react';
 import PoseCard from './components/PoseCard';
 import PoseLibrary from './components/PoseLibrary';
 import MusicConfig from './components/MusicConfig';
