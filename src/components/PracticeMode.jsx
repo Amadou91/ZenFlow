@@ -1,16 +1,41 @@
-import React, { useEffect } from 'react';
-import { Activity, Music, Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Activity, Music, Pause, Play, SkipBack, SkipForward, X, ExternalLink } from 'lucide-react';
 import PoseIcon from './PoseIcon';
 import { parseSpotifyUri, playSpotifyTrack, transferPlaybackToDevice } from '../utils/spotify';
 
 const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, prevPracticePose, autoContinue, setAutoContinue, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = typeof window.navigator === "undefined" ? "" : navigator.userAgent;
+      const mobile = Boolean(userAgent.match(/Android|BlackBerry|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i));
+      setIsMobile(mobile || window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => { setIsTimerRunning(false); }, [setIsTimerRunning]);
 
   const handlePlayMusic = async () => {
-     if (!player || !deviceId || !musicTheme.link) return;
+     if (!musicTheme.link) return;
+
+     // Mobile: Deep link to Spotify App
+     if (isMobile) {
+        onPlaybackStatus?.('Opening Spotify...');
+        // Construct a universal link or URI scheme
+        // musicTheme.link is likely an http link (http://open.spotify.com/...)
+        // We can try to open it directly, which usually triggers the app intent on mobile.
+        window.location.href = musicTheme.link;
+        return;
+     }
+
+     // Desktop: SDK Playback
+     if (!player || !deviceId) return;
      
      // Optimistic feedback
      onPlaybackStatus?.('Initializing playback...');
@@ -32,11 +57,7 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
             return;
         }
 
-        // Mobile Fix:
-        // 1. Activate device first. Passing 'true' for play here might work better on some devices
-        // as it combines transfer and play into one SDK command.
-        // However, to play a specific track, we often need to transfer THEN play.
-        // We try to transfer without auto-play first to establish connection.
+        // 1. Activate device first. 
         await transferPlaybackToDevice(token, deviceId, false);
         
         // Short delay to allow device to become active
@@ -110,20 +131,33 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
       <div className="bg-stone-900 border-t border-stone-800 p-4 pb-safe sm:p-6 relative z-10 shrink-0">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
           
-          {/* Left: Music Player - removed hidden class so it shows on all screens */}
+          {/* Left: Music Player */}
           <div className="flex order-3 md:order-1 justify-center md:justify-start">
-             {spotifyToken && deviceId ? (
+             {/* Show player UI if token/deviceId exists OR if on mobile (since we allow deep linking) */}
+             {(spotifyToken && deviceId) || isMobile ? (
                <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full max-w-xs">
-                  {currentTrack?.album?.images?.[0]?.url ? (
+                  {/* Album Art: Show on desktop if playing, otherwise generic */}
+                  {!isMobile && currentTrack?.album?.images?.[0]?.url ? (
                     <img src={currentTrack.album.images[0].url} alt={currentTrack.name} className="w-10 h-10 rounded-lg object-cover border border-stone-700" />
                   ) : (
                     <div className="p-2 bg-[#1DB954] text-white rounded-lg"><Music size={16} /></div>
                   )}
+                  
                   <div className="text-left flex-1 min-w-0 overflow-hidden">
-                    <p className="text-xs font-bold text-white truncate">{currentTrack?.name || musicTheme?.name || 'Start Playlist'}</p>
-                    <button onClick={handlePlayMusic} className="text-[10px] font-semibold text-[#1DB954] hover:text-white flex items-center gap-1 touch-manipulation">{currentTrack ? 'Resume' : 'Start'} <Play size={8} fill="currentColor" /></button>
+                    <p className="text-xs font-bold text-white truncate">
+                        {isMobile ? (musicTheme?.name || 'Play Music') : (currentTrack?.name || musicTheme?.name || 'Start Playlist')}
+                    </p>
+                    <button 
+                        onClick={handlePlayMusic} 
+                        className="text-[10px] font-semibold text-[#1DB954] hover:text-white flex items-center gap-1 touch-manipulation"
+                    >
+                        {isMobile ? 'Open Spotify' : (currentTrack ? 'Resume' : 'Start')} 
+                        {isMobile ? <ExternalLink size={10} /> : <Play size={8} fill="currentColor" />}
+                    </button>
                   </div>
-                  {player && (
+                  
+                  {/* Controls only for Desktop */}
+                  {!isMobile && player && (
                     <button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full touch-manipulation">
                       {isPaused ? <Play size={14} fill="currentColor" className="ml-0.5" /> : <Pause size={14} />}
                     </button>
