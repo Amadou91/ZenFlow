@@ -27,9 +27,25 @@ const FRONTEND_URI = isProd
   ? process.env.FRONTEND_URI
   : process.env.DEV_FRONTEND_URI || `http://127.0.0.1:5173`;
 
-const ALLOWED_ORIGIN = isProd
-  ? process.env.ALLOWED_ORIGIN
-  : process.env.DEV_ALLOWED_ORIGIN || `http://127.0.0.1:5173`;
+const defaultDevOrigin = 'http://127.0.0.1:5173';
+const devAllowedOrigins = (process.env.DEV_ALLOWED_ORIGINS
+  ? process.env.DEV_ALLOWED_ORIGINS.split(',')
+  : [process.env.DEV_ALLOWED_ORIGIN || defaultDevOrigin])
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+// Always allow both localhost and 127.0.0.1 for local dev unless explicitly overridden
+['http://localhost:5173', defaultDevOrigin].forEach((origin) => {
+  if (!devAllowedOrigins.includes(origin)) devAllowedOrigins.push(origin);
+});
+
+const prodAllowedOrigins = (process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : [process.env.ALLOWED_ORIGIN])
+  .map((origin) => origin?.trim())
+  .filter(Boolean);
+
+const allowedOrigins = isProd ? prodAllowedOrigins : devAllowedOrigins;
 
 const SPOTIFY_SCOPES =
   process.env.SPOTIFY_SCOPES ||
@@ -44,7 +60,7 @@ console.log('Environment:', isProd ? 'PRODUCTION' : 'DEVELOPMENT');
 console.log('Client ID set:', !!SPOTIFY_CLIENT_ID);
 console.log('Redirect URI:', SPOTIFY_REDIRECT_URI);
 console.log('Frontend URI:', FRONTEND_URI);
-console.log('Allowed Origin:', ALLOWED_ORIGIN);
+console.log('Allowed Origins:', allowedOrigins);
 console.log('=================================');
 
 // Validations
@@ -56,7 +72,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ALLOWED_ORIGIN,
+    origin: allowedOrigins,
     credentials: true
   })
 );
@@ -200,7 +216,7 @@ app.get('/api/spotify/health', (req, res) => {
     clientIdSet: !!SPOTIFY_CLIENT_ID,
     redirectUri: SPOTIFY_REDIRECT_URI,
     frontendUri: FRONTEND_URI,
-    allowedOrigin: ALLOWED_ORIGIN
+    allowedOrigins
   });
 });
 
