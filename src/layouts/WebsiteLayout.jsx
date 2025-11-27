@@ -96,6 +96,8 @@ const WebsiteLayout = () => {
                 <li><Link to="/schedule" className="hover:text-teal-600">Schedule & Booking</Link></li>
                 <li><Link to="/retreats" className="hover:text-teal-600">Retreats</Link></li>
                 <li><Link to="/contact" className="hover:text-teal-600">Contact</Link></li>
+                {/* ZENFLOW LINK ADDED HERE */}
+                <li><Link to="/tools/zenflow" className="hover:text-teal-600">Teacher Tools: ZenFlow</Link></li>
               </ul>
             </div>
             <div>
