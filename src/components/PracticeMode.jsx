@@ -87,8 +87,8 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
       <div className="bg-stone-900 border-t border-stone-800 p-4 pb-safe sm:p-6 relative z-10 shrink-0">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
           
-          {/* Left: Music Player (Hidden on very small screens if needed, or stacked) */}
-          <div className="hidden sm:flex order-3 md:order-1 justify-center md:justify-start">
+          {/* Left: Music Player - removed hidden class so it shows on all screens */}
+          <div className="flex order-3 md:order-1 justify-center md:justify-start">
              {spotifyToken && deviceId ? (
                <div className="flex items-center gap-3 bg-black/50 p-2 pr-4 rounded-xl border border-stone-700 w-full max-w-xs">
                   {currentTrack?.album?.images?.[0]?.url ? (
