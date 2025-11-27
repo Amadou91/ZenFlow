@@ -4,14 +4,16 @@
 @layer base {
   body {
     @apply font-sans text-stone-800 bg-stone-50 dark:bg-stone-900 dark:text-stone-100;
+    /* Prevent horizontal scroll caused by some animations */
+    overflow-x: hidden;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Cinzel', serif;
   }
 }
 
-/* Custom Scrollbar Styling */
 @layer utilities {
+  /* Custom Scrollbar Styling */
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -25,9 +27,22 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-teal-500;
   }
+
+  /* iOS Safe Area Utilities */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
 }
 
-/* Print Optimization - Teacher Mode */
+/* Remove tap delay on mobile */
+button, a, input, label {
+  touch-action: manipulation;
+}
+
+/* Print Optimization */
 @media print {
   @page { margin: 1cm; }
   body { 
@@ -35,13 +50,7 @@
     background: white !important;
     color: black !important;
   }
-  
-  /* Hide specific elements that shouldn't print */
   .no-print, header, aside, nav, .print-hidden { display: none !important; }
-  
-  /* Show print-only container */
   .print-only-container { display: block !important; height: auto !important; overflow: visible !important; }
-  
-  /* Ensure grid layouts work in print */
   .break-inside-avoid { page-break-inside: avoid; }
 }
