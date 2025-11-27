@@ -11,21 +11,44 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
 
   const handlePlayMusic = async () => {
      if (!player || !deviceId || !musicTheme.link) return;
-     const token = await ensureAccessToken();
-     if (!token) { onPlaybackStatus?.('Connect Spotify to play music.'); return; }
-     if (!isPremiumUser) { onPlaybackStatus?.('Premium required for playback.'); return; }
      
-     const uri = parseSpotifyUri(musicTheme.link);
-     if (uri) {
-        onPlaybackStatus?.('Connecting to Spotify...');
-        // Mobile Fix: Separate activation from playback.
-        // 1. Activate the device without forcing play (prevents race conditions on empty queues)
+     // Optimistic feedback
+     onPlaybackStatus?.('Initializing playback...');
+
+     try {
+        const token = await ensureAccessToken();
+        if (!token) { 
+            onPlaybackStatus?.('Connect Spotify to play music.'); 
+            return; 
+        }
+        if (!isPremiumUser) { 
+            onPlaybackStatus?.('Premium required for playback.'); 
+            return; 
+        }
+        
+        const uri = parseSpotifyUri(musicTheme.link);
+        if (!uri) {
+            onPlaybackStatus?.('Invalid Spotify link.');
+            return;
+        }
+
+        // Mobile Fix:
+        // 1. Activate device first. Passing 'true' for play here might work better on some devices
+        // as it combines transfer and play into one SDK command.
+        // However, to play a specific track, we often need to transfer THEN play.
+        // We try to transfer without auto-play first to establish connection.
         await transferPlaybackToDevice(token, deviceId, false);
         
-        // 2. Send the specific play command for our target URI
+        // Short delay to allow device to become active
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 2. Send specific play command
         await playSpotifyTrack(token, deviceId, uri);
         
-        onPlaybackStatus?.('Playing through Spotify Web Playback SDK.');
+        onPlaybackStatus?.('Playing...');
+     } catch (err) {
+         console.error("Playback failed:", err);
+         onPlaybackStatus?.('Playback failed. Try opening Spotify app first.');
      }
   };
 
