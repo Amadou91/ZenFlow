@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+// import { Resend } from 'resend'; // Uncomment for production
 
 // Load .env from project root
 const __filename = fileURLToPath(import.meta.url);
@@ -55,20 +56,15 @@ const PORT = process.env.PORT || 5174;
 const HOST = process.env.HOST || '127.0.0.1';
 
 // Debug print
-console.log('=== SPOTIFY AUTH SERVER CONFIG ===');
+console.log('=== AUTH SERVER CONFIG ===');
 console.log('Environment:', isProd ? 'PRODUCTION' : 'DEVELOPMENT');
-console.log('Client ID set:', !!SPOTIFY_CLIENT_ID);
-console.log('Redirect URI:', SPOTIFY_REDIRECT_URI);
 console.log('Frontend URI:', FRONTEND_URI);
-console.log('Allowed Origins:', allowedOrigins);
-console.log('=================================');
-
-// Validations
-if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-  console.error('ERROR: Missing CLIENT_ID or CLIENT_SECRET');
-}
+console.log('==========================');
 
 const app = express();
+
+// Allow JSON bodies for email endpoint
+app.use(express.json());
 
 app.use(
   cors({
@@ -84,17 +80,11 @@ const genState = (len) => {
   return [...Array(len)].map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
 };
 
-// LOGIN
+// --- SPOTIFY ROUTES ---
+
 app.get('/api/spotify/login', (req, res) => {
   const state = genState(16);
-
-  res.cookie('spotify_auth_state', state, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax',
-    maxAge: 300000
-  });
-
+  res.cookie('spotify_auth_state', state, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 300000 });
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: SPOTIFY_CLIENT_ID,
@@ -103,11 +93,9 @@ app.get('/api/spotify/login', (req, res) => {
     state,
     show_dialog: 'true'
   });
-
   res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
 });
 
-// CALLBACK
 app.get('/api/spotify/callback', async (req, res) => {
   const code = req.query.code;
   const state = req.query.state;
@@ -116,48 +104,30 @@ app.get('/api/spotify/callback', async (req, res) => {
   if (!state || state !== storedState) {
     return res.redirect(`${FRONTEND_URI}?error=state_mismatch`);
   }
-
   res.clearCookie('spotify_auth_state');
 
   try {
     const tokenResp = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
-        ).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams({
-        code,
-        redirect_uri: SPOTIFY_REDIRECT_URI,
-        grant_type: 'authorization_code'
-      })
+      body: new URLSearchParams({ code, redirect_uri: SPOTIFY_REDIRECT_URI, grant_type: 'authorization_code' })
     });
 
     const data = await tokenResp.json();
+    if (!tokenResp.ok) return res.redirect(`${FRONTEND_URI}?error=invalid_token`);
 
-    if (!tokenResp.ok) {
-      console.error('TOKEN ERROR:', data);
-      return res.redirect(`${FRONTEND_URI}?error=invalid_token`);
-    }
-
-    const { access_token, refresh_token, expires_in } = data;
-
-    if (refresh_token) {
-      res.cookie('spotify_refresh_token', refresh_token, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: '/api/spotify',
-        maxAge: 30 * 24 * 60 * 60 * 1000
+    if (data.refresh_token) {
+      res.cookie('spotify_refresh_token', data.refresh_token, {
+        httpOnly: true, secure: isProd, sameSite: 'lax', path: '/api/spotify', maxAge: 30 * 24 * 60 * 60 * 1000
       });
     }
 
     const url = new URL(FRONTEND_URI);
-    url.searchParams.set('access_token', access_token);
-    url.searchParams.set('expires_in', expires_in);
-
+    url.searchParams.set('access_token', data.access_token);
+    url.searchParams.set('expires_in', data.expires_in);
     res.redirect(url.toString());
   } catch (err) {
     console.error('CALLBACK ERROR:', err);
@@ -165,7 +135,6 @@ app.get('/api/spotify/callback', async (req, res) => {
   }
 });
 
-// REFRESH
 app.get('/api/spotify/refresh', async (req, res) => {
   const refresh = req.cookies.spotify_refresh_token;
   if (!refresh) return res.status(401).json({ error: 'No refresh token' });
@@ -174,15 +143,10 @@ app.get('/api/spotify/refresh', async (req, res) => {
     const resp = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
-        ).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refresh
-      })
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refresh })
     });
 
     const data = await resp.json();
@@ -190,39 +154,52 @@ app.get('/api/spotify/refresh', async (req, res) => {
 
     if (data.refresh_token) {
       res.cookie('spotify_refresh_token', data.refresh_token, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: '/api/spotify',
-        maxAge: 30 * 24 * 60 * 60 * 1000
+        httpOnly: true, secure: isProd, sameSite: 'lax', path: '/api/spotify', maxAge: 30 * 24 * 60 * 60 * 1000
       });
     }
-
-    res.json({
-      access_token: data.access_token,
-      expires_in: data.expires_in
-    });
+    res.json({ access_token: data.access_token, expires_in: data.expires_in });
   } catch (err) {
     console.error('REFRESH ERROR:', err);
     res.status(500).json({ error: 'server_error' });
   }
 });
 
-// HEALTH
 app.get('/api/spotify/health', (req, res) => {
-  res.json({
-    ok: true,
-    env: isProd ? 'production' : 'development',
-    clientIdSet: !!SPOTIFY_CLIENT_ID,
-    redirectUri: SPOTIFY_REDIRECT_URI,
-    frontendUri: FRONTEND_URI,
-    allowedOrigins
-  });
+  res.json({ ok: true, env: isProd ? 'production' : 'development' });
+});
+
+// --- EMAIL ENDPOINT (MOCKED FOR DEVELOPMENT) ---
+// const resend = new Resend(process.env.RESEND_API_KEY); // Uncomment for prod
+
+app.post('/api/send-email', async (req, res) => {
+  const { to, subject, html } = req.body;
+
+  console.log(`[Mock Email Service] Sending to: ${to}`);
+  console.log(`[Mock Email Service] Subject: ${subject}`);
+  // Using html variable to satisfy linter and for debug clarity
+  console.log(`[Mock Email Service] HTML Preview: ${html ? html.substring(0, 50) + '...' : 'None'}`);
+  
+  // PRODUCTION CODE (Uncomment when you have a Resend/SendGrid key):
+  /*
+  try {
+    const data = await resend.emails.send({
+      from: 'Jocelyn Yoga <bookings@yourdomain.com>',
+      to: [to],
+      subject: subject,
+      html: html,
+    });
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(500).json({ error });
+  }
+  */
+
+  return res.status(200).json({ message: 'Email logged to console', success: true });
 });
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Not Found' }));
 
 app.listen(PORT, HOST, () => {
-  console.log(`Spotify Auth Server running at http://${HOST}:${PORT}`);
+  console.log(`Server running at http://${HOST}:${PORT}`);
 });
