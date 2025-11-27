@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Music, Pause, Play, SkipBack, SkipForward, X, ExternalLink } from 'lucide-react';
+import { Activity, Music, Pause, Play, SkipBack, SkipForward, X, ExternalLink, Check } from 'lucide-react';
 import PoseIcon from './PoseIcon';
 import { parseSpotifyUri, playSpotifyTrack, transferPlaybackToDevice } from '../utils/spotify';
 
-const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, prevPracticePose, autoContinue, setAutoContinue, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused }) => {
+const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, prevPracticePose, autoContinue, setAutoContinue, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused, onAddTime }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
   const [isMobile, setIsMobile] = useState(false);
@@ -24,14 +24,12 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
   const handlePlayMusic = async () => {
      if (!musicTheme.link) return;
 
-     // Mobile: Deep link to Spotify App
      if (isMobile) {
         onPlaybackStatus?.('Opening Spotify...');
         window.location.href = musicTheme.link;
         return;
      }
 
-     // Desktop: SDK Playback
      if (!player || !deviceId) return;
      
      onPlaybackStatus?.('Initializing playback...');
@@ -64,161 +62,162 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
      }
   };
 
+  // Style to hide scrollbar but keep functionality
+  const hideScrollbarStyle = {
+    scrollbarWidth: 'none', /* Firefox */
+    msOverflowStyle: 'none', /* IE 10+ */
+  };
+
   return (
-    // h-[100dvh] fixes Safari bottom bar overlap issues
     <div className="fixed inset-0 h-[100dvh] w-full z-[100] bg-stone-900 text-stone-100 flex flex-col animate-in fade-in duration-300 overflow-hidden">
-      
-      {/* Header - Fixed Height */}
+      {/* Add style tag for Webkit scrollbar hiding */}
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* Header */}
       <div className="flex justify-between items-center px-4 py-3 border-b border-stone-800 bg-stone-900 shrink-0 z-20 h-14 sm:h-16">
         <div className="flex items-center gap-3">
           <div className="bg-teal-900/30 p-1.5 sm:p-2 rounded-lg"><Activity className="text-teal-400" size={18} /></div>
           <div><span className="font-bold tracking-widest uppercase text-xs sm:text-sm block text-teal-400">Live Session</span><span className="text-[10px] sm:text-xs text-stone-400">Pose {practiceIndex + 1} of {sequence.length}</span></div>
         </div>
-        <button 
-          onClick={onClose} 
-          className="p-2 hover:bg-stone-800 rounded-full text-stone-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
-        >
+        <button onClick={onClose} className="p-2 hover:bg-stone-800 rounded-full text-stone-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
           <X size={20} />
         </button>
       </div>
       
-      {/* Main Content - Flex Column ensuring center content visibility */}
-      <div className="flex-1 flex flex-col items-center relative w-full min-h-0 overflow-y-auto overscroll-none px-4 py-2 sm:px-6 sm:py-4">
-        <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center">
+      {/* Main Content - Improved Scaling & Safe Overflow */}
+      <div 
+        className="flex-1 flex flex-col relative w-full min-h-0 overflow-y-auto px-4 py-2 sm:px-6 sm:py-4 no-scrollbar" 
+        style={hideScrollbarStyle}
+      >
+        <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center fixed-background">
           <PoseIcon category={current.category} className="w-[80%] h-[80%] text-teal-500" />
         </div>
         
-        {/* Content Stack - Evenly spaced but prioritizing center */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto gap-2 sm:gap-6 min-h-[300px]">
+        {/* Center Content Container - my-auto ensures vertical centering when possible, top align when overflowing */}
+        <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto my-auto gap-2 sm:gap-6 min-h-0">
             
-            {/* Top: Icon & Name */}
-            <div className="relative z-10 flex flex-col items-center gap-2 shrink-0">
-            <div className="w-16 h-16 sm:w-24 sm:h-24 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl">
-                <PoseIcon category={current.category} className="w-8 h-8 sm:w-12 sm:h-12" />
-            </div>
-            <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl sm:text-4xl font-serif text-white tracking-tight leading-tight mb-0.5">{current.name}</h1>
-                <p className="text-sm sm:text-lg text-stone-400 italic font-serif">{current.sanskrit}</p>
-            </div>
-            </div>
+            {/* Split View for Larger Screens (Landscape/Tablet) */}
+            <div className="flex flex-col lg:flex-row items-center justify-center w-full gap-4 lg:gap-12 xl:gap-20">
+                
+                {/* Left Side: Pose Info & Timer */}
+                <div className="flex flex-col items-center justify-center gap-3 lg:gap-8 flex-shrink-0">
+                    {/* Pose Info - Slightly smaller on mobile to fit */}
+                    <div className="relative z-10 flex flex-col items-center gap-2 shrink-0">
+                        <div className="w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl transition-all duration-300">
+                            <PoseIcon category={current.category} className="w-7 h-7 sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
+                        </div>
+                        <div className="flex flex-col items-center text-center">
+                            <h1 className="text-2xl sm:text-3xl lg:text-5xl font-serif text-white tracking-tight leading-tight mb-0.5 transition-all duration-300">{current.name}</h1>
+                            <p className="text-sm sm:text-base lg:text-xl text-stone-400 italic font-serif transition-all duration-300">{current.sanskrit}</p>
+                        </div>
+                    </div>
 
-            {/* Middle: Timer */}
-            <div className="relative z-10 shrink-0 my-1 sm:my-2">
-                <div className="relative w-28 h-28 sm:w-40 sm:h-40 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" /><circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} /></svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl sm:text-5xl font-mono font-bold text-white leading-none">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</span>
-                    <span className="text-[10px] uppercase tracking-widest text-teal-500 font-bold mt-1">{current.duration}</span>
+                    {/* Timer - Optimized mobile size */}
+                    <div className="relative z-10 shrink-0 cursor-pointer active:scale-95 transition-transform touch-manipulation" 
+                         onClick={() => onAddTime && onAddTime()} 
+                         title="Tap to add 10 seconds">
+                        <div className="relative w-28 h-28 sm:w-40 sm:h-40 lg:w-56 lg:h-56 flex items-center justify-center transition-all duration-300">
+                            <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160">
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" />
+                                <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-4xl sm:text-5xl lg:text-6xl font-mono font-bold text-white leading-none transition-all duration-300">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</span>
+                                <span className="text-[10px] sm:text-xs lg:text-sm uppercase tracking-widest text-teal-500 font-bold mt-1 lg:mt-2">{current.duration}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                </div>
-            </div>
 
-            {/* Bottom: Teaching Cues */}
-            <div className="relative z-10 w-full bg-stone-800/60 backdrop-blur-sm rounded-xl border border-stone-700/50 p-3 sm:p-5 shrink-0">
-                <p className="text-sm sm:text-lg leading-relaxed text-stone-200 font-medium text-center line-clamp-3 sm:line-clamp-none">
-                    {current.teachingCue}
-                </p>
+                {/* Right Side: Cues */}
+                <div className="relative z-10 w-full lg:max-w-md bg-stone-800/60 backdrop-blur-sm rounded-xl border border-stone-700/50 p-3 sm:p-6 flex items-center justify-center min-h-[80px] lg:min-h-[200px] transition-all duration-300">
+                    <p className="text-sm sm:text-base lg:text-xl leading-relaxed text-stone-200 font-medium text-center lg:text-left line-clamp-4 sm:line-clamp-none">
+                        {current.teachingCue}
+                    </p>
+                </div>
             </div>
         </div>
       </div>
 
-      {/* Footer - Compressed & Optimized Layout */}
+      {/* Footer */}
       <div className="bg-stone-900 border-t border-stone-800 px-4 pt-3 pb-safe sm:p-6 relative z-10 shrink-0 w-full">
-        <div className="max-w-5xl mx-auto flex flex-col gap-3 sm:grid sm:grid-cols-3 sm:gap-4 items-center">
+        <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:items-center lg:gap-8">
           
-          {/* Mobile: Player & Next stacked horizontally for space */}
-          {/* Desktop: Player Left, Next Right */}
-          
-          {/* 1. Controls (Center on Desktop, Top on Mobile) */}
-          <div className="order-1 md:order-2 w-full flex flex-col items-center gap-2">
-            <div className="flex items-center justify-center gap-6 sm:gap-8 w-full">
-                <button 
-                  onClick={prevPracticePose} 
-                  disabled={practiceIndex === 0} 
-                  className={`p-3 rounded-full transition-colors touch-manipulation ${practiceIndex === 0 ? 'text-stone-600 cursor-not-allowed' : 'bg-stone-800 text-stone-400 hover:text-white'}`}
-                >
-                  <SkipBack size={20} />
+          {/* 1. CONTROLS */}
+          <div className="order-1 lg:order-2 w-full flex flex-col items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-8 w-full">
+                <button onClick={prevPracticePose} disabled={practiceIndex === 0} className={`p-3 rounded-full transition-colors touch-manipulation ${practiceIndex === 0 ? 'text-stone-600 cursor-not-allowed' : 'bg-stone-800 text-stone-400 hover:text-white'}`}>
+                  <SkipBack size={24} />
                 </button>
-                <button 
-                  onClick={() => setIsTimerRunning(!isTimerRunning)} 
-                  className="w-14 h-14 sm:w-16 sm:h-16 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95 touch-manipulation"
-                >
-                  {isTimerRunning ? <Pause className="w-6 h-6 sm:w-8 sm:h-8" /> : <Play className="w-6 h-6 sm:w-8 sm:h-8 ml-1" />}
+                <button onClick={() => setIsTimerRunning(!isTimerRunning)} className="w-16 h-16 bg-teal-600 hover:bg-teal-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-teal-900/50 transition-all hover:scale-105 active:scale-95 touch-manipulation">
+                  {isTimerRunning ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
                 </button>
-                <button 
-                  onClick={nextPracticePose} 
-                  className="p-3 bg-stone-800 hover:bg-stone-700 rounded-full transition-colors text-stone-400 hover:text-white touch-manipulation"
-                >
-                  <SkipForward size={20} />
+                <button onClick={nextPracticePose} className="p-3 bg-stone-800 hover:bg-stone-700 rounded-full transition-colors text-stone-400 hover:text-white touch-manipulation">
+                  <SkipForward size={24} />
                 </button>
             </div>
+            
+            {/* Auto Next Checkbox */}
+            <label className="flex items-center gap-2 text-xs text-stone-500 cursor-pointer hover:text-stone-300 transition-colors pb-3 select-none">
+              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${autoContinue ? 'bg-teal-600 border-teal-600 shadow-sm shadow-teal-900/50' : 'border-stone-600 bg-transparent'}`}>
+                {autoContinue && <Check size={10} className="text-white stroke-[4]" />} 
+              </div>
+              <input type="checkbox" checked={autoContinue} onChange={(e) => setAutoContinue(e.target.checked)} className="hidden" />
+              <span className="font-medium">Auto-Next</span>
+            </label>
           </div>
 
-          {/* 2. Bottom Row for Mobile: Player + Up Next */}
-          <div className="order-2 md:order-1 w-full flex justify-between items-center gap-3 sm:grid sm:grid-cols-2 md:flex md:col-span-2 md:justify-between">
-             
-             {/* Music Player */}
-             <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-xs">
+          {/* 2. PLAYER */}
+          <div className="order-2 lg:order-1 w-full lg:w-auto flex justify-between items-center lg:block">
+             <div className="flex-1 min-w-0 max-w-[220px] sm:max-w-xs lg:max-w-[280px]">
                 {(spotifyToken && deviceId) || isMobile ? (
-                <div 
-                    onClick={handlePlayMusic}
-                    className="flex items-center gap-2.5 bg-black/40 p-1.5 pr-3 rounded-lg border border-stone-800 w-full cursor-pointer hover:bg-black/60 transition-colors group"
-                >
-                    {/* Icon Logic: Album Art (Desktop) > Theme Icon (Mobile) > Generic Music */}
+                <div onClick={handlePlayMusic} className="flex items-center gap-3 bg-stone-800/50 p-2 pr-4 rounded-lg w-full cursor-pointer hover:bg-stone-800 transition-colors group">
                     {!isMobile && currentTrack?.album?.images?.[0]?.url ? (
-                        <img src={currentTrack.album.images[0].url} alt="Album Art" className="w-8 h-8 rounded bg-stone-800 object-cover" />
+                        <img src={currentTrack.album.images[0].url} alt="Album" className="w-10 h-10 rounded object-cover" />
                     ) : (
-                        // Fallback to Theme Icon or Generic Music, styled nicely
-                        <div className="w-8 h-8 rounded flex items-center justify-center bg-stone-800 text-teal-500 shrink-0">
-                            {musicTheme?.icon ? (
-                                // We need to clone the element to adjust size/color if it's a React Element
-                                React.cloneElement(musicTheme.icon, { size: 16, className: "text-teal-400" })
-                            ) : (
-                                <Music size={16} className="text-stone-400" />
-                            )}
+                        <div className="w-10 h-10 rounded flex items-center justify-center bg-stone-700 text-teal-500 shrink-0">
+                            {musicTheme?.icon ? React.cloneElement(musicTheme.icon, { size: 20, className: "text-teal-400" }) : <Music size={20} className="text-stone-400" />}
                         </div>
                     )}
-                    
                     <div className="flex-1 min-w-0 overflow-hidden flex flex-col justify-center">
-                        <p className="text-[10px] sm:text-xs font-bold text-stone-300 truncate leading-tight group-hover:text-white transition-colors">
+                        <p className="text-xs font-bold text-stone-200 truncate group-hover:text-white transition-colors">
                             {isMobile ? (musicTheme?.name || 'Select Music') : (currentTrack?.name || musicTheme?.name || 'Select Playlist')}
                         </p>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-[#1DB954] group-hover:text-[#1ed760] transition-colors">
-                            <span>{isMobile ? 'OPEN APP' : (currentTrack ? 'RESUME' : 'START')}</span>
-                            {isMobile ? <ExternalLink size={8} /> : <Play size={8} fill="currentColor" />}
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#1DB954] group-hover:text-[#1ed760] transition-colors uppercase tracking-wide">
+                            <span>{isMobile ? 'Open Spotify' : (currentTrack ? 'Resume' : 'Start Music')}</span>
+                            {isMobile ? <ExternalLink size={10} /> : <Play size={10} fill="currentColor" />}
                         </div>
                     </div>
                 </div>
                 ) : (
-                <div className="text-stone-600 text-[10px] italic pl-1">Music Ready</div>
+                <div className="text-stone-600 text-xs italic">Music Ready</div>
                 )}
              </div>
 
-             {/* Up Next (Mobile Compressed) */}
-             <div className="flex items-center gap-2 text-right opacity-80 hover:opacity-100 transition-opacity group cursor-pointer max-w-[40%] sm:max-w-none justify-end" onClick={nextPracticePose}>
-                <div className="flex-1 min-w-0 hidden xs:block">
-                  <span className="text-[9px] uppercase tracking-wider block text-teal-500 font-bold leading-none mb-0.5">Next</span>
-                  <span className="font-bold text-xs text-white block truncate">{next ? next.name : 'Finish'}</span>
+             <div className="flex lg:hidden items-center gap-3 text-right opacity-90 hover:opacity-100 transition-opacity cursor-pointer" onClick={nextPracticePose}>
+                <div className="flex-1 min-w-0 flex flex-col items-end">
+                  <span className="text-[10px] uppercase tracking-wider text-teal-500 font-bold">Next</span>
+                  <span className="font-bold text-xs text-white block truncate max-w-[100px]">{next ? next.name : 'Finish'}</span>
                 </div>
-                {next && (
-                    <div className="w-8 h-8 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 shrink-0">
-                    <PoseIcon category={next.category} className="w-4 h-4" />
-                    </div>
-                )}
+                {next && <div className="w-10 h-10 bg-stone-800 rounded-lg flex items-center justify-center text-teal-500 border border-stone-700 shrink-0"><PoseIcon category={next.category} className="w-5 h-5" /></div>}
              </div>
           </div>
 
-          {/* Auto Continue Checkbox - Tucked away */}
-          <div className="absolute top-0 right-4 -translate-y-full py-2 sm:static sm:translate-y-0 sm:py-0 sm:flex sm:justify-end order-3">
-             <label className="flex items-center gap-2 text-[10px] sm:text-xs text-stone-500 cursor-pointer hover:text-white transition-colors bg-stone-900/80 px-2 py-1 rounded-t-lg sm:bg-transparent sm:p-0 backdrop-blur-sm sm:backdrop-blur-none">
-                <input 
-                  type="checkbox" 
-                  checked={autoContinue} 
-                  onChange={(e) => setAutoContinue(e.target.checked)} 
-                  className="w-3 h-3 rounded accent-teal-500 bg-stone-700 border-stone-600 focus:ring-teal-500 focus:ring-offset-stone-900"
-                />
-                Auto-Next
-            </label>
+          {/* 3. UP NEXT */}
+          <div className="hidden lg:flex order-3 justify-end items-center w-full">
+             <div className="flex items-center gap-4 text-right opacity-70 hover:opacity-100 transition-opacity cursor-pointer group" onClick={nextPracticePose}>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs uppercase tracking-wider text-teal-500 font-bold mb-0.5">Up Next</span>
+                  <span className="font-bold text-sm text-white">{next ? next.name : 'Finish Flow'}</span>
+                </div>
+                {next && (
+                    <div className="w-12 h-12 bg-stone-800 rounded-xl flex items-center justify-center text-teal-500 border border-stone-700 group-hover:border-teal-500/50 transition-colors">
+                      <PoseIcon category={next.category} className="w-6 h-6" />
+                    </div>
+                )}
+             </div>
           </div>
 
         </div>
