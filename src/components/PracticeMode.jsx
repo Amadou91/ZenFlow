@@ -97,13 +97,13 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
         </div>
         
         {/* Center Content Container - my-auto ensures vertical centering when possible, top align when overflowing */}
-        <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto my-auto gap-2 sm:gap-6 min-h-0">
+        <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto my-auto gap-4 sm:gap-8 min-h-0">
             
             {/* Split View for Larger Screens (Landscape/Tablet) */}
             <div className="flex flex-col lg:flex-row items-center justify-center w-full gap-4 lg:gap-12 xl:gap-20">
                 
                 {/* Left Side: Pose Info & Timer */}
-                <div className="flex flex-col items-center justify-center gap-3 lg:gap-8 flex-shrink-0">
+                <div className="flex flex-col items-center justify-center gap-6 lg:gap-8 flex-shrink-0">
                     {/* Pose Info - Slightly smaller on mobile to fit */}
                     <div className="relative z-10 flex flex-col items-center gap-2 shrink-0">
                         <div className="w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-stone-800/50 rounded-full flex items-center justify-center backdrop-blur-sm border-2 border-stone-700 text-teal-400 shadow-2xl transition-all duration-300">
@@ -115,18 +115,18 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
                         </div>
                     </div>
 
-                    {/* Timer - Optimized mobile size */}
-                    <div className="relative z-10 shrink-0 cursor-pointer active:scale-95 transition-transform touch-manipulation" 
+                    {/* Timer - INCREASED SIZE + MORE PADDING */}
+                    <div className="relative z-10 shrink-0 cursor-pointer active:scale-95 transition-transform touch-manipulation p-2" 
                          onClick={() => onAddTime && onAddTime()} 
                          title="Tap to add 10 seconds">
-                        <div className="relative w-28 h-28 sm:w-40 sm:h-40 lg:w-56 lg:h-56 flex items-center justify-center transition-all duration-300">
+                        <div className="relative w-36 h-36 sm:w-48 sm:h-48 lg:w-64 lg:h-64 flex items-center justify-center transition-all duration-300">
                             <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 160 160">
                                 <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-stone-800" />
                                 <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-teal-500 transition-all duration-1000 ease-linear" strokeDasharray={440} strokeDashoffset={440 - (440 * timerSeconds) / (current.timerVal || 60)} />
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-4xl sm:text-5xl lg:text-6xl font-mono font-bold text-white leading-none transition-all duration-300">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</span>
-                                <span className="text-[10px] sm:text-xs lg:text-sm uppercase tracking-widest text-teal-500 font-bold mt-1 lg:mt-2">{current.duration}</span>
+                                <span className="text-5xl sm:text-6xl lg:text-7xl font-mono font-bold text-white leading-none transition-all duration-300">{Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}</span>
+                                <span className="text-[10px] sm:text-xs lg:text-sm uppercase tracking-widest text-teal-500 font-bold mt-2 lg:mt-3">{current.duration}</span>
                             </div>
                         </div>
                     </div>
@@ -142,8 +142,8 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="bg-stone-900 border-t border-stone-800 px-4 pt-3 pb-safe sm:p-6 relative z-10 shrink-0 w-full">
+      {/* Footer - Fixed height with INCREASED Safe Area padding for iOS */}
+      <div className="bg-stone-900 border-t border-stone-800 px-4 pt-3 pb-8 sm:pb-safe sm:p-6 relative z-10 shrink-0 w-full" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
         <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:items-center lg:gap-8">
           
           {/* 1. CONTROLS */}
@@ -161,7 +161,7 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
             </div>
             
             {/* Auto Next Checkbox */}
-            <label className="flex items-center gap-2 text-xs text-stone-500 cursor-pointer hover:text-stone-300 transition-colors pb-3 select-none">
+            <label className="flex items-center gap-2 text-xs text-stone-500 cursor-pointer hover:text-stone-300 transition-colors pb-1 select-none">
               <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${autoContinue ? 'bg-teal-600 border-teal-600 shadow-sm shadow-teal-900/50' : 'border-stone-600 bg-transparent'}`}>
                 {autoContinue && <Check size={10} className="text-white stroke-[4]" />} 
               </div>
