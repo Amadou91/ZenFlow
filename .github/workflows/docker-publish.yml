@@ -38,3 +38,9 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           # Builds for both standard computers (amd64) and Pi/ARM devices (arm64)
           platforms: linux/amd64,linux/arm64
+          # --- ADDED: Pass Secrets to Docker Build ---
+          # This connects your GitHub Repository Secrets to the ARG instructions in the Dockerfile
+          build-args: |
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}

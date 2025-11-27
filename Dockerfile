@@ -3,26 +3,26 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency definitions
 COPY package.json package-lock.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy the rest of the code
 COPY . .
+
+# --- ADDED: Accept variables during build ---
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_API_BASE_URL
+
+# --- ADDED: Set as environment variables for Vite ---
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Build the app (creates the /dist folder)
 RUN npm run build
 
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
-
-# Copy the build output from Stage 1 to Nginx's html folder
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Expose port 80 (internal container port)
 EXPOSE 80
-
-# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
