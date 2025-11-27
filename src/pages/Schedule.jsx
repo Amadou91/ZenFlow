@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { Calendar, Clock, MapPin, Check, Users, X, CheckCircle, Wallet, ArrowRight } from 'lucide-react';
 
-// Initial Mock Data
 const INITIAL_CLASSES = [
   { id: 'c1', title: 'Vinyasa Flow', time: '10:00 AM', date: '2023-10-25', duration: '60 min', location: 'Studio A', instructor: 'Sarah', price: 20, spotsTotal: 15, spotsBooked: 8, difficulty: 'Intermediate' },
   { id: 'c2', title: 'Yin Yoga', time: '6:00 PM', date: '2023-10-25', duration: '75 min', location: 'Studio B', instructor: 'Mike', price: 25, spotsTotal: 12, spotsBooked: 12, difficulty: 'Beginner' },
@@ -10,72 +9,91 @@ const INITIAL_CLASSES = [
 ];
 
 const Schedule = () => {
-  // State
   const [classes, setClasses] = useState(INITIAL_CLASSES);
-  const [bookedClassIds, setBookedClassIds] = useState(new Set());
+  const [bookedClassIds, setBookedClassIds] = useState(new Set()); // Stores class_ids
+  const [bookingsMap, setBookingsMap] = useState(new Map()); // Stores class_id -> booking_id
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [user, setUser] = useState(null);
   
-  // Modals
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // Step 1: Prevent accidental clicks
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // Step 2: Confirmation & Info
+  const [showConfirmModal, setShowConfirmModal] = useState(false); 
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
+
+  const fetchUserBookings = async (userId) => {
+    const { data } = await supabase
+      .from('bookings')
+      .select('id, class_id')
+      .eq('user_id', userId);
+    
+    if (data) {
+      setBookedClassIds(new Set(data.map(b => b.class_id)));
+      setBookingsMap(new Map(data.map(b => [b.class_id, b.id])));
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-
-      if (user) {
-        const { data } = await supabase
-          .from('bookings')
-          .select('class_id')
-          .eq('user_id', user.id);
-        
-        if (data) setBookedClassIds(new Set(data.map(b => b.class_id)));
-      }
+      if (user) await fetchUserBookings(user.id);
       setLoading(false);
     };
     loadData();
   }, []);
 
-  // Step 1: Open Review Modal
   const handleBookClick = (cls) => {
     if (!user) return alert("Please sign in to book a class.");
+    if (bookedClassIds.has(cls.id)) return alert("You have already booked this class.");
     setSelectedClass(cls);
     setShowConfirmModal(true);
   };
 
-  // Step 2: Confirm Booking & Update State
   const confirmBooking = async () => {
     if (!selectedClass || !user) return;
-    
-    const cls = selectedClass;
-    setActionLoading(cls.id);
+    setActionLoading(selectedClass.id);
 
     try {
-      const { error } = await supabase
+      // 1. Strict Duplicate Check on Server
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('class_id', selectedClass.id)
+        .single();
+
+      if (existing) {
+        alert("You have already booked this class.");
+        await fetchUserBookings(user.id); // Sync state
+        setShowConfirmModal(false);
+        return;
+      }
+
+      // 2. Insert
+      const { data, error } = await supabase
         .from('bookings')
         .insert([{
           user_id: user.id,
-          class_id: cls.id,
-          class_name: cls.title,
-          class_date: cls.date,
-          location: cls.location
-        }]);
+          class_id: selectedClass.id,
+          class_name: selectedClass.title,
+          class_date: selectedClass.date,
+          location: selectedClass.location
+        }])
+        .select(); // Return the new ID
 
       if (error) throw error;
       
-      // Update UI: Mark as booked
-      setBookedClassIds(prev => new Set(prev).add(cls.id));
+      // 3. Update Local State
+      if (data && data[0]) {
+        const newBooking = data[0];
+        setBookedClassIds(prev => new Set(prev).add(selectedClass.id));
+        setBookingsMap(prev => new Map(prev).set(selectedClass.id, newBooking.id));
+        
+        setClasses(prev => prev.map(c => 
+          c.id === selectedClass.id ? { ...c, spotsBooked: c.spotsBooked + 1 } : c
+        ));
+      }
       
-      // Update UI: Decrease spots count immediately
-      setClasses(prev => prev.map(c => 
-        c.id === cls.id ? { ...c, spotsBooked: c.spotsBooked + 1 } : c
-      ));
-      
-      // Transition Modals
       setShowConfirmModal(false);
       setShowSuccessModal(true);
 
@@ -90,28 +108,51 @@ const Schedule = () => {
     if (!confirm(`Cancel your spot in ${cls.title}?`)) return;
     setActionLoading(cls.id);
 
+    // Find the specific booking ID for this class
+    const bookingId = bookingsMap.get(cls.id);
+
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .delete()
-        .match({ user_id: user.id, class_id: cls.id });
+      // If we don't have the ID locally, try to find it on server before deleting
+      let query = supabase.from('bookings').delete().eq('user_id', user.id);
+      
+      if (bookingId) {
+        query = query.eq('id', bookingId);
+      } else {
+        query = query.eq('class_id', cls.id);
+      }
+
+      const { data, error } = await query.select();
 
       if (error) throw error;
 
-      // Update UI: Unmark booked
+      if (!data || data.length === 0) {
+        // Only throw if we truly expected something to be there
+        if (bookedClassIds.has(cls.id)) {
+           throw new Error("Database returned 0 deleted rows. Check permissions.");
+        }
+      }
+
+      // Success: Update UI
       setBookedClassIds(prev => {
         const next = new Set(prev);
         next.delete(cls.id);
         return next;
       });
+      
+      // Remove from map
+      setBookingsMap(prev => {
+        const next = new Map(prev);
+        next.delete(cls.id);
+        return next;
+      });
 
-      // Update UI: Increase spots count immediately
       setClasses(prev => prev.map(c => 
         c.id === cls.id ? { ...c, spotsBooked: Math.max(0, c.spotsBooked - 1) } : c
       ));
 
     } catch (err) {
       alert(`Cancellation failed: ${err.message}`);
+      await fetchUserBookings(user.id); // Re-sync on error
     } finally {
       setActionLoading(null);
     }
@@ -173,7 +214,6 @@ const Schedule = () => {
                   <span className="flex items-center gap-1.5"><Clock size={16} /> {cls.time} ({cls.duration})</span>
                   <span className="flex items-center gap-1.5"><MapPin size={16} /> {cls.location}</span>
                   
-                  {/* Dynamic Spot Countdown */}
                   <span className={`flex items-center gap-1.5 transition-colors ${isFull && !isBooked ? 'text-rose-500 dark:text-rose-400 font-bold' : ''}`}>
                     <Users size={16} /> 
                     {isFull 
@@ -218,7 +258,7 @@ const Schedule = () => {
         })}
       </div>
 
-      {/* --- STEP 1: REVIEW BOOKING (Prevent Accidental Clicks) --- */}
+      {/* --- CONFIRMATION MODAL --- */}
       {showConfirmModal && selectedClass && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowConfirmModal(false)}>
           <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl w-full max-w-sm border border-stone-200 dark:border-stone-700 p-6 transform animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -250,7 +290,7 @@ const Schedule = () => {
         </div>
       )}
 
-      {/* --- STEP 2: SUCCESS & INFO (Friendly Tone) --- */}
+      {/* --- SUCCESS MODAL --- */}
       {showSuccessModal && selectedClass && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSuccessModal(false)}>
           <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl max-w-md w-full border border-stone-200 dark:border-stone-700 transform animate-in zoom-in-95 duration-200 overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -259,8 +299,8 @@ const Schedule = () => {
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                 <CheckCircle size={32} className="text-white" />
               </div>
-              <h3 className="text-2xl font-serif font-bold text-white">You're In!</h3>
-              <p className="text-teal-100 mt-1">See you on the mat.</p>
+              <h3 className="text-2xl font-serif font-bold text-white">All Set!</h3>
+              <p className="text-teal-100 mt-1">We've saved a spot for you.</p>
             </div>
 
             <div className="p-6">
@@ -274,10 +314,10 @@ const Schedule = () => {
 
               <div className="space-y-3">
                 <h5 className="font-bold text-stone-900 dark:text-white flex items-center gap-2 text-sm uppercase tracking-wide">
-                  <Wallet size={16} className="text-teal-600" /> Payment Options
+                  <Wallet size={16} className="text-teal-600" /> Payment Info
                 </h5>
                 <p className="text-stone-600 dark:text-stone-300 text-sm leading-relaxed">
-                  Thanks for booking! You can pay <strong>${selectedClass.price}</strong> via e-transfer to <span className="font-mono bg-stone-100 dark:bg-stone-800 px-1 rounded">hello@jocelynyoga.com</span> or bring cash to the class.
+                  Thanks for booking! You can pay <strong>${selectedClass.price}</strong> via e-transfer to <span className="font-mono bg-stone-100 dark:bg-stone-800 px-1 rounded">hello@jocelynyoga.com</span> or simply bring cash to the class.
                 </p>
               </div>
 
