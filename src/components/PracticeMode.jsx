@@ -3,7 +3,8 @@ import { Activity, Music, Pause, Play, SkipBack, SkipForward, X, ExternalLink, C
 import PoseIcon from './PoseIcon';
 import { parseSpotifyUri, playSpotifyTrack, transferPlaybackToDevice } from '../utils/spotify';
 
-const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, prevPracticePose, autoContinue, setAutoContinue, onClose, musicTheme, spotifyToken, player, deviceId, playerError, ensureAccessToken, isPremiumUser, onPlaybackStatus, playbackStatus, currentTrack, isPaused, onAddTime }) => {
+// Removed unused props: playerError, playbackStatus, isPaused
+const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, setIsTimerRunning, nextPracticePose, prevPracticePose, autoContinue, setAutoContinue, onClose, musicTheme, spotifyToken, player, deviceId, ensureAccessToken, isPremiumUser, onPlaybackStatus, currentTrack, onAddTime }) => {
   const current = sequence[practiceIndex];
   const next = sequence[practiceIndex + 1];
   const [isMobile, setIsMobile] = useState(false);
