@@ -14,10 +14,17 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
      const token = await ensureAccessToken();
      if (!token) { onPlaybackStatus?.('Connect Spotify to play music.'); return; }
      if (!isPremiumUser) { onPlaybackStatus?.('Premium required for playback.'); return; }
+     
      const uri = parseSpotifyUri(musicTheme.link);
      if (uri) {
-        await transferPlaybackToDevice(token, deviceId, true);
+        onPlaybackStatus?.('Connecting to Spotify...');
+        // Mobile Fix: Separate activation from playback.
+        // 1. Activate the device without forcing play (prevents race conditions on empty queues)
+        await transferPlaybackToDevice(token, deviceId, false);
+        
+        // 2. Send the specific play command for our target URI
         await playSpotifyTrack(token, deviceId, uri);
+        
         onPlaybackStatus?.('Playing through Spotify Web Playback SDK.');
      }
   };
@@ -90,8 +97,8 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
                     <div className="p-2 bg-[#1DB954] text-white rounded-lg"><Music size={16} /></div>
                   )}
                   <div className="text-left flex-1 min-w-0 overflow-hidden">
-                    <p className="text-xs font-bold text-white truncate">{currentTrack?.name || 'Start Playlist'}</p>
-                    <button onClick={handlePlayMusic} className="text-[10px] font-semibold text-[#1DB954] hover:text-white flex items-center gap-1">{currentTrack ? 'Resume' : 'Start'} <Play size={8} fill="currentColor" /></button>
+                    <p className="text-xs font-bold text-white truncate">{currentTrack?.name || musicTheme?.name || 'Start Playlist'}</p>
+                    <button onClick={handlePlayMusic} className="text-[10px] font-semibold text-[#1DB954] hover:text-white flex items-center gap-1 touch-manipulation">{currentTrack ? 'Resume' : 'Start'} <Play size={8} fill="currentColor" /></button>
                   </div>
                   {player && (
                     <button onClick={() => player.togglePlay()} className="p-2 hover:bg-white/10 rounded-full touch-manipulation">
@@ -134,7 +141,7 @@ const PracticeMode = ({ sequence, practiceIndex, timerSeconds, isTimerRunning, s
                   type="checkbox" 
                   checked={autoContinue} 
                   onChange={(e) => setAutoContinue(e.target.checked)} 
-                  className="w-4 h-4 rounded accent-teal-500 bg-stone-700 border-stone-600 focus:ring-teal-500 focus:ring-offset-stone-900"
+                  className="w-4 h-4 rounded accent-teal-500 bg-stone-700 border-stone-600 focus:ring-teal-500 focus:ring-offset-stone-900 touch-manipulation"
                 />
                 Auto Continue
             </label>
