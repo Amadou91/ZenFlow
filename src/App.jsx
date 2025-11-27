@@ -569,7 +569,8 @@ export default function YogaApp() {
         <PracticeMode 
           sequence={sequence} 
           practiceIndex={practiceIndex} 
-          timerSeconds={timerSeconds} 
+          timerSeconds={timerSeconds}
+          onAddTime={() => setTimerSeconds(prev => prev + 10)} 
           isTimerRunning={isTimerRunning} 
           setIsTimerRunning={setIsTimerRunning} 
           nextPracticePose={nextPracticePose}
@@ -690,7 +691,7 @@ export default function YogaApp() {
                   </div>
                 )}
              </div>
-             {activeTab === 'generator' && <div className="p-4 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 pb-safe"><button onClick={generateSequence} className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 touch-manipulation"><RefreshCw size={18} /> Generate Flow</button></div>}
+             {activeTab === 'generator' && <div className="p-6 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 pb-8 lg:pb-10"><button onClick={generateSequence} className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 touch-manipulation"><RefreshCw size={18} /> Generate Flow</button></div>}
           </aside>
         )}
         <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative scrollbar-thin pb-safe">
