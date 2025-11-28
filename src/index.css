@@ -2,13 +2,41 @@
 @config "../tailwind.config.js";
 
 @layer base {
+  :root {
+    --color-primary: #0f766e;
+    --color-secondary: #7c3aed;
+    --color-accent: #fbbf24;
+    --color-surface: #f9fafb;
+    --color-card: #ffffff;
+    --color-muted: #475569;
+    --color-text: #0f172a;
+    --color-gradientFrom: #99f6e4;
+    --color-gradientTo: #f0abfc;
+    --color-glow: #99f6e4;
+  }
+
   body {
     /* Explicitly setting background and text colors for both modes */
-    @apply font-sans text-stone-700 bg-stone-50 dark:bg-stone-900 dark:text-stone-200 antialiased selection:bg-teal-100 selection:text-teal-900;
+    @apply font-sans antialiased;
+    background-color: var(--color-surface);
+    color: var(--color-text);
     overflow-x: hidden;
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 300ms;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-text);
+  }
+
+  a {
+    color: var(--color-primary);
+  }
+
+  .accent-gradient {
+    background: linear-gradient(120deg, var(--color-gradientFrom), var(--color-gradientTo));
   }
   
   h1, h2, h3, h4, h5, h6 {
