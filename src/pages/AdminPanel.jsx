@@ -44,17 +44,38 @@ const AdminPanel = () => {
   const [draftTheme, setDraftTheme] = useState(theme);
   const [message, setMessage] = useState('');
 
-  const themeFields = useMemo(() => [
-    { key: 'primary', label: 'Primary' },
-    { key: 'secondary', label: 'Secondary' },
-    { key: 'accent', label: 'Accent' },
-    { key: 'surface', label: 'Surface' },
-    { key: 'card', label: 'Card' },
-    { key: 'muted', label: 'Muted' },
-    { key: 'text', label: 'Typography' },
-    { key: 'gradientFrom', label: 'Gradient From' },
-    { key: 'gradientTo', label: 'Gradient To' },
-    { key: 'glow', label: 'Ambient Glow' },
+  const activePaletteKey = darkMode ? 'dark' : 'light';
+  const activePaletteLabel = darkMode ? 'Dark' : 'Light';
+
+  const paletteGroups = useMemo(() => [
+    {
+      title: 'Brand & Actions',
+      description: 'Primary accents, CTAs, and supportive highlights.',
+      fields: [
+        { key: 'primary', label: 'Primary' },
+        { key: 'secondary', label: 'Secondary' },
+        { key: 'accent', label: 'Accent' },
+      ],
+    },
+    {
+      title: 'Surfaces & Text',
+      description: 'Backgrounds, cards, muted text, and body copy.',
+      fields: [
+        { key: 'surface', label: 'Surface' },
+        { key: 'card', label: 'Card' },
+        { key: 'muted', label: 'Muted Text' },
+        { key: 'text', label: 'Primary Text' },
+      ],
+    },
+    {
+      title: 'Depth & Glow',
+      description: 'Gradients and ambient glows used in decorative areas.',
+      fields: [
+        { key: 'gradientFrom', label: 'Gradient From' },
+        { key: 'gradientTo', label: 'Gradient To' },
+        { key: 'glow', label: 'Ambient Glow' },
+      ],
+    },
   ], []);
 
   useEffect(() => setDraftTheme(theme), [theme]);
@@ -221,14 +242,6 @@ const AdminPanel = () => {
               <ArrowLeft size={16} />
               Back to Site
             </Link>
-            <button
-              onClick={() => previewTheme(theme)}
-              className="px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white shadow-lg shadow-teal-900/20 text-sm font-semibold flex items-center gap-2"
-              title="Reapply the current saved palette to the interface"
-            >
-              <Sparkles size={16} />
-              Reapply Palette
-            </button>
           </div>
         </header>
 
@@ -450,7 +463,7 @@ const AdminPanel = () => {
 
         {/* Theme controls */}
         <section className="bg-[var(--color-card)] border border-black/5 rounded-3xl shadow-card p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-primary)]">
                 <Palette size={18} />
@@ -458,61 +471,73 @@ const AdminPanel = () => {
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Theme Studio</p>
                 <h2 className="text-xl font-serif font-bold">Light & Dark Palettes</h2>
-                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to switch which palette you are editing.</p>
+                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to jump between the two palettes.</p>
               </div>
             </div>
-            <button
-              onClick={persistTheme}
-              disabled={savingTheme}
-              className="px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white shadow-lg shadow-teal-900/20 text-sm font-semibold flex items-center gap-2"
-            >
-              {savingTheme ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-              Save Theme
-            </button>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <button
+                onClick={() => previewTheme(theme)}
+                className="px-4 py-2 rounded-xl border border-black/5 bg-white shadow-card text-sm font-semibold flex items-center gap-2"
+                title="Reapply the current saved palette to the interface"
+              >
+                <Sparkles size={16} />
+                Reapply Palette
+              </button>
+              <button
+                onClick={persistTheme}
+                disabled={savingTheme}
+                className="px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white shadow-lg shadow-teal-900/20 text-sm font-semibold flex items-center gap-2"
+              >
+                {savingTheme ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                Save Theme
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-black/5 text-xs font-semibold text-[var(--color-muted)]">
+          <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-black/5 text-xs font-semibold text-[var(--color-muted)]">
               <span className="flex items-center gap-2">
-                <SunMedium size={14} /> Light
+                {darkMode ? <MoonStar size={14} /> : <SunMedium size={14} />}
+                Editing {activePaletteLabel} Palette
               </span>
-              <span className="text-[var(--color-muted)]">/</span>
-              <span className="flex items-center gap-2">
-                <MoonStar size={14} /> Dark
-              </span>
+              <span className="text-[var(--color-muted)]">•</span>
+              <span className="text-[var(--color-muted)]">Toggle to switch to the other mode</span>
             </div>
             <button
               onClick={toggleTheme}
               className="px-4 py-2 rounded-xl border border-black/5 bg-white shadow-card text-sm font-semibold flex items-center gap-2"
             >
               {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
-              Editing {darkMode ? 'Dark' : 'Light'} Palette
+              Switch to {darkMode ? 'Light' : 'Dark'} Palette
             </button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-serif font-bold flex items-center gap-2">
-                  {darkMode ? <MoonStar size={18} /> : <SunMedium size={18} />}
-                  {darkMode ? 'Dark mode' : 'Light mode'}
-                </h3>
-                <span className="text-xs text-[var(--color-muted)] uppercase tracking-[0.2em]">{darkMode ? 'dark' : 'light'}</span>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {paletteGroups.map((group) => (
+              <div key={group.title} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-serif font-bold flex items-center gap-2">
+                    {darkMode ? <MoonStar size={18} /> : <SunMedium size={18} />}
+                    {group.title}
+                  </h3>
+                  <span className="text-[10px] text-[var(--color-muted)] uppercase tracking-[0.2em]">{activePaletteLabel} Palette</span>
+                </div>
+                <p className="text-xs text-[var(--color-muted)] mb-3 leading-relaxed">{group.description}</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {group.fields.map((field) => (
+                    <label key={`${activePaletteKey}-${field.key}`} className="text-xs text-[var(--color-muted)] font-semibold flex flex-col gap-1">
+                      {field.label}
+                      <input
+                        type="color"
+                        value={draftTheme?.[activePaletteKey]?.[field.key] || '#000000'}
+                        onChange={(e) => updateThemeField(activePaletteKey, field.key, e.target.value)}
+                        className="h-10 w-full rounded-lg border border-black/5"
+                      />
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {themeFields.map((field) => (
-                  <label key={`${darkMode ? 'dark' : 'light'}-${field.key}`} className="text-xs text-[var(--color-muted)] font-semibold flex flex-col gap-1">
-                    {field.label}
-                    <input
-                      type="color"
-                      value={draftTheme?.[darkMode ? 'dark' : 'light']?.[field.key] || '#000000'}
-                      onChange={(e) => updateThemeField(darkMode ? 'dark' : 'light', field.key, e.target.value)}
-                      className="h-10 w-full rounded-lg border border-black/5"
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
 
           <div className="mt-6 grid md:grid-cols-3 gap-3">

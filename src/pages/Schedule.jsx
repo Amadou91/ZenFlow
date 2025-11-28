@@ -2,53 +2,157 @@ import React, { useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { Calendar, Clock, MapPin, Check, Users, X, CheckCircle, Wallet, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 
-const INITIAL_CLASSES = [
-  { id: 'c1', title: 'Sunrise Vinyasa', time: '07:00 AM', date: new Date(Date.now() + 86400000).toISOString(), duration: '60 min', location: 'Drayton Hall', instructor: 'Jocelyn', price: 20, spotsTotal: 15, spotsBooked: 8, difficulty: 'All Levels' },
-  { id: 'c2', title: 'Candlelit Yin', time: '07:30 PM', date: new Date(Date.now() + 86400000).toISOString(), duration: '75 min', location: 'The Loft', instructor: 'Jocelyn', price: 25, spotsTotal: 12, spotsBooked: 10, difficulty: 'Beginner' },
-  { id: 'c3', title: 'Power Flow', time: '09:00 AM', date: new Date(Date.now() + 172800000).toISOString(), duration: '60 min', location: 'Drayton Hall', instructor: 'Jocelyn', price: 20, spotsTotal: 20, spotsBooked: 5, difficulty: 'Intermediate' },
-];
-
 const Schedule = () => {
-  const [classes, setClasses] = useState(INITIAL_CLASSES);
+  const [classes, setClasses] = useState([]);
   const [bookedClassIds, setBookedClassIds] = useState(new Set());
   const [bookingsMap, setBookingsMap] = useState(new Map());
+  const [bookingCounts, setBookingCounts] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [user, setUser] = useState(null);
   
   // Modals
-  const [showConfirmModal, setShowConfirmModal] = useState(false); 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
 
+  const selectedDate = selectedClass?.date ? new Date(selectedClass.date) : null;
+  const selectedDateLabel = selectedDate ? selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }) : 'Date TBA';
+  const selectedTimeLabel = selectedClass?.time || (selectedDate ? selectedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Time TBA');
+
+  const supabaseReady = isSupabaseConfigured && Boolean(supabase);
+
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
       try {
-        if (!isSupabaseConfigured || !supabase) {
-          setLoading(false);
+        if (!supabaseReady) {
+          setLoadError('Connect Supabase to load and book real classes.');
+          setClasses([]);
           return;
         }
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-        if (user) {
-          const { data, error } = await supabase.from('bookings').select('id, class_id').eq('user_id', user.id);
-          if (error) throw error;
-          if (data) {
-            setBookedClassIds(new Set(data.map(b => b.class_id)));
-            setBookingsMap(new Map(data.map(b => [b.class_id, b.id])));
-          }
+
+        const [authResult, classResult, bookingResult] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase.from('classes').select('*').order('date', { ascending: true }),
+          supabase.from('bookings').select('id, class_id, user_id, class_name, class_date, location'),
+        ]);
+
+        const authUser = authResult?.data?.user || null;
+        setUser(authUser);
+
+        if (classResult.error) throw classResult.error;
+        if (bookingResult.error) throw bookingResult.error;
+
+        const classRows = classResult.data || [];
+        const bookingRows = bookingResult.data || [];
+
+        setClasses(classRows);
+
+        const counts = new Map();
+        bookingRows.forEach((entry) => {
+          counts.set(entry.class_id, (counts.get(entry.class_id) || 0) + 1);
+        });
+        setBookingCounts(counts);
+
+        if (authUser) {
+          const userBookings = bookingRows.filter((row) => row.user_id === authUser.id);
+          setBookedClassIds(new Set(userBookings.map((b) => b.class_id)));
+          setBookingsMap(new Map(userBookings.map((b) => [b.class_id, b.id])));
+        } else {
+          setBookedClassIds(new Set());
+          setBookingsMap(new Map());
         }
+        setLoadError('');
       } catch (err) {
         console.error('Could not load schedule data', err);
-        setLoadError('We had trouble loading your bookings. You can still browse the schedule.');
+        setLoadError('We had trouble loading live classes. Please try again shortly.');
       } finally {
         setLoading(false);
       }
     };
+
     loadData();
-  }, []);
+  }, [supabaseReady]);
+
+  useEffect(() => {
+    if (!supabaseReady) return undefined;
+
+    const upsertClass = (row) => {
+      setClasses((prev) => {
+        const next = [...prev.filter((item) => item.id !== row.id), row];
+        return next.sort((a, b) => new Date(a.date) - new Date(b.date));
+      });
+    };
+
+    const removeClass = (id) => setClasses((prev) => prev.filter((item) => item.id !== id));
+
+    const adjustBookingCount = (classId, delta) => {
+      setBookingCounts((prev) => {
+        const next = new Map(prev);
+        const updated = Math.max(0, (next.get(classId) || 0) + delta);
+        if (updated === 0) next.delete(classId); else next.set(classId, updated);
+        return next;
+      });
+    };
+
+    const addUserBooking = (booking) => {
+      setBookedClassIds((prev) => new Set(prev).add(booking.class_id));
+      setBookingsMap((prev) => new Map(prev).set(booking.class_id, booking.id));
+    };
+
+    const removeUserBooking = (booking) => {
+      setBookedClassIds((prev) => {
+        const next = new Set(prev);
+        next.delete(booking.class_id);
+        return next;
+      });
+      setBookingsMap((prev) => {
+        const next = new Map(prev);
+        next.delete(booking.class_id);
+        return next;
+      });
+    };
+
+    const classChannel = supabase
+      .channel('schedule-classes-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'classes' }, (payload) => {
+        if (payload.eventType === 'DELETE') removeClass(payload.old.id);
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') upsertClass(payload.new);
+      })
+      .subscribe();
+
+    const bookingsChannel = supabase
+      .channel('schedule-bookings-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          adjustBookingCount(payload.new.class_id, 1);
+          if (user && payload.new.user_id === user.id) addUserBooking(payload.new);
+        }
+        if (payload.eventType === 'DELETE') {
+          adjustBookingCount(payload.old.class_id, -1);
+          if (user && payload.old.user_id === user.id) removeUserBooking(payload.old);
+        }
+        if (payload.eventType === 'UPDATE') {
+          if (payload.old.class_id !== payload.new.class_id) {
+            adjustBookingCount(payload.old.class_id, -1);
+            adjustBookingCount(payload.new.class_id, 1);
+          }
+          if (user && payload.new.user_id === user.id) {
+            removeUserBooking(payload.old);
+            addUserBooking(payload.new);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(classChannel);
+      supabase.removeChannel(bookingsChannel);
+    };
+  }, [supabaseReady, user]);
 
   const handleBookClick = (cls) => {
     if (!user) return alert("Please sign in to book a class.");
@@ -74,7 +178,11 @@ const Schedule = () => {
       if (data && data[0]) {
         setBookedClassIds(prev => new Set(prev).add(selectedClass.id));
         setBookingsMap(prev => new Map(prev).set(selectedClass.id, data[0].id));
-        setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, spotsBooked: c.spotsBooked + 1 } : c));
+        setBookingCounts(prev => {
+          const next = new Map(prev);
+          next.set(selectedClass.id, (next.get(selectedClass.id) || 0) + 1);
+          return next;
+        });
       }
       setShowConfirmModal(false);
       setShowSuccessModal(true);
@@ -93,7 +201,12 @@ const Schedule = () => {
       if (error) throw error;
       setBookedClassIds(prev => { const next = new Set(prev); next.delete(selectedClass.id); return next; });
       setBookingsMap(prev => { const next = new Map(prev); next.delete(selectedClass.id); return next; });
-      setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, spotsBooked: Math.max(0, c.spotsBooked - 1) } : c));
+      setBookingCounts(prev => {
+        const next = new Map(prev);
+        const updated = Math.max(0, (next.get(selectedClass.id) || 0) - 1);
+        if (updated === 0) next.delete(selectedClass.id); else next.set(selectedClass.id, updated);
+        return next;
+      });
       setShowCancelModal(false);
     } catch (err) { alert(`Cancellation failed: ${err.message}`); } finally { setActionLoading(null); }
   };
@@ -129,15 +242,28 @@ const Schedule = () => {
 
       {/* Class List */}
       <div className="max-w-4xl mx-auto px-4 pb-24 space-y-6 relative z-10">
+        {classes.length === 0 && (
+          <div className="p-8 rounded-3xl border border-dashed border-stone-200 dark:border-stone-700 bg-white/70 dark:bg-stone-800/60 text-center text-sm text-[var(--color-muted)] shadow-card">
+            No classes are scheduled yet. New offerings created in the admin panel will appear here instantly.
+          </div>
+        )}
+
         {classes.map((cls, idx) => {
           const isBooked = bookedClassIds.has(cls.id);
-          const spotsLeft = cls.spotsTotal - cls.spotsBooked;
-          const isFull = spotsLeft <= 0;
-          const dateObj = new Date(cls.date);
+          const bookedCount = bookingCounts.get(cls.id) || 0;
+          const capacity = cls.capacity ?? 0;
+          const hasCapacity = Number.isFinite(capacity) && capacity > 0;
+          const waitlistCap = cls.waitlist_capacity ?? 0;
+          const spotsLeft = hasCapacity ? Math.max(0, capacity - bookedCount) : null;
+          const isFull = hasCapacity ? bookedCount >= capacity : false;
+          const dateObj = cls.date ? new Date(cls.date) : null;
+          const dateLabel = dateObj ? dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }) : 'Date TBA';
+          const timeLabel = cls.time || (dateObj ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Time TBA');
+          const priceLabel = typeof cls.price === 'number' ? `$${cls.price}` : 'Price TBA';
 
           return (
-            <div 
-              key={cls.id} 
+            <div
+              key={cls.id}
               className={`group relative rounded-3xl p-6 md:p-8 transition-all duration-300 border animate-in-up
                 ${isBooked
                   ? 'bg-[var(--color-card)]/90 border-white/60 dark:bg-stone-800 dark:border-stone-700'
@@ -146,15 +272,15 @@ const Schedule = () => {
               style={{ animationDelay: `${idx * 0.1}s` }}
             >
               <div className="flex flex-col md:flex-row gap-6 md:items-center">
-                
+
                 {/* Date Badge */}
                 <div className={`flex flex-col items-center justify-center w-full md:w-20 h-20 rounded-2xl shrink-0 border transition-colors
                   ${isBooked
                     ? 'bg-[var(--color-card)] border-white/60 text-[var(--color-primary)] dark:bg-stone-800 dark:border-stone-700 dark:text-[var(--color-primary)]'
                     : 'bg-stone-50 border-stone-100 text-stone-600 dark:bg-stone-700 dark:border-stone-600 dark:text-stone-300'
                   }`}>
-                  <span className="text-[10px] font-bold uppercase tracking-widest">{dateObj.toLocaleDateString('en-US', { month: 'short' })}</span>
-                  <span className="text-2xl font-serif font-bold leading-none mt-1">{dateObj.getDate()}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short' }) : 'TBD'}</span>
+                  <span className="text-2xl font-serif font-bold leading-none mt-1">{dateObj ? dateObj.getDate() : '--'}</span>
                 </div>
 
                 {/* Details */}
@@ -169,36 +295,40 @@ const Schedule = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-4 text-sm text-stone-500 dark:text-stone-400">
-                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-[var(--color-primary)]"/> {cls.time} • {cls.duration}</span>
-                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[var(--color-primary)]"/> {cls.location}</span>
+                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-[var(--color-primary)]"/> {dateLabel}</span>
+                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-[var(--color-primary)]"/> {timeLabel}{cls.duration ? ` • ${cls.duration}` : ''}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[var(--color-primary)]"/> {cls.location || 'Location TBA'}</span>
                     <span className={`flex items-center gap-1.5 ${isFull && !isBooked ? 'text-rose-500 font-medium' : ''}`}>
-                      <Users size={14} className={isFull ? 'text-rose-500' : 'text-[var(--color-primary)]'}/> {isFull ? 'Waitlist Only' : `${spotsLeft} spots left`}
+                      <Users size={14} className={isFull ? 'text-rose-500' : 'text-[var(--color-primary)]'}/>
+                      {hasCapacity
+                        ? (isFull ? (waitlistCap ? `Waitlist (${waitlistCap})` : 'Full') : `${spotsLeft} spots left`)
+                        : 'Capacity TBD'}
                     </span>
                   </div>
                 </div>
 
                 {/* Action */}
                 <div className="flex items-center justify-between md:flex-col md:items-end gap-4 mt-2 md:mt-0 border-t md:border-none border-stone-100 dark:border-stone-700 pt-4 md:pt-0">
-                  <span className="text-lg font-bold text-stone-700 dark:text-stone-200">${cls.price}</span>
+                  <span className="text-lg font-bold text-stone-700 dark:text-stone-200">{priceLabel}</span>
                   {isBooked ? (
-                    <button 
-                      onClick={() => handleCancelClick(cls)} 
+                    <button
+                      onClick={() => handleCancelClick(cls)}
                       disabled={actionLoading === cls.id}
                       className="px-5 py-2.5 rounded-xl text-sm font-bold border border-stone-200 text-stone-500 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-50 transition-colors bg-white dark:bg-stone-800 dark:border-stone-600 dark:text-stone-400 dark:hover:bg-rose-900/20"
                     >
                       {actionLoading === cls.id ? '...' : 'Cancel'}
                     </button>
                   ) : (
-                    <button 
-                      onClick={() => handleBookClick(cls)} 
+                    <button
+                      onClick={() => handleBookClick(cls)}
                       disabled={isFull || actionLoading === cls.id}
                       className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-stone-900/5 hover:-translate-y-0.5 transition-all
-                        ${isFull 
-                          ? 'bg-stone-300 cursor-not-allowed shadow-none dark:bg-stone-700 dark:text-stone-500' 
+                        ${isFull
+                          ? 'bg-stone-300 cursor-not-allowed shadow-none dark:bg-stone-700 dark:text-stone-500'
                           : 'bg-stone-800 hover:bg-stone-900 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white'
                         }`}
                     >
-                      {isFull ? 'Join Waitlist' : 'Book Now'}
+                      {isFull ? 'Fully Booked' : 'Book Now'}
                     </button>
                   )}
                 </div>
@@ -217,7 +347,7 @@ const Schedule = () => {
                 <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">Confirm Booking</span>
                 <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mt-1 mb-2">{selectedClass.title}</h3>
                 <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400 text-sm">
-                  <Calendar size={14} /> {new Date(selectedClass.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })} at {selectedClass.time}
+                  <Calendar size={14} /> {selectedDateLabel} at {selectedTimeLabel}
                 </div>
               </div>
               
