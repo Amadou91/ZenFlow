@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Menu, X, PlayCircle, RefreshCw, Settings, Heart, Printer, Sun, Moon, Music, Activity, BookOpen, LogOut, LogIn, Layers, Target, Zap, Anchor, Wind, Trash2, Play, ArrowLeft, Check } from 'lucide-react';
 import PoseCard from '../components/PoseCard';
 import PoseLibrary from '../components/PoseLibrary';
@@ -21,6 +21,9 @@ export default function ZenFlowApp() {
   
   // Use the global theme context instead of local state
   const { darkMode, toggleTheme } = useTheme();
+  
+  // Router hook for managing query parameters cleanly
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [sequence, setSequence] = useState(() => {
     if (typeof window === 'undefined') return [];
@@ -115,21 +118,23 @@ export default function ZenFlowApp() {
 
   useEffect(() => {
     const initAuth = async () => {
-      const searchParams = new URLSearchParams(window.location.search);
+      // Use searchParams from the hook, not window.location
       const tokenFromUrl = searchParams.get('access_token');
       const expiresInFromUrl = searchParams.get('expires_in');
       const errorFromUrl = searchParams.get('error');
 
       if (errorFromUrl) {
         setTokenError('Authentication failed. Please try again.');
-        window.history.replaceState({}, '', window.location.pathname);
+        // FIX: Use setSearchParams to cleanly remove query string via Router
+        setSearchParams({}, { replace: true });
         return;
       }
 
       if (tokenFromUrl) {
         const expiresAt = Date.now() + (Number(expiresInFromUrl) || 3600) * 1000;
         storeToken(tokenFromUrl, expiresAt);
-        window.history.replaceState({}, '', window.location.pathname);
+        // FIX: Use setSearchParams to cleanly remove query string via Router
+        setSearchParams({}, { replace: true });
         return;
       }
 
@@ -144,7 +149,7 @@ export default function ZenFlowApp() {
       }
     };
     initAuth();
-  }, [storeToken, refreshAccessToken]);
+  }, [storeToken, refreshAccessToken, searchParams, setSearchParams]);
 
   const ensureAccessToken = useCallback(async () => {
     if (spotifyToken && tokenExpiry && tokenExpiry > Date.now()) return spotifyToken;

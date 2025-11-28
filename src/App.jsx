@@ -14,12 +14,15 @@ import Retreats from './pages/Retreats';
 import Contact from './pages/Contact';
 import AdminPanel from './pages/AdminPanel';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
+          {/* Handles scroll reset on route change */}
+          <ScrollToTop />
           <Routes>
             {/* Main Website Routes */}
             <Route element={<WebsiteLayout />}>

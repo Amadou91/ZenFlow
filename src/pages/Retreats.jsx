@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Clock, MapPin, Star, Users, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Star, Users, X, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
+import { useAuth } from '../context/AuthContext';
 
 const Retreats = () => {
+  const { isAdmin } = useAuth();
   const [retreats, setRetreats] = useState([]);
   const [signups, setSignups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,137 +110,149 @@ const Retreats = () => {
   }
 
   return (
-    <div className="animate-in fade-in-up pb-20 theme-surface relative">
+    <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text)] relative">
       <div className="bg-grain" />
 
-      <div className="relative h-[60vh] bg-[color-mix(in_srgb,var(--color-card)20%,transparent)] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-gradientFrom)]/40 to-[var(--color-gradientTo)]/40" />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.35),transparent 35%), radial-gradient(circle at 80% 40%, rgba(0,0,0,0.15), transparent 45%)',
-          }}
-        />
-        <div className="relative z-10 text-center max-w-3xl px-6">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--color-card)85%,transparent)] border border-[color-mix(in_srgb,var(--color-text)12%,transparent)] text-[var(--color-primary)] text-xs font-bold uppercase tracking-widest mb-6">
-            <Star size={12} /> Retreats
-          </span>
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-[var(--color-text)] mb-4">Travel with the Studio</h1>
-          <p className="theme-muted text-lg">Nourish yourself with immersive experiences designed to balance body, mind, and heart.</p>
+      {/* Header */}
+      <div className="relative pt-24 pb-12 px-4 text-center z-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-card)]/90 dark:bg-stone-800 border border-white/50 dark:border-stone-700 text-[var(--color-muted)] dark:text-stone-300 text-xs font-bold uppercase tracking-widest mb-6 shadow-sm shadow-[var(--color-primary)]/10">
+          <Star size={12} className="text-[var(--color-primary)]" /> Retreats
         </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 -mt-24 relative z-10 space-y-4">
-        {error && <div className="p-4 rounded-2xl bg-rose-50 text-rose-700 border border-rose-200 text-sm font-semibold">{error}</div>}
-        {retreats.length === 0 && !error && (
-          <div className="p-6 rounded-3xl border border-dashed border-[color-mix(in_srgb,var(--color-text)12%,transparent)] text-[var(--color-muted)] text-sm">
-            No retreats yet. Add one in the admin panel to see it here instantly.
+        <h1 className="text-5xl md:text-6xl font-serif font-medium text-stone-900 dark:text-stone-100 mb-6">Travel with the Studio</h1>
+        <p className="text-lg text-[var(--color-muted)] dark:text-stone-300 max-w-xl mx-auto leading-relaxed">
+          Nourish yourself with immersive experiences designed to balance body, mind, and heart.
+        </p>
+        {error && (
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-white/50 dark:border-stone-700 text-xs text-[var(--color-muted)] shadow-card">
+            <AlertCircle size={14} /> {error}
           </div>
         )}
-        <div className="grid md:grid-cols-2 gap-8">
-          {retreats.map((retreat) => {
-            const total = retreat.capacity || 0;
-            const booked = bookingCounts.get(retreat.id) || 0;
-            const spotsLeft = total ? Math.max(0, total - booked) : null;
-            const dateLabel = retreat.date_label || retreat.start_date || retreat.end_date;
+      </div>
 
-            return (
-              <div key={retreat.id} className="bg-[color-mix(in_srgb,var(--color-card)96%,transparent)] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-[color-mix(in_srgb,var(--color-text)15%,transparent)] border border-[color-mix(in_srgb,var(--color-text)10%,transparent)]">
-                <div className="bg-[color-mix(in_srgb,var(--color-card)90%,transparent)] min-h-[400px] relative overflow-hidden group">
-                  {retreat.image_url ? (
-                    <img
-                      src={retreat.image_url}
-                      alt={retreat.title}
-                      className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-[var(--color-muted)] bg-[var(--color-surface)]">
-                      No image yet
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[color-mix(in_srgb,var(--color-text)55%,transparent)] to-transparent" />
-                  <div className="absolute bottom-6 left-6 right-6 text-white drop-shadow-lg">
-                    <div className="flex items-center gap-2 text-sm opacity-80">
-                      <Calendar size={16} /> {dateLabel || 'Dates coming soon'}
-                    </div>
-                    <h3 className="text-2xl font-serif font-bold mt-2">{retreat.title}</h3>
-                    <p className="text-sm opacity-80 flex items-center gap-2 mt-1"><MapPin size={16} /> {retreat.location || 'Location TBA'}</p>
-                  </div>
+      <div className="max-w-4xl mx-auto px-4 pb-24 space-y-6 relative z-10">
+        {retreats.length === 0 && !error && (
+          <div className="p-8 rounded-3xl border border-dashed border-stone-200 dark:border-stone-700 bg-white/70 dark:bg-stone-800/60 text-center text-sm text-[var(--color-muted)] shadow-card">
+            {isAdmin 
+              ? "No retreats yet. Add one in the admin panel to see it here instantly." 
+              : "Our upcoming retreats are currently being planned. Please check back soon for updates."}
+          </div>
+        )}
+        
+        {retreats.map((retreat, idx) => {
+          const total = retreat.capacity || 0;
+          const booked = bookingCounts.get(retreat.id) || 0;
+          const spotsLeft = total ? Math.max(0, total - booked) : null;
+          const dateLabel = retreat.date_label || retreat.start_date || retreat.end_date;
+          const startDateObj = retreat.start_date ? new Date(retreat.start_date) : null;
+          const isFull = total > 0 && booked >= total;
+
+          return (
+            <div
+              key={retreat.id}
+              className="group relative rounded-3xl p-6 md:p-8 transition-all duration-300 border animate-in-up bg-white border-stone-100 shadow-card hover:shadow-soft hover:-translate-y-1 dark:bg-stone-800 dark:border-stone-700"
+              style={{ animationDelay: `${idx * 0.1}s` }}
+            >
+              <div className="flex flex-col md:flex-row gap-6 md:items-center">
+                
+                {/* Date Badge */}
+                <div className="flex flex-col items-center justify-center w-full md:w-20 h-20 rounded-2xl shrink-0 border transition-colors bg-stone-50 border-stone-100 text-stone-600 dark:bg-stone-700 dark:border-stone-600 dark:text-stone-300">
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{startDateObj ? startDateObj.toLocaleDateString('en-US', { month: 'short' }) : 'TBD'}</span>
+                  <span className="text-2xl font-serif font-bold leading-none mt-1">{startDateObj ? startDateObj.getDate() : '--'}</span>
                 </div>
 
-                <div className="p-8 space-y-4">
-                  <p className="theme-muted leading-relaxed">{retreat.description || 'Details coming soon.'}</p>
-                  <div className="flex flex-wrap gap-3 text-sm theme-muted">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full theme-chip border border-[color-mix(in_srgb,var(--color-primary)35%,transparent)]">
-                      <Clock size={14} /> {dateLabel || 'Dates TBA'}
-                    </span>
-                    {spotsLeft !== null && (
-                      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--color-card)90%,transparent)] border border-[color-mix(in_srgb,var(--color-text)12%,transparent)]">
-                        <Users size={14} /> {spotsLeft} spots left
+                {/* Details */}
+                <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                    <h3 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">{retreat.title}</h3>
+                    {isFull && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-400">
+                        Sold Out
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => openModal(retreat)}
-                      className="flex-1 py-3 bg-[var(--color-primary)] text-white rounded-xl font-bold shadow-lg shadow-[var(--color-primary)]/25 hover:brightness-110 transition-all"
-                    >
-                      Reserve My Spot
-                    </button>
-                    {retreat.price ? (
-                      <div className="px-4 py-3 rounded-xl border border-[color-mix(in_srgb,var(--color-text)10%,transparent)] text-[var(--color-text)] font-bold">
-                        ${retreat.price}
-                      </div>
-                    ) : null}
+
+                  <div className="flex flex-wrap gap-4 text-sm text-stone-500 dark:text-stone-400 mb-3">
+                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-[var(--color-primary)]"/> {dateLabel || 'Dates TBA'}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[var(--color-primary)]"/> {retreat.location || 'Location TBA'}</span>
+                    {spotsLeft !== null && (
+                      <span className={`flex items-center gap-1.5 ${isFull ? 'text-rose-500 font-medium' : ''}`}>
+                        <Users size={14} className={isFull ? 'text-rose-500' : 'text-[var(--color-primary)]'}/>
+                        {isFull ? 'Full' : `${spotsLeft} spots left`}
+                      </span>
+                    )}
                   </div>
+                  
+                  <p className="text-sm text-stone-600 dark:text-stone-300 line-clamp-2">{retreat.description || 'Details coming soon.'}</p>
+                </div>
+
+                {/* Action */}
+                <div className="flex items-center justify-between md:flex-col md:items-end gap-4 mt-2 md:mt-0 border-t md:border-none border-stone-100 dark:border-stone-700 pt-4 md:pt-0">
+                  <span className="text-lg font-bold text-stone-700 dark:text-stone-200">{retreat.price ? `$${retreat.price}` : 'Price TBA'}</span>
+                  <button
+                    onClick={() => openModal(retreat)}
+                    disabled={isFull || submitting}
+                    className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-stone-900/5 hover:-translate-y-0.5 transition-all
+                      ${isFull
+                        ? 'bg-stone-300 cursor-not-allowed shadow-none dark:bg-stone-700 dark:text-stone-500'
+                        : 'bg-stone-800 hover:bg-stone-900 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white'
+                      }`}
+                  >
+                    {isFull ? 'Waitlist' : 'Reserve Spot'}
+                  </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
       {showModal && selectedRetreat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[color-mix(in_srgb,var(--color-text)30%,transparent)] backdrop-blur-sm animate-in fade-in" onClick={closeModal}>
-          <div className="theme-card rounded-3xl max-w-md w-full p-8 animate-in-up" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-serif font-bold text-[var(--color-text)]">Reserve for {selectedRetreat.title}</h3>
-              <button onClick={closeModal} className="p-2 rounded-full hover:bg-[color-mix(in_srgb,var(--color-card)92%,transparent)]"><X size={20} className="theme-muted" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-sm animate-in fade-in" onClick={closeModal}>
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/50 dark:border-stone-700 animate-in-up" onClick={(e) => e.stopPropagation()}>
+            <div className="p-8">
+              <div className="mb-6">
+                <div className="flex justify-between items-start mb-2">
+                   <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">Reserve Spot</span>
+                   <button onClick={closeModal} className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 transition-colors"><X size={16}/></button>
+                </div>
+                <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mt-1 mb-2">{selectedRetreat.title}</h3>
+                <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400 text-sm">
+                  <Calendar size={14} /> {selectedRetreat.date_label || selectedRetreat.start_date || 'Dates TBA'}
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1 uppercase tracking-wider">Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 focus:ring-2 focus:ring-teal-500/50 outline-none transition-all text-stone-900 dark:text-white text-sm"
+                    placeholder="Jane Doe"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 mb-1 uppercase tracking-wider">Email</label>
+                  <input
+                    type="email"
+                    required
+                    className="w-full p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 focus:ring-2 focus:ring-teal-500/50 outline-none transition-all text-stone-900 dark:text-white text-sm"
+                    placeholder="jane@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-3 bg-stone-900 hover:bg-stone-800 dark:bg-white dark:text-stone-900 dark:hover:bg-stone-200 text-white rounded-xl font-bold shadow-lg shadow-stone-900/10 transition-all flex items-center justify-center gap-2 mt-2"
+                >
+                  {submitting ? 'Submitting...' : 'Confirm Reservation'}
+                </button>
+              </form>
             </div>
-            <p className="theme-muted text-sm mb-6 flex items-center gap-2"><Calendar size={16} /> {selectedRetreat.date_label || selectedRetreat.start_date || 'Dates TBA'}</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="text"
-                required
-                className="w-full p-4 rounded-xl bg-[color-mix(in_srgb,var(--color-card)92%,transparent)] border border-[color-mix(in_srgb,var(--color-text)10%,transparent)] focus:ring-2 focus:ring-[var(--color-primary)]/50 outline-none transition-all text-[var(--color-text)]"
-                placeholder="Jane Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-              <input
-                type="email"
-                required
-                className="w-full p-4 rounded-xl bg-[color-mix(in_srgb,var(--color-card)92%,transparent)] border border-[color-mix(in_srgb,var(--color-text)10%,transparent)] focus:ring-2 focus:ring-[var(--color-primary)]/50 outline-none transition-all text-[var(--color-text)]"
-                placeholder="jane@example.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-4 bg-[var(--color-primary)] hover:brightness-110 text-white rounded-xl font-bold mt-2 shadow-lg shadow-[var(--color-primary)]/25 transition-all flex items-center justify-center gap-2"
-              >
-                {submitting ? 'Submitting...' : 'Submit Request'}
-              </button>
-              <button
-                onClick={closeModal}
-                type="button"
-                className="w-full py-4 bg-[color-mix(in_srgb,var(--color-card)92%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-card)96%,transparent)] font-bold rounded-xl text-[var(--color-text)] transition-colors"
-              >
-                Close
-              </button>
-            </form>
           </div>
         </div>
       )}

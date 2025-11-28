@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 const ThemeContext = createContext();
@@ -66,41 +66,51 @@ const getInitialDarkMode = () => {
 export const ThemeProvider = ({ children }) => {
   const initialDarkMode = getInitialDarkMode();
   const [darkMode, setDarkMode] = useState(initialDarkMode);
+  
+  // "theme" holds the committed/saved state of both modes
   const [theme, setTheme] = useState(() => sanitizeTheme(getStoredTheme()));
+  
+  // "previewState" holds ephemeral changes (e.g. hovering a preset or tweaking a picker)
+  // If null, we simply render "theme".
+  const [previewState, setPreviewState] = useState(null);
+  
   const [themeLoading, setThemeLoading] = useState(true);
-  const [appliedPalette, setAppliedPalette] = useState(() => {
-    const stored = sanitizeTheme(getStoredTheme());
-    return initialDarkMode ? stored.dark : stored.light;
-  });
 
-  const palette = useMemo(() => (darkMode ? theme.dark : theme.light), [darkMode, theme]);
+  // The actual palette to display (preview takes precedence)
+  const activeThemeObject = useMemo(() => previewState || theme, [previewState, theme]);
+  const activePalette = useMemo(() => (darkMode ? activeThemeObject.dark : activeThemeObject.light), [darkMode, activeThemeObject]);
 
-  const applyPalette = (nextPalette) => {
+  const applyPalette = useCallback((paletteToApply) => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    const { glowIntensity, glowSoftness, glowEnabled, ...colorPalette } = nextPalette || {};
+    const { glowIntensity, glowSoftness, glowEnabled, ...colorPalette } = paletteToApply || {};
 
+    // 1. Apply standard colors
     Object.entries(colorPalette).forEach(([key, value]) => {
       root.style.setProperty(`--color-${key}`, value);
     });
 
-    const safeIntensity =
-      typeof glowIntensity === 'number'
-        ? glowIntensity
-        : (typeof DEFAULT_THEME?.light?.glowIntensity === 'number' && DEFAULT_THEME.light.glowIntensity) ||
-          DEFAULT_THEME.dark.glowIntensity;
-    const safeSoftness =
-      typeof glowSoftness === 'number'
-        ? glowSoftness
-        : (typeof DEFAULT_THEME?.light?.glowSoftness === 'number' && DEFAULT_THEME.light.glowSoftness) ||
-          DEFAULT_THEME.dark.glowSoftness;
-    const glowToggle = glowEnabled === false ? 0 : 1;
+    // 2. Apply Glow Variables
+    // We default to the provided intensity, or fall back to safe defaults if missing
+    const safeIntensity = typeof glowIntensity === 'number' ? glowIntensity : 0.5;
+    const safeSoftness = typeof glowSoftness === 'number' ? glowSoftness : 40;
+    
+    // Crucial: If disabled, force strength to 0 so it vanishes
+    const appliedStrength = glowEnabled === false ? 0 : safeIntensity;
 
-    root.style.setProperty('--glow-strength', glowToggle ? safeIntensity : 0);
+    root.style.setProperty('--glow-strength', appliedStrength);
     root.style.setProperty('--glow-softness', `${safeSoftness}px`);
-    root.style.setProperty('--glow-enabled', glowToggle);
-  };
+    
+    // We also set a flag for CSS usage if needed (0 or 1)
+    root.style.setProperty('--glow-enabled', glowEnabled === false ? '0' : '1');
+  }, []);
 
+  // Update CSS variables whenever the active palette changes
+  useEffect(() => {
+    if (activePalette) applyPalette(activePalette);
+  }, [activePalette, applyPalette]);
+
+  // Handle Dark Mode toggling class
   useEffect(() => {
     localStorage.setItem('zenflow_theme', darkMode ? 'dark' : 'light');
     if (darkMode) {
@@ -110,20 +120,14 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [darkMode]);
 
+  // Persist "theme" to local storage whenever it changes (auto-save locally)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('zenflow_theme_palette', JSON.stringify(theme));
     }
   }, [theme]);
 
-  useEffect(() => {
-    setAppliedPalette(palette);
-  }, [palette]);
-
-  useEffect(() => {
-    if (appliedPalette) applyPalette(appliedPalette);
-  }, [appliedPalette]);
-
+  // Initial Load from Supabase
   useEffect(() => {
     const fetchTheme = async () => {
       if (!isSupabaseConfigured || !supabase) {
@@ -141,7 +145,6 @@ export const ThemeProvider = ({ children }) => {
         if (data?.theme) {
           const hydrated = sanitizeTheme(data.theme);
           setTheme(hydrated);
-          setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
         }
       } catch (err) {
         console.warn('Using default theme palette:', err.message);
@@ -151,53 +154,64 @@ export const ThemeProvider = ({ children }) => {
     };
 
     fetchTheme();
-  }, [darkMode]);
+  }, []);
 
-  const toggleTheme = () => setDarkMode(!darkMode);
+  const toggleTheme = useCallback(() => setDarkMode(prev => !prev), []);
 
-  const previewTheme = (nextTheme) => {
-    const hydrated = sanitizeTheme(nextTheme);
-    setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
-  };
+  // Updates the PREVIEW state only (does not save)
+  const previewTheme = useCallback((nextThemeState) => {
+    const hydrated = sanitizeTheme(nextThemeState);
+    setPreviewState(hydrated);
+  }, []);
 
-  const resetPreviewTheme = () => {
-    const hydrated = sanitizeTheme(theme);
-    setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
-  };
+  // Reverts preview to the last saved "theme"
+  const resetPreviewTheme = useCallback(() => {
+    setPreviewState(null);
+  }, []);
 
-  const saveTheme = async (nextTheme) => {
+  // Persists the current state (or a passed state) to Supabase & LocalStorage
+  const saveTheme = useCallback(async (themeToSave) => {
     if (!isSupabaseConfigured || !supabase) {
-      throw new Error('Supabase is not configured; please add Supabase environment variables to persist the theme.');
+      throw new Error('Supabase is not configured; cannot save theme globally.');
     }
 
-    const hydrated = sanitizeTheme(nextTheme);
+    // Use the passed theme, or fall back to current preview, or fall back to current saved
+    const finalTheme = sanitizeTheme(themeToSave || previewState || theme);
 
     const { data, error } = await supabase
       .from('theme_settings')
       .upsert([
-        { id: 'global', theme: hydrated, updated_at: new Date().toISOString() },
+        { id: 'global', theme: finalTheme, updated_at: new Date().toISOString() },
       ])
       .select('theme')
       .maybeSingle();
 
     if (error) {
-      if (error?.message?.includes("Could not find the table 'public.theme_settings'")) {
-        throw new Error('Theme storage table missing. Apply the SQL in supabase/schema/theme_settings.sql to create it.');
-      }
-      setAppliedPalette(palette);
+      console.error("Save Theme Error:", error);
       throw error;
     }
 
-    const persistedTheme = sanitizeTheme(data?.theme || hydrated);
-    setTheme(persistedTheme);
-    setAppliedPalette(darkMode ? persistedTheme.dark : persistedTheme.light);
+    // Update local state to match the saved data
+    const persisted = sanitizeTheme(data?.theme || finalTheme);
+    setTheme(persisted);
+    setPreviewState(null); // Clear preview since we are now "saved"
+    
     if (typeof window !== 'undefined') {
-      localStorage.setItem('zenflow_theme_palette', JSON.stringify(persistedTheme));
+      localStorage.setItem('zenflow_theme_palette', JSON.stringify(persisted));
     }
-  };
+  }, [previewState, theme]);
 
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleTheme, theme, previewTheme, resetPreviewTheme, saveTheme, themeLoading }}>
+    <ThemeContext.Provider value={{ 
+      darkMode, 
+      toggleTheme, 
+      theme: activeThemeObject, // Consumers see the active preview
+      savedTheme: theme,        // Explicit access to saved state if needed
+      previewTheme, 
+      resetPreviewTheme, 
+      saveTheme, 
+      themeLoading 
+    }}>
       {children}
     </ThemeContext.Provider>
   );
