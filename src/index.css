@@ -13,6 +13,9 @@
     --color-gradientFrom: #f7d4dd;
     --color-gradientTo: #c8d8d0;
     --color-glow: #f2c4cf;
+    --glow-strength: 0.55;
+    --glow-softness: 42px;
+    --glow-enabled: 1;
   }
 
   body {
@@ -53,20 +56,22 @@
   .ambient-bg {
     position: fixed;
     inset: 0;
-    background: radial-gradient(circle at 20% 30%, rgba(248, 220, 232, 0.6), transparent 45%),
-      radial-gradient(circle at 80% 10%, rgba(198, 216, 208, 0.5), transparent 42%),
-      radial-gradient(circle at 70% 75%, rgba(199, 179, 198, 0.35), transparent 40%);
-    filter: blur(40px);
-    opacity: 0.85;
+    background:
+      radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--color-glow) 70%, transparent) 0, transparent 42%),
+      radial-gradient(circle at 80% 10%, color-mix(in srgb, var(--color-gradientTo) 60%, transparent) 0, transparent 40%),
+      radial-gradient(circle at 70% 75%, color-mix(in srgb, var(--color-gradientFrom) 55%, transparent) 0, transparent 38%);
+    filter: blur(calc(var(--glow-softness, 40px)));
+    opacity: calc(var(--glow-enabled, 1) * clamp(var(--glow-strength, 0.7), 0, 1));
     pointer-events: none;
     z-index: 0;
   }
 
   .dark .ambient-bg {
-    background: radial-gradient(circle at 20% 30%, rgba(110, 128, 140, 0.28), transparent 45%),
-      radial-gradient(circle at 80% 10%, rgba(133, 112, 126, 0.28), transparent 42%),
-      radial-gradient(circle at 70% 75%, rgba(102, 127, 138, 0.25), transparent 40%);
-    opacity: 0.65;
+    background:
+      radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--color-glow) 55%, transparent) 0, transparent 44%),
+      radial-gradient(circle at 80% 10%, color-mix(in srgb, var(--color-gradientTo) 50%, transparent) 0, transparent 40%),
+      radial-gradient(circle at 70% 75%, color-mix(in srgb, var(--color-gradientFrom) 48%, transparent) 0, transparent 38%);
+    opacity: calc(var(--glow-enabled, 1) * clamp(var(--glow-strength, 0.7), 0, 1));
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -105,6 +110,42 @@
   .dark .glass-panel {
     background-color: rgba(41, 37, 36, 0.6);
     border-color: rgba(68, 64, 60, 0.3);
+  }
+
+  /* Theme-aware surfaces */
+  .theme-surface {
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+
+  .theme-card {
+    background: color-mix(in srgb, var(--color-card) 94%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+    color: var(--color-text);
+    box-shadow: 0 10px 40px -18px color-mix(in srgb, var(--color-text) 18%, transparent);
+  }
+
+  .dark .theme-card {
+    background: color-mix(in srgb, var(--color-card) 96%, transparent);
+    border-color: color-mix(in srgb, var(--color-text) 18%, transparent);
+    box-shadow: 0 10px 40px -18px color-mix(in srgb, var(--color-text) 28%, transparent);
+  }
+
+  .theme-muted {
+    color: color-mix(in srgb, var(--color-muted) 94%, transparent);
+  }
+
+  .theme-border {
+    border-color: color-mix(in srgb, var(--color-text) 12%, transparent);
+  }
+
+  .theme-chip {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-primary);
+  }
+
+  .dark .theme-chip {
+    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
   }
 
   .admin-input {

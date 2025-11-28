@@ -4,7 +4,7 @@ import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 const ThemeContext = createContext();
 
-const DEFAULT_THEME = {
+export const DEFAULT_THEME = {
   light: {
     primary: '#c8748f',
     secondary: '#7f6c9f',
@@ -16,6 +16,9 @@ const DEFAULT_THEME = {
     gradientFrom: '#f7d4dd',
     gradientTo: '#c8d8d0',
     glow: '#f2c4cf',
+    glowIntensity: 0.55,
+    glowSoftness: 42,
+    glowEnabled: true,
   },
   dark: {
     primary: '#f0b7c6',
@@ -28,6 +31,9 @@ const DEFAULT_THEME = {
     gradientFrom: '#7c8c9f',
     gradientTo: '#c59aa8',
     glow: '#9eb8c6',
+    glowIntensity: 0.45,
+    glowSoftness: 46,
+    glowEnabled: true,
   },
 };
 
@@ -43,26 +49,56 @@ const getStoredTheme = () => {
   }
 };
 
+const sanitizeTheme = (incoming) => ({
+  light: { ...DEFAULT_THEME.light, ...(incoming?.light || {}) },
+  dark: { ...DEFAULT_THEME.dark, ...(incoming?.dark || {}) },
+});
+
+const getInitialDarkMode = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('zenflow_theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  return false;
+};
+
 export const ThemeProvider = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('zenflow_theme');
-      if (saved) return saved === 'dark';
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
-  const [theme, setTheme] = useState(() => getStoredTheme());
+  const initialDarkMode = getInitialDarkMode();
+  const [darkMode, setDarkMode] = useState(initialDarkMode);
+  const [theme, setTheme] = useState(() => sanitizeTheme(getStoredTheme()));
   const [themeLoading, setThemeLoading] = useState(true);
+  const [appliedPalette, setAppliedPalette] = useState(() => {
+    const stored = sanitizeTheme(getStoredTheme());
+    return initialDarkMode ? stored.dark : stored.light;
+  });
 
   const palette = useMemo(() => (darkMode ? theme.dark : theme.light), [darkMode, theme]);
 
   const applyPalette = (nextPalette) => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    Object.entries(nextPalette).forEach(([key, value]) => {
+    const { glowIntensity, glowSoftness, glowEnabled, ...colorPalette } = nextPalette || {};
+
+    Object.entries(colorPalette).forEach(([key, value]) => {
       root.style.setProperty(`--color-${key}`, value);
     });
+
+    const safeIntensity =
+      typeof glowIntensity === 'number'
+        ? glowIntensity
+        : (typeof DEFAULT_THEME?.light?.glowIntensity === 'number' && DEFAULT_THEME.light.glowIntensity) ||
+          DEFAULT_THEME.dark.glowIntensity;
+    const safeSoftness =
+      typeof glowSoftness === 'number'
+        ? glowSoftness
+        : (typeof DEFAULT_THEME?.light?.glowSoftness === 'number' && DEFAULT_THEME.light.glowSoftness) ||
+          DEFAULT_THEME.dark.glowSoftness;
+    const glowToggle = glowEnabled === false ? 0 : 1;
+
+    root.style.setProperty('--glow-strength', glowToggle ? safeIntensity : 0);
+    root.style.setProperty('--glow-softness', `${safeSoftness}px`);
+    root.style.setProperty('--glow-enabled', glowToggle);
   };
 
   useEffect(() => {
@@ -75,11 +111,18 @@ export const ThemeProvider = ({ children }) => {
   }, [darkMode]);
 
   useEffect(() => {
-    applyPalette(palette);
     if (typeof window !== 'undefined') {
       localStorage.setItem('zenflow_theme_palette', JSON.stringify(theme));
     }
-  }, [palette, theme]);
+  }, [theme]);
+
+  useEffect(() => {
+    setAppliedPalette(palette);
+  }, [palette]);
+
+  useEffect(() => {
+    if (appliedPalette) applyPalette(appliedPalette);
+  }, [appliedPalette]);
 
   useEffect(() => {
     const fetchTheme = async () => {
@@ -96,8 +139,9 @@ export const ThemeProvider = ({ children }) => {
 
         if (error) throw error;
         if (data?.theme) {
-          setTheme(data.theme);
-          applyPalette(darkMode ? data.theme.dark : data.theme.light);
+          const hydrated = sanitizeTheme(data.theme);
+          setTheme(hydrated);
+          setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
         }
       } catch (err) {
         console.warn('Using default theme palette:', err.message);
@@ -112,44 +156,48 @@ export const ThemeProvider = ({ children }) => {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   const previewTheme = (nextTheme) => {
-    setTheme(nextTheme);
-    applyPalette(darkMode ? nextTheme.dark : nextTheme.light);
+    const hydrated = sanitizeTheme(nextTheme);
+    setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
+  };
+
+  const resetPreviewTheme = () => {
+    const hydrated = sanitizeTheme(theme);
+    setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
   };
 
   const saveTheme = async (nextTheme) => {
-    const appliedPalette = darkMode ? nextTheme.dark : nextTheme.light;
-    setTheme(nextTheme);
-    applyPalette(appliedPalette);
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('zenflow_theme_palette', JSON.stringify(nextTheme));
-    }
-
     if (!isSupabaseConfigured || !supabase) {
       throw new Error('Supabase is not configured; please add Supabase environment variables to persist the theme.');
     }
 
+    const hydrated = sanitizeTheme(nextTheme);
+
     const { data, error } = await supabase
       .from('theme_settings')
       .upsert([
-        { id: 'global', theme: nextTheme, updated_at: new Date().toISOString() },
+        { id: 'global', theme: hydrated, updated_at: new Date().toISOString() },
       ])
       .select('theme')
       .maybeSingle();
 
-    if (error) throw error;
-
-    if (data?.theme) {
-      setTheme(data.theme);
-      applyPalette(darkMode ? data.theme.dark : data.theme.light);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('zenflow_theme_palette', JSON.stringify(data.theme));
+    if (error) {
+      if (error?.message?.includes("Could not find the table 'public.theme_settings'")) {
+        throw new Error('Theme storage table missing. Apply the SQL in supabase/schema/theme_settings.sql to create it.');
       }
+      setAppliedPalette(palette);
+      throw error;
+    }
+
+    const persistedTheme = sanitizeTheme(data?.theme || hydrated);
+    setTheme(persistedTheme);
+    setAppliedPalette(darkMode ? persistedTheme.dark : persistedTheme.light);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zenflow_theme_palette', JSON.stringify(persistedTheme));
     }
   };
 
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleTheme, theme, previewTheme, saveTheme, themeLoading }}>
+    <ThemeContext.Provider value={{ darkMode, toggleTheme, theme, previewTheme, resetPreviewTheme, saveTheme, themeLoading }}>
       {children}
     </ThemeContext.Provider>
   );
