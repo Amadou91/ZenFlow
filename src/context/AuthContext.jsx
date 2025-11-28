@@ -50,10 +50,19 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setCurrentUser(session?.user || null);
-      if (session?.user) await loadProfile(session.user.id);
-      setLoading(false);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        setCurrentUser(session?.user || null);
+        if (session?.user) await loadProfile(session.user.id);
+      } catch (err) {
+        console.error('Failed to fetch auth session', err);
+        setCurrentUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
     };
     checkSession();
 
@@ -75,7 +84,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
