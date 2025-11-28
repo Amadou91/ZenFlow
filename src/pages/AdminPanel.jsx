@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_THEME, useTheme } from '../context/ThemeContext';
@@ -70,7 +70,6 @@ const normalizeClassRow = (row) => ({
 });
 
 const AdminPanel = () => {
-  const navigate = useNavigate();
   const { currentUser, isAdmin } = useAuth();
   const { theme, previewTheme, resetPreviewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
   const [classes, setClasses] = useState([]);
@@ -112,6 +111,17 @@ const AdminPanel = () => {
   const activePaletteKey = darkMode ? 'dark' : 'light';
   const activePaletteLabel = darkMode ? 'Dark' : 'Light';
   const activePalette = draftTheme?.[activePaletteKey] || {};
+
+  const getPaletteNumber = (key) => {
+    const candidate = draftTheme?.[activePaletteKey]?.[key];
+    if (typeof candidate === 'number') return candidate;
+    const fallback = DEFAULT_THEME?.[activePaletteKey]?.[key];
+    return typeof fallback === 'number' ? fallback : 0;
+  };
+
+  const glowStrength = activePalette?.glowEnabled === false ? 0 : getPaletteNumber('glowIntensity');
+  const glowSoftness = getPaletteNumber('glowSoftness');
+  const glowColor = activePalette.glow || DEFAULT_THEME[activePaletteKey].glow;
 
   const paletteGroups = useMemo(() => [
     {
@@ -550,6 +560,8 @@ const AdminPanel = () => {
   const generateHarmoniousPalette = () => {
     const baseHue = Math.floor(Math.random() * 360);
     const offset = (delta) => (baseHue + delta + 360) % 360;
+    const sharedGlowIntensity = Math.round((0.35 + Math.random() * 0.35) * 100) / 100;
+    const sharedGlowSoftness = Math.round(34 + Math.random() * 18);
 
     const light = {
       primary: `hsl(${offset(12)} 58% 52%)`,
@@ -562,6 +574,9 @@ const AdminPanel = () => {
       gradientFrom: `hsl(${offset(25)} 52% 84%)`,
       gradientTo: `hsl(${offset(190)} 36% 78%)`,
       glow: `hsl(${offset(15)} 58% 72%)`,
+      glowIntensity: sharedGlowIntensity,
+      glowSoftness: sharedGlowSoftness,
+      glowEnabled: true,
     };
 
     const dark = {
@@ -575,6 +590,9 @@ const AdminPanel = () => {
       gradientFrom: `hsl(${offset(210)} 32% 42%)`,
       gradientTo: `hsl(${offset(25)} 44% 58%)`,
       glow: `hsl(${offset(15)} 60% 52%)`,
+      glowIntensity: Math.min(0.8, sharedGlowIntensity + 0.08),
+      glowSoftness: sharedGlowSoftness + 6,
+      glowEnabled: true,
     };
 
     return { light, dark };
@@ -615,14 +633,15 @@ const AdminPanel = () => {
             <p className="text-sm text-[var(--color-muted)]">Signed in as {currentUser?.email}</p>
           </div>
           <div className="flex gap-3 items-center">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
+            <Link
+              to="/"
+              replace
+              onClick={() => resetPreviewTheme()}
               className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
             >
               <ArrowLeft size={16} />
               Back to Site
-            </button>
+            </Link>
           </div>
         </header>
 
@@ -1278,8 +1297,8 @@ const AdminPanel = () => {
         )}
 
         {/* Theme controls */}
-        <section className="bg-[var(--color-card)] border border-black/5 rounded-3xl shadow-card p-6">
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <section className="bg-[var(--color-card)] border border-black/5 rounded-3xl shadow-card p-6 space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-[var(--color-accent)]/20 text-[var(--color-primary)]">
                 <Palette size={18} />
@@ -1287,7 +1306,7 @@ const AdminPanel = () => {
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Theme Studio</p>
                 <h2 className="text-xl font-serif font-bold">Light & Dark Palettes</h2>
-                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to jump between the two palettes. Changes preview instantly here but only publish after you press Save.</p>
+                <p className="text-xs text-[var(--color-muted)]">Preview updates instantly. Save to publish globally.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -1323,115 +1342,214 @@ const AdminPanel = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-black/5 text-xs font-semibold text-[var(--color-muted)]">
-              <span className="flex items-center gap-2">
-                {darkMode ? <MoonStar size={14} /> : <SunMedium size={14} />}
-                Editing {activePaletteLabel} Palette
-              </span>
-              <span className="text-[var(--color-muted)]">•</span>
-              <span className="text-[var(--color-muted)]">Toggle to switch to the other mode</span>
-            </div>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] shadow-card text-sm font-semibold flex items-center gap-2"
-              aria-pressed={darkMode}
-            >
-              {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
-              Switch to {darkMode ? 'Light' : 'Dark'} Palette
-            </button>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3 mb-4">
-            {THEME_PRESETS.map((preset) => (
-              <button
-                type="button"
-                key={preset.name}
-                onClick={() => handlePresetSelect(preset)}
-                className={`p-4 text-left rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card flex flex-col gap-3 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 ${
-                  selectedPreset === preset.name ? 'ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-card)]' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Preset</p>
-                    <h4 className="text-lg font-serif font-bold">{preset.name}</h4>
-                    <p className="text-xs text-[var(--color-muted)] leading-relaxed">{preset.description}</p>
-                  </div>
-                  <div className="h-12 w-16 rounded-xl overflow-hidden border border-black/5" style={{ background: `linear-gradient(120deg, ${preset.palette.light.gradientFrom}, ${preset.palette.light.gradientTo})` }} />
-                </div>
-                <div className="flex items-center gap-3 text-xs font-semibold text-[var(--color-muted)]">
+          <div className="grid xl:grid-cols-[1.05fr,0.95fr] gap-6 items-start">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-black/5 text-[11px] font-semibold text-[var(--color-muted)]">
                   <span className="flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full border border-black/5" style={{ background: preset.palette.light.primary }} />
-                    Light & Dark ready
+                    {darkMode ? <MoonStar size={14} /> : <SunMedium size={14} />}
+                    Editing {activePaletteLabel} Palette
                   </span>
-                  {selectedPreset === preset.name && (
-                    <span className="flex items-center gap-1 text-[var(--color-primary)]">
-                      <CheckCircle2 size={14} />
-                      Applied
-                    </span>
-                  )}
+                  <span className="text-[var(--color-muted)]">•</span>
+                  <span className="text-[var(--color-muted)]">Switch to tune both modes</span>
                 </div>
-              </button>
-            ))}
-          </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="px-3 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] shadow-card text-xs font-semibold flex items-center gap-2"
+                    aria-pressed={darkMode}
+                  >
+                    {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
+                    Switch to {darkMode ? 'Light' : 'Dark'}
+                  </button>
+                </div>
+              </div>
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {paletteGroups.map((group) => (
-              <div key={group.title} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-serif font-bold flex items-center gap-2">
-                    {darkMode ? <MoonStar size={18} /> : <SunMedium size={18} />}
-                    {group.title}
-                  </h3>
-                  <span className="text-[10px] text-[var(--color-muted)] uppercase tracking-[0.2em]">{activePaletteLabel} Palette</span>
+              <div className="grid md:grid-cols-2 gap-3">
+                {paletteGroups.map((group) => (
+                  <div key={group.title} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-base font-serif font-bold flex items-center gap-2">
+                        {darkMode ? <MoonStar size={16} /> : <SunMedium size={16} />}
+                        {group.title}
+                      </h3>
+                      <span className="text-[10px] text-[var(--color-muted)] uppercase tracking-[0.2em]">{activePaletteLabel}</span>
+                    </div>
+                    <p className="text-[11px] text-[var(--color-muted)] mb-2 leading-relaxed">{group.description}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.fields.map((field) => (
+                        <label key={`${activePaletteKey}-${field.key}`} className="text-[11px] text-[var(--color-muted)] font-semibold flex flex-col gap-1">
+                          {field.label}
+                          <input
+                            type="color"
+                            value={draftTheme?.[activePaletteKey]?.[field.key] || DEFAULT_THEME[activePaletteKey][field.key]}
+                            onChange={(e) => updateThemeField(activePaletteKey, field.key, e.target.value)}
+                            className="admin-input h-10 cursor-pointer p-1"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--color-muted)]">Glow Controls</p>
+                    <h3 className="text-lg font-serif font-bold">Ambient Highlight</h3>
+                    <p className="text-xs text-[var(--color-muted)]">Intensity, softness, color, and enablement apply per mode.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateThemeField(activePaletteKey, 'glowEnabled', !activePalette.glowEnabled)}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
+                      activePalette.glowEnabled !== false
+                        ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/30'
+                        : 'bg-black/5 text-[var(--color-muted)] border-black/5'
+                    }`}
+                  >
+                    {activePalette.glowEnabled !== false ? 'Glow Enabled' : 'Glow Disabled'}
+                  </button>
                 </div>
-                <p className="text-xs text-[var(--color-muted)] mb-3 leading-relaxed">{group.description}</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {group.fields.map((field) => (
-                    <label key={`${activePaletteKey}-${field.key}`} className="text-xs text-[var(--color-muted)] font-semibold flex flex-col gap-1">
-                      {field.label}
+                <div className="grid sm:grid-cols-[1.2fr,0.8fr] gap-4 items-start">
+                  <div className="space-y-3">
+                    <label className="flex flex-col gap-2 text-[11px] font-semibold text-[var(--color-muted)]">
+                      Glow intensity ({Math.round(glowStrength * 100)}%)
                       <input
-                        type="color"
-                        value={draftTheme?.[activePaletteKey]?.[field.key] || DEFAULT_THEME[activePaletteKey][field.key]}
-                        onChange={(e) => updateThemeField(activePaletteKey, field.key, e.target.value)}
-                        className="admin-input h-11 cursor-pointer p-1"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={glowStrength}
+                        onChange={(e) => updateThemeField(activePaletteKey, 'glowIntensity', parseFloat(e.target.value))}
+                        className="w-full accent-[var(--color-primary)]"
                       />
                     </label>
-                  ))}
+                    <label className="flex flex-col gap-2 text-[11px] font-semibold text-[var(--color-muted)]">
+                      Softness ({glowSoftness}px blur)
+                      <input
+                        type="range"
+                        min="16"
+                        max="80"
+                        step="2"
+                        value={glowSoftness}
+                        onChange={(e) => updateThemeField(activePaletteKey, 'glowSoftness', Number(e.target.value))}
+                        className="w-full accent-[var(--color-primary)]"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2 text-[11px] font-semibold text-[var(--color-muted)]">
+                      Glow color
+                      <input
+                        type="color"
+                        value={glowColor}
+                        onChange={(e) => updateThemeField(activePaletteKey, 'glow', e.target.value)}
+                        className="admin-input h-10 cursor-pointer p-1"
+                      />
+                    </label>
+                  </div>
+                  <div
+                    className="p-4 rounded-xl border border-black/5 bg-[var(--color-surface)] shadow-sm"
+                    style={{
+                      boxShadow:
+                        glowStrength <= 0
+                          ? '0 0 0 rgba(0,0,0,0)'
+                          : `0 18px ${Math.max(26, glowSoftness)}px -14px color-mix(in srgb, ${glowColor} ${Math.min(
+                              100,
+                              Math.round(glowStrength * 120),
+                            )}%, transparent)`,
+                    }}
+                  >
+                    <p className="text-sm font-semibold text-[var(--color-text)] mb-1">Glow preview</p>
+                    <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
+                      Cards, chips, and ambient backgrounds will use this glow setting across light and dark mode.
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
 
-          <div className="mt-6 grid md:grid-cols-3 gap-3">
-            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Live Preview</p>
-              <h4 className="text-lg font-serif font-bold mb-2">Buttons & Badges</h4>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-semibold">Primary</span>
-                <span className="px-3 py-2 rounded-xl bg-[var(--color-secondary)] text-white text-sm font-semibold">Secondary</span>
-                <span className="px-3 py-2 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] text-sm font-semibold">Accent</span>
+            <div className="space-y-4 xl:sticky xl:top-24">
+              <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--color-muted)]">Presets</p>
+                    <h3 className="text-lg font-serif font-bold">Quick apply</h3>
+                  </div>
+                  <span className="text-[11px] text-[var(--color-muted)]">Swipe to browse</span>
+                </div>
+                <div className="overflow-x-auto pb-2 -mx-1 px-1">
+                  <div className="grid grid-flow-col auto-cols-[240px] gap-3">
+                    {THEME_PRESETS.map((preset) => (
+                      <button
+                        type="button"
+                        key={preset.name}
+                        onClick={() => handlePresetSelect(preset)}
+                        className={`p-3 text-left rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card flex flex-col gap-2 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 ${
+                          selectedPreset === preset.name ? 'ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-card)]' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--color-muted)]">Preset</p>
+                            <h4 className="text-base font-serif font-bold leading-tight">{preset.name}</h4>
+                          </div>
+                          <div className="h-10 w-14 rounded-xl overflow-hidden border border-black/5" style={{ background: `linear-gradient(120deg, ${preset.palette.light.gradientFrom}, ${preset.palette.light.gradientTo})` }} />
+                        </div>
+                        <p className="text-[11px] text-[var(--color-muted)] leading-snug overflow-hidden text-ellipsis max-h-10">
+                          {preset.description}
+                        </p>
+                        <div className="flex items-center gap-2 text-[10px] font-semibold text-[var(--color-muted)]">
+                          <span className="flex items-center gap-1">
+                            <span className="h-5 w-5 rounded-full border border-black/5" style={{ background: preset.palette.light.primary }} />
+                            Dual mode
+                          </span>
+                          {selectedPreset === preset.name && (
+                            <span className="flex items-center gap-1 text-[var(--color-primary)]">
+                              <CheckCircle2 size={12} />
+                              Applied
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Cards</p>
-              <h4 className="text-lg font-serif font-bold mb-2">Surface & Glow</h4>
-              <div
-                className="p-4 rounded-xl border border-black/5 bg-[var(--color-surface)]"
-                style={{ boxShadow: `0 20px 45px -18px ${activePalette.glow || 'rgba(0,0,0,0.12)'}` }}
-              >
-                <p className="text-sm text-[var(--color-muted)]">This area follows the live palette.</p>
+
+              <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--color-muted)]">Live Preview</p>
+                    <h3 className="text-lg font-serif font-bold">UI Swatches</h3>
+                  </div>
+                  <span className="text-[11px] text-[var(--color-muted)]">Always visible</span>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl border border-black/5 bg-[var(--color-surface)]">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] mb-2">Buttons</p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-2 rounded-xl bg-[var(--color-primary)] text-white text-xs font-semibold">Primary</span>
+                      <span className="px-3 py-2 rounded-xl bg-[var(--color-secondary)] text-white text-xs font-semibold">Secondary</span>
+                      <span className="px-3 py-2 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] text-xs font-semibold">Accent</span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl border border-black/5 bg-[var(--color-surface)]" style={{
+                    boxShadow:
+                      glowStrength <= 0
+                        ? '0 0 0 rgba(0,0,0,0)'
+                        : `0 18px ${Math.max(26, glowSoftness)}px -14px color-mix(in srgb, ${glowColor} ${Math.min(
+                            100,
+                            Math.round(glowStrength * 120),
+                          )}%, transparent)`,
+                  }}>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] mb-2">Surface & Glow</p>
+                    <p className="text-sm text-[var(--color-muted)] leading-relaxed">Cards and overlays adopt the updated glow.</p>
+                  </div>
+                  <div className="sm:col-span-2 h-14 rounded-xl border border-black/5" style={{ background: `linear-gradient(120deg, ${activePalette.gradientFrom || '#f7d4dd'}, ${activePalette.gradientTo || '#c8d8d0'})` }} />
+                </div>
               </div>
-            </div>
-            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Gradient</p>
-              <h4 className="text-lg font-serif font-bold mb-2">Ambient</h4>
-              <div
-                className="h-16 rounded-xl"
-                style={{ background: `linear-gradient(120deg, ${activePalette.gradientFrom || '#f7d4dd'}, ${activePalette.gradientTo || '#c8d8d0'})` }}
-              />
             </div>
           </div>
         </section>
