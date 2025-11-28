@@ -1,19 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
   body {
-    @apply font-sans text-stone-800 bg-stone-50 dark:bg-stone-900 dark:text-stone-100;
-    /* Prevent horizontal scroll caused by some animations */
+    @apply font-sans text-stone-800 bg-stone-50 dark:bg-stone-900 dark:text-stone-100 antialiased selection:bg-teal-200 selection:text-teal-900 dark:selection:bg-teal-900 dark:selection:text-teal-100;
     overflow-x: hidden;
   }
+  
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Cinzel', serif;
+    @apply tracking-tight;
+  }
+
+  /* Elegant focus states */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-teal-400 ring-offset-2 ring-offset-stone-50 dark:ring-offset-stone-900;
   }
 }
 
 @layer utilities {
-  /* Custom Scrollbar Styling */
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -22,35 +27,72 @@
     background: transparent;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-stone-300 dark:bg-stone-700 rounded-full;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    @apply bg-teal-500;
+    @apply bg-stone-300 dark:bg-stone-700 rounded-full hover:bg-teal-400 transition-colors;
   }
 
-  /* iOS Safe Area Utilities */
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
+  /* Text balance for better readability */
+  .text-balance {
+    text-wrap: balance;
   }
-  .pt-safe {
-    padding-top: env(safe-area-inset-top);
+
+  /* Smooth fade mask for scrollable areas */
+  .mask-fade-b {
+    mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
+  }
+  
+  .glass-panel {
+    @apply bg-white/70 dark:bg-stone-800/60 backdrop-blur-xl border border-white/20 dark:border-stone-700/30;
   }
 }
 
-/* Remove tap delay on mobile */
-button, a, input, label {
-  touch-action: manipulation;
+/* Micro-interaction: Smooth Scale on Click */
+button:active {
+  transform: scale(0.98);
 }
 
-/* Print Optimization */
-@media print {
-  @page { margin: 1cm; }
-  body { 
-    -webkit-print-color-adjust: exact; 
-    background: white !important;
-    color: black !important;
-  }
-  .no-print, header, aside, nav, .print-hidden { display: none !important; }
-  .print-only-container { display: block !important; height: auto !important; overflow: visible !important; }
-  .break-inside-avoid { page-break-inside: avoid; }
+/* Ambient Grain Texture */
+.bg-grain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.03; /* Very subtle */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Ambient Gradient Background Animation */
+.ambient-bg {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(194, 221, 213, 0.15) 0%, rgba(253, 252, 248, 0) 50%);
+  z-index: -1;
+  animation: rotate 60s linear infinite;
+  pointer-events: none;
+}
+
+.dark .ambient-bg {
+  background: radial-gradient(circle at center, rgba(49, 84, 77, 0.15) 0%, rgba(28, 25, 23, 0) 50%);
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Fade In Animation Helper */
+.animate-in {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

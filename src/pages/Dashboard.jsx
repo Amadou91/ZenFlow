@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../utils/supabase';
 import { Calendar, Clock, MapPin, LogOut, Trash2 } from 'lucide-react';
@@ -11,7 +11,7 @@ const Dashboard = () => {
   const [deletingId, setDeletingId] = useState(null);
   const navigate = useNavigate();
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
@@ -28,11 +28,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
   useEffect(() => {
     fetchBookings();
-  }, [currentUser]);
+  }, [fetchBookings]);
 
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) return;
@@ -142,4 +142,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;
