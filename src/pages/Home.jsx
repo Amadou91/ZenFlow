@@ -8,13 +8,13 @@ const Home = () => {
       <section className="relative min-h-[90vh] flex items-center pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-900/30 border border-teal-100 dark:border-teal-800/50 text-teal-800 dark:text-teal-200 text-xs font-bold uppercase tracking-widest mb-8 animate-in fade-in-up">
-              <Star size={12} className="text-teal-500" /> New Studio in Drayton
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-card)] border border-white/60 dark:border-stone-700 text-[var(--color-primary)] text-xs font-bold uppercase tracking-widest mb-8 animate-in fade-in-up shadow-card">
+              <Star size={12} className="text-[var(--color-primary)]" /> New Studio in Drayton
             </div>
             
             <h1 className="text-6xl md:text-8xl font-serif font-bold text-stone-900 dark:text-stone-50 leading-[0.95] mb-8 animate-in fade-in-up" style={{ animationDelay: '0.1s' }}>
               Move with <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-teal-400 dark:from-teal-400 dark:to-teal-200">Intention.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]">Intention.</span>
             </h1>
             
             <p className="text-xl md:text-2xl text-stone-600 dark:text-stone-300 max-w-2xl leading-relaxed mb-12 animate-in fade-in-up" style={{ animationDelay: '0.2s' }}>
@@ -22,10 +22,10 @@ const Home = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <Link to="/schedule" className="px-8 py-4 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-full font-bold text-lg shadow-xl shadow-stone-900/10 hover:transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3">
+              <Link to="/schedule" className="px-8 py-4 bg-[var(--color-primary)] text-white rounded-full font-bold text-lg shadow-xl shadow-[var(--color-primary)]/25 hover:transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3">
                 Book a Class <ArrowRight size={20} />
               </Link>
-              <Link to="/about" className="px-8 py-4 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-full font-bold text-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700 transition-all duration-300 text-center">
+              <Link to="/about" className="px-8 py-4 bg-[var(--color-card)] text-[var(--color-text)] rounded-full font-bold text-lg border border-white/60 dark:border-stone-700 hover:bg-white/80 dark:hover:bg-stone-700 transition-all duration-300 text-center">
                 Meet Jocelyn
               </Link>
             </div>
@@ -61,18 +61,18 @@ const Home = () => {
       </section>
 
       <section className="py-24 px-4">
-        <div className="max-w-6xl mx-auto bg-stone-900 dark:bg-stone-800 rounded-[2.5rem] p-8 md:p-20 text-center relative overflow-hidden shadow-2xl">
-          <div className="absolute inset-0 opacity-10 dark:opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-          
+        <div className="max-w-6xl mx-auto rounded-[2.5rem] p-8 md:p-20 text-center relative overflow-hidden shadow-2xl border border-white/50 dark:border-stone-800" style={{ background: 'linear-gradient(135deg, rgba(200, 120, 143, 0.2), rgba(145, 164, 176, 0.2))' }}>
+          <div className="absolute inset-0 opacity-30 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+
           <div className="relative z-10 max-w-2xl mx-auto">
-            <div className="w-16 h-16 mx-auto bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white mb-8 border border-white/10">
+            <div className="w-16 h-16 mx-auto bg-white/70 dark:bg-stone-800/80 backdrop-blur-sm rounded-2xl flex items-center justify-center text-[var(--color-primary)] mb-8 border border-white/60 dark:border-stone-700 shadow-card">
               <Users size={32} />
             </div>
-            <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">Begin your journey.</h2>
-            <p className="text-stone-300 text-lg md:text-xl mb-10 leading-relaxed">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 dark:text-white mb-6">Begin your journey.</h2>
+            <p className="text-stone-600 dark:text-stone-300 text-lg md:text-xl mb-10 leading-relaxed">
               Your first class is the hardest step. We make it easy. <br className="hidden md:block"/> Check the schedule to find a time that works for you.
             </p>
-            <Link to="/schedule" className="inline-block px-10 py-4 bg-teal-500 text-white rounded-full font-bold text-lg hover:bg-teal-400 transition-colors shadow-lg shadow-teal-900/20">
+            <Link to="/schedule" className="inline-block px-10 py-4 bg-[var(--color-primary)] text-white rounded-full font-bold text-lg hover:brightness-105 transition-colors shadow-lg shadow-[var(--color-primary)]/25">
               View Schedule
             </Link>
           </div>

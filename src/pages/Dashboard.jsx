@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../utils/supabase';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { Calendar, Clock, MapPin, LogOut, Trash2, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ const Dashboard = () => {
   const { currentUser, logout } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState(null);
@@ -15,6 +16,11 @@ const Dashboard = () => {
 
   const fetchBookings = useCallback(async () => {
     if (!currentUser) return;
+    if (!isSupabaseConfigured || !supabase) {
+      setError('Bookings will appear once Supabase is configured.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -27,6 +33,7 @@ const Dashboard = () => {
       setBookings(data || []);
     } catch (err) {
       console.error("Error fetching bookings:", err);
+      setError('We could not load your bookings. Please try again shortly.');
     } finally {
       setLoading(false);
     }
@@ -43,6 +50,10 @@ const Dashboard = () => {
 
   const confirmCancel = async () => {
     if (!bookingToCancel) return;
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Bookings are offline until Supabase is configured.');
+      return;
+    }
     setDeletingId(bookingToCancel.id);
     try {
       const { data, error } = await supabase
@@ -93,7 +104,13 @@ const Dashboard = () => {
           <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 font-serif">Your Upcoming Classes</h2>
           <span className="text-xs font-bold uppercase tracking-widest text-stone-400">{bookings.length} Booked</span>
         </div>
-        
+
+        {error && (
+          <div className="mb-6 rounded-2xl border border-white/60 dark:border-stone-700 bg-[var(--color-card)] text-[var(--color-muted)] dark:text-stone-200 px-4 py-3 shadow-card">
+            <p className="text-sm flex items-center gap-2"><AlertCircle size={16} /> {error}</p>
+          </div>
+        )}
+
         {loading ? (
           <div className="p-12 text-center text-stone-400 animate-pulse">Loading your space...</div>
         ) : bookings.length === 0 ? (
@@ -102,7 +119,7 @@ const Dashboard = () => {
               <Calendar size={24} />
             </div>
             <p className="text-stone-500 dark:text-stone-400 mb-6 font-medium">Your schedule is currently empty.</p>
-            <button onClick={() => navigate('/schedule')} className="px-8 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold shadow-lg shadow-teal-900/20 transition-all hover:-translate-y-0.5">Browse Schedule</button>
+            <button onClick={() => navigate('/schedule')} className="px-8 py-3 bg-[var(--color-primary)] hover:brightness-105 text-white rounded-xl font-bold shadow-lg shadow-[var(--color-primary)]/25 transition-all hover:-translate-y-0.5">Browse Schedule</button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -111,14 +128,14 @@ const Dashboard = () => {
                 <div>
                   <h3 className="font-bold text-lg text-stone-900 dark:text-white font-serif mb-2">{booking.class_name}</h3>
                   <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-stone-500 dark:text-stone-400">
-                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-teal-500"/> {new Date(booking.class_date).toLocaleDateString()}</span>
-                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-teal-500"/> {new Date(booking.class_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-teal-500"/> {booking.location}</span>
+                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-[var(--color-primary)]"/> {new Date(booking.class_date).toLocaleDateString()}</span>
+                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-[var(--color-primary)]"/> {new Date(booking.class_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[var(--color-primary)]"/> {booking.location}</span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-none border-stone-100 dark:border-stone-700">
-                  <span className="bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex-1 sm:flex-none text-center border border-teal-100 dark:border-teal-800">
+                  <span className="bg-[var(--color-primary)]/15 text-[var(--color-primary)] px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex-1 sm:flex-none text-center border border-white/60 dark:border-stone-700">
                     Confirmed
                   </span>
                   

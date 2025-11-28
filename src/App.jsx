@@ -12,6 +12,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Retreats from './pages/Retreats';
 import Contact from './pages/Contact';
+import AdminPanel from './pages/AdminPanel';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   return (
@@ -26,13 +28,15 @@ export default function App() {
               <Route path="/about" element={<About />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/retreats" element={<Retreats />} />
               <Route path="/contact" element={<Contact />} />
             </Route>
 
             {/* ZenFlow Application Route */}
-            <Route path="/tools/zenflow" element={<ZenFlowApp />} />
+            <Route path="/tools/zenflow" element={<ProtectedRoute requireAdmin><ZenFlowApp /></ProtectedRoute>} />
+
+            <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPanel /></ProtectedRoute>} />
             
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
