@@ -9,89 +9,73 @@ export default {
     extend: {
       fontFamily: {
         serif: ['Cinzel', 'serif'],
-        sans: ['Lato', 'sans-serif'], // Switched to Lato for a cleaner, friendlier read
+        sans: ['Lato', 'sans-serif'],
       },
       colors: {
-        // Custom "Sand" Palette - Replaces standard Stone
+        // "Sand" - Warmer, creamier neutrals for backgrounds
         stone: {
-          50: '#FDFCF8',  // Creamier white
-          100: '#F5F2ED', // Soft beige
-          200: '#EBE5DE',
-          300: '#D6D1CA',
-          400: '#A8A29D',
+          50: '#FAFAF9',  
+          100: '#F5F5F4', 
+          200: '#E7E5E4',
+          300: '#D6D3D1',
+          400: '#A8A29E',
           500: '#78716C',
           600: '#57534E',
           700: '#44403C',
           800: '#292524',
-          900: '#1C1917', // Warm black
+          900: '#1C1917',
           950: '#0C0A09',
         },
-        // Custom "Sage" Palette - Replaces standard Teal
+        // "Sage" - Muted, natural greens for primary actions
         teal: {
-          50: '#F2F9F7',
-          100: '#E1EFEA',
-          200: '#C2DDD5', // Soft Sage
-          300: '#9BC3B8',
-          400: '#73A599',
-          500: '#53887C', // Main Brand Color - Muted, elegant green
-          600: '#3F6C62',
-          700: '#31544D',
-          800: '#28433E',
-          900: '#233834',
-          950: '#111F1D',
+          50: '#F0FDF9',
+          100: '#CCFBF1',
+          200: '#99F6E4',
+          300: '#5EEAD4',
+          400: '#2DD4BF',
+          500: '#14B8A6',
+          600: '#0D9488', // Primary Brand Color
+          700: '#0F766E',
+          800: '#115E59',
+          900: '#134E4A',
+          950: '#042F2E',
         },
-        // Custom "Clay" Palette - Replaces standard Rose
+        // "Clay" - Soft, dusty pinks/reds for accents/errors
         rose: {
-          50: '#FDF7F6',
-          100: '#FCEFEF',
-          200: '#F6DCD8',
-          300: '#ECBDB6',
-          400: '#DF968D', // Dusty Clay
-          500: '#C86B5E',
-          600: '#B34E40',
-          700: '#963C30',
-          800: '#7D332B',
-          900: '#682F29',
+          50: '#FFF1F2',
+          100: '#FFE4E6',
+          200: '#FECDD3',
+          300: '#FDA4AF',
+          400: '#FB7185', 
+          500: '#F43F5E',
+          600: '#E11D48',
+          700: '#BE123C',
+          800: '#9F1239',
+          900: '#881337',
+          950: '#4C0519',
         }
       },
       borderRadius: {
-        'xl': '1rem',
-        '2xl': '1.5rem',
         '3xl': '2rem',
+        '4xl': '2.5rem',
       },
       boxShadow: {
-        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-        'glow': '0 0 15px rgba(83, 136, 124, 0.3)', // Sage glow
+        'soft': '0 10px 40px -10px rgba(0,0,0,0.05)',
+        'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.04)',
       },
       animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'breathe': 'breathe 8s ease-in-out infinite',
-        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
-        'gradient-x': 'gradient-x 15s ease infinite',
-        'spin-slow': 'spin 12s linear infinite',
+        'fade-in': 'fadeIn 0.5s ease-out forwards',
+        'slide-up': 'slideUp 0.5s ease-out forwards',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
-        breathe: {
-          '0%, 100%': { transform: 'scale(1)', opacity: '0.9' },
-          '50%': { transform: 'scale(1.05)', opacity: '1' },
-        },
-        fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        'gradient-x': {
-          '0%, 100%': {
-            'background-size': '200% 200%',
-            'background-position': 'left center'
-          },
-          '50%': {
-            'background-size': '200% 200%',
-            'background-position': 'right center'
-          },
         },
       },
     },
