@@ -378,7 +378,7 @@ const AdminPanel = () => {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-3 rounded-xl border border-black/5 bg-white font-semibold text-[var(--color-muted)]"
+                  className="px-4 py-3 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] font-semibold shadow-card"
                 >
                   Clear
                 </button>
@@ -511,8 +511,10 @@ const AdminPanel = () => {
               <span className="text-[var(--color-muted)]">Toggle to switch to the other mode</span>
             </div>
             <button
+              type="button"
               onClick={toggleTheme}
-              className="px-4 py-2 rounded-xl border border-black/5 bg-white shadow-card text-sm font-semibold flex items-center gap-2"
+              className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] shadow-card text-sm font-semibold flex items-center gap-2"
+              aria-pressed={darkMode}
             >
               {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
               Switch to {darkMode ? 'Light' : 'Dark'} Palette
