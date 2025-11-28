@@ -105,7 +105,7 @@ const AdminPanel = () => {
   const [retreatToDelete, setRetreatToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [presetPreview, setPresetPreview] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState('');
   const [randomizing, setRandomizing] = useState(false);
   const toastRegionRef = useRef(null);
 
@@ -501,6 +501,14 @@ const AdminPanel = () => {
     }
   };
 
+  const hydrateTheme = useCallback(
+    (nextTheme) => ({
+      light: { ...DEFAULT_THEME.light, ...(nextTheme?.light || {}) },
+      dark: { ...DEFAULT_THEME.dark, ...(nextTheme?.dark || {}) },
+    }),
+    [],
+  );
+
   const updateThemeField = (mode, key, value) => {
     const next = {
       ...DEFAULT_THEME,
@@ -509,22 +517,21 @@ const AdminPanel = () => {
     };
     setDraftTheme(next);
     previewTheme(next);
+    setSelectedPreset('');
   };
 
-  const applyThemeToEditor = (nextTheme) => {
-    const hydrated = {
-      light: { ...DEFAULT_THEME.light, ...(nextTheme?.light || {}) },
-      dark: { ...DEFAULT_THEME.dark, ...(nextTheme?.dark || {}) },
-    };
-    setPresetPreview('');
+  const applyThemeToEditor = (nextTheme, presetName = '') => {
+    const hydrated = hydrateTheme(nextTheme);
+    setSelectedPreset(presetName);
     setDraftTheme(hydrated);
     previewTheme(hydrated);
   };
 
   const restoreSavedTheme = () => {
-    setDraftTheme(theme);
-    previewTheme(theme);
-    setPresetPreview('');
+    const hydrated = hydrateTheme(theme);
+    setDraftTheme(hydrated);
+    previewTheme(hydrated);
+    setSelectedPreset('');
     addToast('success', 'Restored the saved palette and preview.');
   };
 
@@ -581,14 +588,9 @@ const AdminPanel = () => {
     setRandomizing(false);
   };
 
-  const previewPreset = (palette, name) => {
-    setPresetPreview(name);
-    previewTheme(palette);
-  };
-
-  const stopPresetPreview = () => {
-    setPresetPreview('');
-    previewTheme(draftTheme);
+  const handlePresetSelect = (preset) => {
+    applyThemeToEditor(preset.palette, preset.name);
+    addToast('info', `${preset.name} applied in preview. Save to keep it or restore to revert.`);
   };
 
   useEffect(() => () => resetPreviewTheme(), [resetPreviewTheme]);
@@ -1289,19 +1291,11 @@ const AdminPanel = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
-              {presetPreview && (
+              {selectedPreset && (
                 <span className="px-3 py-2 rounded-xl bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] text-xs font-semibold">
-                  Previewing {presetPreview}
+                  {selectedPreset} applied (unsaved)
                 </span>
               )}
-              <button
-                onClick={stopPresetPreview}
-                className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
-                title="Return to the editable palette"
-              >
-                <Sparkles size={16} />
-                Stop Preview
-              </button>
               <button
                 onClick={restoreSavedTheme}
                 className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
@@ -1351,32 +1345,35 @@ const AdminPanel = () => {
 
           <div className="grid md:grid-cols-2 gap-3 mb-4">
             {THEME_PRESETS.map((preset) => (
-              <div key={preset.name} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card flex flex-col gap-3">
+              <button
+                type="button"
+                key={preset.name}
+                onClick={() => handlePresetSelect(preset)}
+                className={`p-4 text-left rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card flex flex-col gap-3 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 ${
+                  selectedPreset === preset.name ? 'ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-card)]' : ''
+                }`}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Preset</p>
                     <h4 className="text-lg font-serif font-bold">{preset.name}</h4>
-                    <p className="text-xs text-[var(--color-muted)]">{preset.description}</p>
+                    <p className="text-xs text-[var(--color-muted)] leading-relaxed">{preset.description}</p>
                   </div>
                   <div className="h-12 w-16 rounded-xl overflow-hidden border border-black/5" style={{ background: `linear-gradient(120deg, ${preset.palette.light.gradientFrom}, ${preset.palette.light.gradientTo})` }} />
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => previewPreset(preset.palette, preset.name)}
-                    className="px-3 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] text-sm font-semibold"
-                  >
-                    Preview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyThemeToEditor(preset.palette)}
-                    className="px-3 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-semibold shadow-card"
-                  >
-                    Load into Editor
-                  </button>
+                <div className="flex items-center gap-3 text-xs font-semibold text-[var(--color-muted)]">
+                  <span className="flex items-center gap-2">
+                    <span className="h-6 w-6 rounded-full border border-black/5" style={{ background: preset.palette.light.primary }} />
+                    Light & Dark ready
+                  </span>
+                  {selectedPreset === preset.name && (
+                    <span className="flex items-center gap-1 text-[var(--color-primary)]">
+                      <CheckCircle2 size={14} />
+                      Applied
+                    </span>
+                  )}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
