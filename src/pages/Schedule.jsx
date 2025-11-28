@@ -1,42 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabase';
-import { Calendar, Clock, MapPin, Check, Users, X, CheckCircle, Wallet, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Check, Users, X, CheckCircle, Wallet, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 
 const INITIAL_CLASSES = [
-  { id: 'c1', title: 'Vinyasa Flow', time: '10:00 AM', date: '2023-10-25', duration: '60 min', location: 'Studio A', instructor: 'Sarah', price: 20, spotsTotal: 15, spotsBooked: 8, difficulty: 'Intermediate' },
-  { id: 'c2', title: 'Yin Yoga', time: '6:00 PM', date: '2023-10-25', duration: '75 min', location: 'Studio B', instructor: 'Mike', price: 25, spotsTotal: 12, spotsBooked: 12, difficulty: 'Beginner' },
-  { id: 'c3', title: 'Power Yoga', time: '8:00 AM', date: '2023-10-26', duration: '45 min', location: 'Studio A', instructor: 'Jessica', price: 20, spotsTotal: 20, spotsBooked: 5, difficulty: 'Advanced' },
+  { id: 'c1', title: 'Sunrise Vinyasa', time: '07:00 AM', date: new Date(Date.now() + 86400000).toISOString(), duration: '60 min', location: 'Drayton Hall', instructor: 'Jocelyn', price: 20, spotsTotal: 15, spotsBooked: 8, difficulty: 'All Levels' },
+  { id: 'c2', title: 'Candlelit Yin', time: '07:30 PM', date: new Date(Date.now() + 86400000).toISOString(), duration: '75 min', location: 'The Loft', instructor: 'Jocelyn', price: 25, spotsTotal: 12, spotsBooked: 10, difficulty: 'Beginner' },
+  { id: 'c3', title: 'Power Flow', time: '09:00 AM', date: new Date(Date.now() + 172800000).toISOString(), duration: '60 min', location: 'Drayton Hall', instructor: 'Jocelyn', price: 20, spotsTotal: 20, spotsBooked: 5, difficulty: 'Intermediate' },
 ];
 
 const Schedule = () => {
   const [classes, setClasses] = useState(INITIAL_CLASSES);
-  const [bookedClassIds, setBookedClassIds] = useState(new Set()); // Stores class_ids
-  const [bookingsMap, setBookingsMap] = useState(new Map()); // Stores class_id -> booking_id
+  const [bookedClassIds, setBookedClassIds] = useState(new Set());
+  const [bookingsMap, setBookingsMap] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [user, setUser] = useState(null);
   
+  // Modals
   const [showConfirmModal, setShowConfirmModal] = useState(false); 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-
-  const fetchUserBookings = async (userId) => {
-    const { data } = await supabase
-      .from('bookings')
-      .select('id, class_id')
-      .eq('user_id', userId);
-    
-    if (data) {
-      setBookedClassIds(new Set(data.map(b => b.class_id)));
-      setBookingsMap(new Map(data.map(b => [b.class_id, b.id])));
-    }
-  };
 
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      if (user) await fetchUserBookings(user.id);
+      if (user) {
+        const { data } = await supabase.from('bookings').select('id, class_id').eq('user_id', user.id);
+        if (data) {
+          setBookedClassIds(new Set(data.map(b => b.class_id)));
+          setBookingsMap(new Map(data.map(b => [b.class_id, b.id])));
+        }
+      }
       setLoading(false);
     };
     loadData();
@@ -49,206 +45,139 @@ const Schedule = () => {
     setShowConfirmModal(true);
   };
 
+  const handleCancelClick = (cls) => {
+    setSelectedClass(cls);
+    setShowCancelModal(true);
+  };
+
   const confirmBooking = async () => {
     if (!selectedClass || !user) return;
     setActionLoading(selectedClass.id);
-
     try {
-      // 1. Strict Duplicate Check on Server
-      const { data: existing } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('class_id', selectedClass.id)
-        .single();
-
-      if (existing) {
-        alert("You have already booked this class.");
-        await fetchUserBookings(user.id); // Sync state
-        setShowConfirmModal(false);
-        return;
-      }
-
-      // 2. Insert
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert([{
-          user_id: user.id,
-          class_id: selectedClass.id,
-          class_name: selectedClass.title,
-          class_date: selectedClass.date,
-          location: selectedClass.location
-        }])
-        .select(); // Return the new ID
-
+      const { data, error } = await supabase.from('bookings').insert([{ user_id: user.id, class_id: selectedClass.id, class_name: selectedClass.title, class_date: selectedClass.date, location: selectedClass.location }]).select();
       if (error) throw error;
-      
-      // 3. Update Local State
       if (data && data[0]) {
-        const newBooking = data[0];
         setBookedClassIds(prev => new Set(prev).add(selectedClass.id));
-        setBookingsMap(prev => new Map(prev).set(selectedClass.id, newBooking.id));
-        
-        setClasses(prev => prev.map(c => 
-          c.id === selectedClass.id ? { ...c, spotsBooked: c.spotsBooked + 1 } : c
-        ));
+        setBookingsMap(prev => new Map(prev).set(selectedClass.id, data[0].id));
+        setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, spotsBooked: c.spotsBooked + 1 } : c));
       }
-      
       setShowConfirmModal(false);
       setShowSuccessModal(true);
-
-    } catch (err) {
-      alert(`Booking failed: ${err.message}`);
-    } finally {
-      setActionLoading(null);
-    }
+    } catch (err) { alert(`Booking failed: ${err.message}`); } finally { setActionLoading(null); }
   };
 
-  const handleCancel = async (cls) => {
-    if (!confirm(`Cancel your spot in ${cls.title}?`)) return;
-    setActionLoading(cls.id);
-
-    // Find the specific booking ID for this class
-    const bookingId = bookingsMap.get(cls.id);
-
+  const confirmCancel = async () => {
+    if (!selectedClass) return;
+    setActionLoading(selectedClass.id);
+    const bookingId = bookingsMap.get(selectedClass.id);
     try {
-      // If we don't have the ID locally, try to find it on server before deleting
       let query = supabase.from('bookings').delete().eq('user_id', user.id);
-      
-      if (bookingId) {
-        query = query.eq('id', bookingId);
-      } else {
-        query = query.eq('class_id', cls.id);
-      }
-
-      const { data, error } = await query.select();
-
+      if (bookingId) query = query.eq('id', bookingId); else query = query.eq('class_id', selectedClass.id);
+      const { error } = await query.select();
       if (error) throw error;
-
-      if (!data || data.length === 0) {
-        // Only throw if we truly expected something to be there
-        if (bookedClassIds.has(cls.id)) {
-           throw new Error("Database returned 0 deleted rows. Check permissions.");
-        }
-      }
-
-      // Success: Update UI
-      setBookedClassIds(prev => {
-        const next = new Set(prev);
-        next.delete(cls.id);
-        return next;
-      });
-      
-      // Remove from map
-      setBookingsMap(prev => {
-        const next = new Map(prev);
-        next.delete(cls.id);
-        return next;
-      });
-
-      setClasses(prev => prev.map(c => 
-        c.id === cls.id ? { ...c, spotsBooked: Math.max(0, c.spotsBooked - 1) } : c
-      ));
-
-    } catch (err) {
-      alert(`Cancellation failed: ${err.message}`);
-      await fetchUserBookings(user.id); // Re-sync on error
-    } finally {
-      setActionLoading(null);
-    }
+      setBookedClassIds(prev => { const next = new Set(prev); next.delete(selectedClass.id); return next; });
+      setBookingsMap(prev => { const next = new Map(prev); next.delete(selectedClass.id); return next; });
+      setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, spotsBooked: Math.max(0, c.spotsBooked - 1) } : c));
+      setShowCancelModal(false);
+    } catch (err) { alert(`Cancellation failed: ${err.message}`); } finally { setActionLoading(null); }
   };
 
-  if (loading) return <div className="p-12 text-center text-stone-500 animate-pulse">Loading schedule...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-900">
+      <div className="animate-pulse flex flex-col items-center">
+        <div className="h-12 w-12 rounded-full bg-stone-200 dark:bg-stone-800 mb-4"></div>
+        <div className="h-4 w-32 bg-stone-200 dark:bg-stone-800 rounded"></div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="animate-in fade-in duration-500 pb-24 relative">
-      <div className="bg-stone-100 dark:bg-stone-800 py-12 px-4 text-center border-b border-stone-200 dark:border-stone-700">
-        <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 dark:text-white mb-3">Class Schedule</h1>
-        <p className="text-stone-600 dark:text-stone-300 max-w-xl mx-auto">Reserve your spot online to ensure availability.</p>
+    <div className="min-h-screen bg-stone-50 dark:bg-stone-900 relative">
+      <div className="bg-grain"></div>
+      
+      {/* Header */}
+      <div className="relative pt-24 pb-12 px-4 text-center z-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 text-xs font-bold uppercase tracking-widest mb-6 shadow-sm">
+          <Sparkles size={12} className="text-teal-500" /> Weekly Classes
+        </div>
+        <h1 className="text-5xl md:text-6xl font-serif font-medium text-stone-800 dark:text-stone-100 mb-6">Class Schedule</h1>
+        <p className="text-lg text-stone-500 dark:text-stone-400 max-w-xl mx-auto leading-relaxed">
+          Join us on the mat. Find a time that nurtures your body and mind.
+        </p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 -mt-8 space-y-4">
-        {classes.map((cls) => {
+      {/* Class List */}
+      <div className="max-w-4xl mx-auto px-4 pb-24 space-y-6 relative z-10">
+        {classes.map((cls, idx) => {
           const isBooked = bookedClassIds.has(cls.id);
           const spotsLeft = cls.spotsTotal - cls.spotsBooked;
           const isFull = spotsLeft <= 0;
-          const isLoading = actionLoading === cls.id;
+          const dateObj = new Date(cls.date);
 
           return (
             <div 
               key={cls.id} 
-              className={`
-                flex flex-col md:flex-row gap-6 p-6 rounded-2xl border-2 transition-all duration-200 shadow-sm
+              className={`group relative rounded-3xl p-6 md:p-8 transition-all duration-300 border animate-in-up
                 ${isBooked 
-                  ? 'bg-teal-50 dark:bg-teal-900 border-teal-500 dark:border-teal-500' 
-                  : 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 hover:border-teal-400 dark:hover:border-teal-700 hover:shadow-md'
-                }
-              `}
+                  ? 'bg-teal-50/50 border-teal-100 dark:bg-teal-900/10 dark:border-teal-800/30' 
+                  : 'bg-white border-stone-100 shadow-card hover:shadow-soft hover:-translate-y-1 dark:bg-stone-800 dark:border-stone-700'
+                }`}
+              style={{ animationDelay: `${idx * 0.1}s` }}
             >
-              <div className="flex-shrink-0 flex md:flex-col items-center justify-center md:justify-start gap-3 md:gap-1 md:w-24 md:border-r border-stone-100 dark:border-stone-700/50 pr-0 md:pr-6">
-                <span className="text-xs font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400">
-                  {new Date(cls.date).toLocaleDateString('en-US', { month: 'short' })}
-                </span>
-                <span className="text-2xl md:text-3xl font-serif font-bold text-stone-900 dark:text-white">
-                  {new Date(cls.date).getDate()}
-                </span>
-                <span className="text-sm text-stone-500 dark:text-stone-400 font-medium">
-                  {new Date(cls.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                </span>
-              </div>
+              <div className="flex flex-col md:flex-row gap-6 md:items-center">
+                
+                {/* Date Badge */}
+                <div className={`flex flex-col items-center justify-center w-full md:w-20 h-20 rounded-2xl shrink-0 border transition-colors
+                  ${isBooked 
+                    ? 'bg-white border-teal-100 text-teal-700 dark:bg-teal-900/20 dark:border-teal-800 dark:text-teal-300' 
+                    : 'bg-stone-50 border-stone-100 text-stone-600 dark:bg-stone-700 dark:border-stone-600 dark:text-stone-300'
+                  }`}>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{dateObj.toLocaleDateString('en-US', { month: 'short' })}</span>
+                  <span className="text-2xl font-serif font-bold leading-none mt-1">{dateObj.getDate()}</span>
+                </div>
 
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-bold text-stone-900 dark:text-white">{cls.title}</h3>
+                {/* Details */}
+                <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                    <h3 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">{cls.title}</h3>
                     {isBooked && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-200 border border-teal-200 dark:border-teal-800">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
                         <Check size={12} strokeWidth={3} /> Booked
                       </span>
                     )}
                   </div>
-                  <span className="text-lg font-bold text-teal-600 dark:text-teal-400">${cls.price}</span>
-                </div>
-
-                <div className="flex flex-wrap gap-4 text-sm text-stone-500 dark:text-stone-400 mb-4 font-medium">
-                  <span className="flex items-center gap-1.5"><Clock size={16} /> {cls.time} ({cls.duration})</span>
-                  <span className="flex items-center gap-1.5"><MapPin size={16} /> {cls.location}</span>
                   
-                  <span className={`flex items-center gap-1.5 transition-colors ${isFull && !isBooked ? 'text-rose-500 dark:text-rose-400 font-bold' : ''}`}>
-                    <Users size={16} /> 
-                    {isFull 
-                      ? 'Class Full' 
-                      : `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left`
-                    }
-                  </span>
+                  <div className="flex flex-wrap gap-4 text-sm text-stone-500 dark:text-stone-400">
+                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-teal-500"/> {cls.time} • {cls.duration}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-teal-500"/> {cls.location}</span>
+                    <span className={`flex items-center gap-1.5 ${isFull && !isBooked ? 'text-rose-500 font-medium' : ''}`}>
+                      <Users size={14} className={isFull ? 'text-rose-500' : 'text-teal-500'}/> {isFull ? 'Waitlist Only' : `${spotsLeft} spots left`}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-xs font-bold bg-stone-100 dark:bg-stone-800 px-3 py-1 rounded text-stone-600 dark:text-stone-400 uppercase tracking-wide">
-                    {cls.difficulty}
-                  </span>
-
+                {/* Action */}
+                <div className="flex items-center justify-between md:flex-col md:items-end gap-4 mt-2 md:mt-0 border-t md:border-none border-stone-100 dark:border-stone-700 pt-4 md:pt-0">
+                  <span className="text-lg font-bold text-stone-700 dark:text-stone-200">${cls.price}</span>
                   {isBooked ? (
                     <button 
-                      onClick={() => handleCancel(cls)}
-                      disabled={isLoading}
-                      className="px-6 py-2.5 rounded-xl font-bold text-sm bg-white dark:bg-stone-950 border-2 border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:border-rose-300 dark:hover:border-rose-700 hover:text-rose-600 dark:hover:text-rose-400 transition-all cursor-pointer flex items-center gap-2"
+                      onClick={() => handleCancelClick(cls)} 
+                      disabled={actionLoading === cls.id}
+                      className="px-5 py-2.5 rounded-xl text-sm font-bold border border-stone-200 text-stone-500 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-50 transition-colors bg-white dark:bg-stone-800 dark:border-stone-600 dark:text-stone-400 dark:hover:bg-rose-900/20"
                     >
-                      {isLoading ? 'Processing...' : 'Cancel Booking'}
+                      {actionLoading === cls.id ? '...' : 'Cancel'}
                     </button>
                   ) : (
                     <button 
-                      onClick={() => handleBookClick(cls)}
-                      disabled={isFull || isLoading}
-                      className={`
-                        px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all
+                      onClick={() => handleBookClick(cls)} 
+                      disabled={isFull || actionLoading === cls.id}
+                      className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-stone-900/5 hover:-translate-y-0.5 transition-all
                         ${isFull 
-                          ? 'bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed shadow-none' 
-                          : 'bg-stone-900 dark:bg-white text-white dark:text-stone-900 hover:bg-teal-600 dark:hover:bg-stone-200 hover:shadow-xl cursor-pointer'
-                        }
-                      `}
+                          ? 'bg-stone-300 cursor-not-allowed shadow-none dark:bg-stone-700 dark:text-stone-500' 
+                          : 'bg-stone-800 hover:bg-stone-900 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white'
+                        }`}
                     >
-                      {isLoading ? 'Processing...' : isFull ? 'Waitlist' : 'Book Now'}
+                      {isFull ? 'Join Waitlist' : 'Book Now'}
                     </button>
                   )}
                 </div>
@@ -260,72 +189,93 @@ const Schedule = () => {
 
       {/* --- CONFIRMATION MODAL --- */}
       {showConfirmModal && selectedClass && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowConfirmModal(false)}>
-          <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl w-full max-w-sm border border-stone-200 dark:border-stone-700 p-6 transform animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-serif font-bold text-stone-900 dark:text-white">Confirm Booking</h3>
-              <button onClick={() => setShowConfirmModal(false)}><X size={20} className="text-stone-400 hover:text-stone-900" /></button>
-            </div>
-            
-            <p className="text-stone-600 dark:text-stone-300 mb-6">
-              You are booking a spot for <strong>{selectedClass.title}</strong> on {new Date(selectedClass.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {selectedClass.time}.
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-sm animate-in fade-in" onClick={() => setShowConfirmModal(false)}>
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-white/50 dark:border-stone-700 animate-in-up" onClick={e => e.stopPropagation()}>
+            <div className="p-8">
+              <div className="mb-6">
+                <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">Confirm Booking</span>
+                <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mt-1 mb-2">{selectedClass.title}</h3>
+                <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400 text-sm">
+                  <Calendar size={14} /> {new Date(selectedClass.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })} at {selectedClass.time}
+                </div>
+              </div>
+              
+              <div className="bg-stone-50 dark:bg-stone-800 p-4 rounded-2xl mb-6 flex justify-between items-center border border-stone-100 dark:border-stone-700">
+                <span className="text-stone-600 dark:text-stone-300 font-medium text-sm">Total</span>
+                <span className="text-xl font-bold text-stone-900 dark:text-white">${selectedClass.price}</span>
+              </div>
 
-            <div className="flex gap-3">
-              <button 
-                onClick={confirmBooking}
-                disabled={actionLoading === selectedClass.id}
-                className="flex-1 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
-              >
-                {actionLoading === selectedClass.id ? 'Booking...' : <><span className="whitespace-nowrap">Yes, Book It</span> <ArrowRight size={16} /></>}
-              </button>
-              <button 
-                onClick={() => setShowConfirmModal(false)}
-                className="px-4 py-3 border border-stone-200 dark:border-stone-700 rounded-xl font-bold text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-800"
-              >
-                Cancel
-              </button>
+              <div className="flex gap-3">
+                <button onClick={() => setShowConfirmModal(false)} className="flex-1 py-3 rounded-xl font-bold text-stone-500 hover:bg-stone-50 dark:text-stone-400 dark:hover:bg-stone-800 transition-colors">Cancel</button>
+                <button onClick={confirmBooking} disabled={actionLoading === selectedClass.id} className="flex-[2] py-3 bg-stone-900 hover:bg-black text-white dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white rounded-xl font-bold shadow-lg shadow-stone-900/10 transition-all flex items-center justify-center gap-2">
+                  {actionLoading === selectedClass.id ? 'Booking...' : <>Confirm <ArrowRight size={16} /></>}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- SUCCESS MODAL --- */}
-      {showSuccessModal && selectedClass && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSuccessModal(false)}>
-          <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl max-w-md w-full border border-stone-200 dark:border-stone-700 transform animate-in zoom-in-95 duration-200 overflow-hidden" onClick={e => e.stopPropagation()}>
-            
-            <div className="bg-teal-600 p-6 text-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                <CheckCircle size={32} className="text-white" />
+      {/* --- CANCELLATION MODAL --- */}
+      {showCancelModal && selectedClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCancelModal(false)}>
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-white/50 dark:border-stone-700 animate-in-up" onClick={e => e.stopPropagation()}>
+            <div className="p-8">
+              <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-full flex items-center justify-center text-rose-500 mb-4">
+                <AlertCircle size={24} />
               </div>
-              <h3 className="text-2xl font-serif font-bold text-white">All Set!</h3>
-              <p className="text-teal-100 mt-1">We've saved a spot for you.</p>
+              <h3 className="text-xl font-serif font-bold text-stone-900 dark:text-white mb-2">Cancel your booking?</h3>
+              <p className="text-stone-500 dark:text-stone-400 text-sm mb-6 leading-relaxed">
+                Are you sure you want to cancel <strong>{selectedClass.title}</strong>? This will open up a spot for another student.
+              </p>
+
+              <div className="flex gap-3">
+                <button onClick={() => setShowCancelModal(false)} className="flex-1 py-3 rounded-xl font-bold text-stone-600 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 transition-colors">Keep Spot</button>
+                <button onClick={confirmCancel} disabled={actionLoading === selectedClass.id} className="flex-1 py-3 bg-white border-2 border-rose-100 text-rose-600 hover:bg-rose-50 hover:border-rose-200 dark:bg-stone-900 dark:border-rose-900/30 dark:text-rose-400 dark:hover:bg-rose-900/10 rounded-xl font-bold transition-all">
+                  {actionLoading === selectedClass.id ? '...' : 'Yes, Cancel'}
+                </button>
+              </div>
             </div>
-
-            <div className="p-6">
-              <div className="bg-stone-50 dark:bg-stone-800/50 p-4 rounded-xl border border-stone-100 dark:border-stone-700/50 mb-6">
-                <h4 className="font-bold text-stone-900 dark:text-white mb-1">{selectedClass.title}</h4>
-                <p className="text-stone-500 dark:text-stone-400 text-sm">
-                  {new Date(selectedClass.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} • {selectedClass.time}
-                </p>
-                <p className="text-stone-500 dark:text-stone-400 text-sm">{selectedClass.location}</p>
+          </div>
+        </div>
+      )}
+      
+      {/* --- SUCCESS / PAYMENT MODAL --- */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-sm animate-in fade-in" onClick={() => setShowSuccessModal(false)}>
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/50 dark:border-stone-700 animate-in-up" onClick={e => e.stopPropagation()}>
+            <div className="bg-teal-600 p-8 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-inner">
+                  <Check size={32} strokeWidth={3} />
+                </div>
+                <h3 className="text-2xl font-serif font-bold text-white mb-1">You're Booked!</h3>
+                <p className="text-teal-100 text-sm">We've saved a mat for you.</p>
+              </div>
+            </div>
+            
+            <div className="p-8">
+              <div className="space-y-4 mb-8">
+                <div className="flex gap-3 items-start">
+                  <div className="bg-stone-50 dark:bg-stone-800 p-2 rounded-lg text-stone-400 mt-0.5"><Wallet size={18} /></div>
+                  <div>
+                    <h4 className="font-bold text-stone-900 dark:text-white text-sm">Payment Options</h4>
+                    <p className="text-stone-500 dark:text-stone-400 text-xs mt-1 leading-relaxed">
+                      Please send an e-transfer of <strong>${selectedClass.price}</strong> to:
+                    </p>
+                    <div className="mt-2 bg-stone-50 dark:bg-stone-800 py-2 px-3 rounded-lg border border-stone-100 dark:border-stone-700 text-center">
+                      <span className="font-mono text-stone-800 dark:text-stone-200 text-sm select-all">hello@jocelynyoga.com</span>
+                    </div>
+                    <p className="text-stone-400 dark:text-stone-500 text-[10px] mt-2 italic">
+                      * Cash or card is also accepted at the studio.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <h5 className="font-bold text-stone-900 dark:text-white flex items-center gap-2 text-sm uppercase tracking-wide">
-                  <Wallet size={16} className="text-teal-600" /> Payment Info
-                </h5>
-                <p className="text-stone-600 dark:text-stone-300 text-sm leading-relaxed">
-                  Thanks for booking! You can pay <strong>${selectedClass.price}</strong> via e-transfer to <span className="font-mono bg-stone-100 dark:bg-stone-800 px-1 rounded">hello@jocelynyoga.com</span> or simply bring cash to the class.
-                </p>
-              </div>
-
-              <button 
-                onClick={() => setShowSuccessModal(false)}
-                className="w-full mt-8 py-3 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-white rounded-xl font-bold hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
-              >
-                Close
+              <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 bg-stone-900 hover:bg-stone-800 dark:bg-white dark:text-stone-900 dark:hover:bg-stone-200 text-white rounded-xl font-bold shadow-lg shadow-stone-900/10 transition-all">
+                Wonderful, thanks!
               </button>
             </div>
           </div>

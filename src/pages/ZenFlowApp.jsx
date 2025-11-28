@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, PlayCircle, RefreshCw, Settings, Heart, Printer, Sun, Moon, Music, Activity, BookOpen, LogOut, LogIn, Layers, Target, Zap, Anchor, Wind, Trash2, Play, ArrowLeft } from 'lucide-react';
+import { Menu, X, PlayCircle, RefreshCw, Settings, Heart, Printer, Sun, Moon, Music, Activity, BookOpen, LogOut, LogIn, Layers, Target, Zap, Anchor, Wind, Trash2, Play, ArrowLeft, Check } from 'lucide-react';
 import PoseCard from '../components/PoseCard';
 import PoseLibrary from '../components/PoseLibrary';
 import MusicConfig from '../components/MusicConfig';
@@ -532,28 +532,10 @@ export default function ZenFlowApp() {
   }
 
   return (
-    <div className={`h-[100dvh] overflow-hidden font-sans transition-colors duration-300 ${darkMode ? 'dark bg-stone-900 text-stone-100' : 'bg-stone-50 text-stone-800'}`}>
-      <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-white/90 dark:bg-stone-800/90 backdrop-blur border-b border-stone-200 dark:border-stone-700 flex items-center justify-between px-4 lg:px-8 print:hidden">
-        <div className="flex items-center gap-3">
-          {/* New Back Button */}
-          <Link to="/" className="p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg text-stone-600 dark:text-stone-300 transition-colors" title="Back to Home">
-            <ArrowLeft size={24} />
-          </Link>
-
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg text-stone-600 dark:text-stone-300 touch-manipulation"><Menu size={24} /></button>
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('generator')}><div className="bg-teal-600 text-white p-1.5 rounded-lg"><Activity size={18} /></div><h1 className="text-xl font-bold tracking-tight text-stone-800 dark:text-stone-100 font-serif">ZenFlow</h1></div>
-        </div>
-        <nav className="hidden md:flex items-center gap-1">
-          {['generator', 'library', 'saved', 'settings'].map(tab => (<button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === tab ? 'bg-stone-100 dark:bg-stone-700 text-teal-700 dark:text-teal-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'}`}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</button>))}
-        </nav>
-        <div className="flex items-center gap-2">
-          {!spotifyToken && <button onClick={() => window.location.href = getLoginUrl()} className="px-3 py-2 bg-[#1DB954] text-white rounded-full text-xs font-bold hover:opacity-90 flex items-center gap-1 touch-manipulation"><LogIn size={16} /> Connect Spotify</button>}
-          {spotifyToken && <button onClick={handleLogout} className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full touch-manipulation" title="Disconnect"><LogOut size={20} /></button>}
-          
-          {/* Updated Toggle Button */}
-          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 transition-colors touch-manipulation">{darkMode ? <Sun size={20} /> : <Moon size={20} />}</button>
-        </div>
-      </header>
+    <div className={`h-[100dvh] overflow-hidden font-sans transition-colors duration-300 relative ${darkMode ? 'dark bg-stone-900 text-stone-100' : 'bg-stone-50 text-stone-800'}`}>
+      {/* Background Ambience from Global Layout */}
+      <div className="fixed inset-0 bg-grain z-0 opacity-50 pointer-events-none"></div>
+      <div className="fixed inset-0 bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-stone-900 dark:via-stone-900 dark:to-stone-950 z-[-1] pointer-events-none"></div>
 
       {selectedPose && <PoseDetailModal pose={selectedPose} onClose={() => setSelectedPose(null)} />}
       
@@ -584,192 +566,244 @@ export default function ZenFlowApp() {
         />
       )}
 
-      <div className="pt-16 flex h-full overflow-hidden">
-        {isSidebarOpen && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-opacity animate-in fade-in duration-200" onClick={() => setIsSidebarOpen(false)} />}
-        {(activeTab === 'generator' || isSidebarOpen) && (
-          <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-80 bg-white dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 transform transition-transform duration-300 ease-in-out print:hidden flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden'} ${activeTab !== 'generator' ? 'lg:hidden' : ''}`}>
+      {/* --- APP HEADER --- */}
+      <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl border-b border-white/20 dark:border-white/5 flex items-center justify-between px-4 lg:px-8 print:hidden shadow-sm">
+        <div className="flex items-center gap-4">
+          <Link to="/" className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full text-stone-500 dark:text-stone-400 transition-colors" title="Back to Home">
+            <ArrowLeft size={20} />
+          </Link>
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full text-stone-500 dark:text-stone-400">
+            <Menu size={20} />
+          </button>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('generator')}>
+            <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+            <h1 className="text-xl font-bold font-serif text-stone-800 dark:text-white tracking-tight">ZenFlow</h1>
+          </div>
+        </div>
+        
+        {/* Desktop Tabs */}
+        <nav className="hidden lg:flex items-center bg-stone-100/50 dark:bg-stone-800/50 p-1 rounded-full border border-stone-200/50 dark:border-stone-700/50">
+          {['generator', 'library', 'saved', 'settings'].map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === tab ? 'bg-white dark:bg-stone-700 text-teal-800 dark:text-teal-100 shadow-sm' : 'text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+              {tab}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          {!spotifyToken && <button onClick={() => window.location.href = getLoginUrl()} className="hidden sm:flex px-4 py-1.5 bg-[#1DB954] hover:bg-[#1ed760] text-white rounded-full text-xs font-bold items-center gap-1.5 transition-all shadow-sm"><LogIn size={14} /> Spotify</button>}
+          {spotifyToken && <button onClick={handleLogout} className="p-2 text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-full transition-colors" title="Disconnect"><LogOut size={18} /></button>}
+          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 dark:text-stone-400 transition-colors">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
+        </div>
+      </header>
+
+      <div className="pt-16 flex h-full relative z-10">
+        {/* --- SIDEBAR --- */}
+        {isSidebarOpen && <div className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-30 lg:hidden transition-opacity animate-in fade-in" onClick={() => setIsSidebarOpen(false)} />}
+        <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-80 bg-white/80 dark:bg-stone-900/80 border-r border-stone-100 dark:border-stone-800 transform transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] flex flex-col backdrop-blur-xl ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-none lg:overflow-hidden'} ${activeTab !== 'generator' ? 'lg:hidden' : ''}`}>
              <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin pb-24 lg:pb-6">
-                <div className="flex justify-between items-center lg:hidden mb-6"><div className="flex items-center gap-2"><div className="bg-teal-600 text-white p-1 rounded-lg"><Activity size={16} /></div><h2 className="font-bold text-lg dark:text-stone-100 font-serif">ZenFlow</h2></div><button onClick={() => setIsSidebarOpen(false)} className="text-stone-500 p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full touch-manipulation"><X size={20}/></button></div>
+                <div className="flex justify-between items-center lg:hidden mb-6"><h2 className="font-serif font-bold text-xl text-stone-900 dark:text-white">Menu</h2><button onClick={() => setIsSidebarOpen(false)} className="text-stone-400 hover:text-stone-900"><X size={20}/></button></div>
                 
-                <div className="lg:hidden mb-8 space-y-1 pb-6 border-b border-stone-100 dark:border-stone-700">
-                  <div className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 px-2">Menu</div>
+                {/* Mobile Tab Navigation */}
+                <div className="lg:hidden space-y-2">
                   {['generator', 'library', 'saved', 'settings'].map(tab => (
-                    <button 
-                      key={tab} 
-                      onClick={() => { setActiveTab(tab); setIsSidebarOpen(false); }} 
-                      className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all flex items-center gap-3 touch-manipulation ${activeTab === tab ? 'bg-teal-50 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100' : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'}`}
-                    >
-                      {tab === 'generator' && <RefreshCw size={18} />}
-                      {tab === 'library' && <BookOpen size={18} />}
-                      {tab === 'saved' && <Heart size={18} />}
-                      {tab === 'settings' && <Settings size={18} />}
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    <button key={tab} onClick={() => { setActiveTab(tab); setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === tab ? 'bg-stone-100 dark:bg-stone-800 text-teal-700 dark:text-teal-300' : 'text-stone-500 dark:text-stone-400'}`}>
+                      {tab === 'generator' && <RefreshCw size={18} />} {tab === 'library' && <BookOpen size={18} />} {tab === 'saved' && <Heart size={18} />} {tab === 'settings' && <Settings size={18} />}
+                      <span className="capitalize">{tab}</span>
                     </button>
                   ))}
                 </div>
 
                 {activeTab === 'generator' && (
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Settings size={14} /> Configuration</div>
-                    
+                  <div className="space-y-8 animate-in fade-in-up">
                     <div>
-                      <div className="flex justify-between text-sm mb-2 font-medium dark:text-stone-300"><span>Duration</span> <span>{params.duration} min</span></div>
-                      <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full accent-teal-600 h-2 bg-stone-200 dark:bg-stone-600 rounded-lg appearance-none cursor-pointer touch-manipulation" />
+                      <div className="flex justify-between text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-4"><span>Duration</span> <span>{params.duration} min</span></div>
+                      <input type="range" min="15" max="90" step="15" value={params.duration} onChange={(e) => setParams({...params, duration: parseInt(e.target.value)})} className="w-full h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full appearance-none cursor-pointer accent-teal-600 hover:accent-teal-500 transition-all" />
+                      <div className="flex justify-between mt-2 text-[10px] text-stone-400 font-mono"><span>15m</span><span>90m</span></div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Style</label>
-                        <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest">Style</label>
+                        <select value={params.style} onChange={(e) => setParams({...params, style: e.target.value})} className="w-full p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border-none text-sm font-bold text-stone-700 dark:text-stone-200 focus:ring-2 focus:ring-teal-500/50">
                           {['Vinyasa', 'Hatha', 'Power', 'Yin', 'Restorative'].map(s => <option key={s}>{s}</option>)}
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase mb-1.5">Level</label>
-                        <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm font-medium outline-none focus:ring-2 focus:ring-teal-500 dark:text-stone-100">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest">Level</label>
+                        <select value={params.difficulty} onChange={(e) => setParams({...params, difficulty: e.target.value})} className="w-full p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border-none text-sm font-bold text-stone-700 dark:text-stone-200 focus:ring-2 focus:ring-teal-500/50">
                           {['Beginner', 'Intermediate', 'Advanced'].map(l => <option key={l}>{l}</option>)}
                         </select>
                       </div>
                     </div>
 
-                    <div className="space-y-4 pt-4 border-t border-stone-100 dark:border-stone-700">
-                      <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Layers size={14} /> Method</div>
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest">Focus</label>
                       <div className="grid grid-cols-2 gap-2">
                           {[
-                            { id: SEQUENCE_METHODS.STANDARD, label: 'Standard', icon: Layers },
+                            { id: SEQUENCE_METHODS.STANDARD, label: 'Balanced', icon: Layers },
                             { id: SEQUENCE_METHODS.PEAK, label: 'Peak Pose', icon: Target },
                             { id: SEQUENCE_METHODS.THEME, label: 'Themed', icon: Zap },
-                            { id: SEQUENCE_METHODS.TARGET, label: 'Body Area', icon: Anchor },
-                            { id: SEQUENCE_METHODS.LADDER, label: 'Ladder', icon: Layers }
+                            { id: SEQUENCE_METHODS.TARGET, label: 'Anatomy', icon: Anchor },
                           ].map(m => (
-                            <button 
-                              key={m.id}
-                              onClick={() => setParams({...params, method: m.id})} 
-                              className={`p-3 rounded-lg text-xs font-bold border transition-all flex flex-col items-center gap-1 touch-manipulation ${params.method === m.id ? 'bg-teal-50 border-teal-500 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100 dark:border-teal-500' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-teal-300 dark:hover:border-stone-500'}`}
-                            >
-                              <m.icon size={16} /> {m.label}
+                            <button key={m.id} onClick={() => setParams({...params, method: m.id})} className={`p-3 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-2 ${params.method === m.id ? 'bg-teal-50 border-teal-500 text-teal-800 dark:bg-teal-900/30 dark:text-teal-100 dark:border-teal-500' : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 text-stone-500 hover:bg-stone-50 dark:hover:bg-stone-700'}`}>
+                              <m.icon size={18} /> {m.label}
                             </button>
                           ))}
                       </div>
-
+                      {/* Dynamic Selectors based on method */}
                       {params.method === SEQUENCE_METHODS.PEAK && (
-                          <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                            {PEAK_POSES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          <select value={params.selectedPeakPose} onChange={(e) => setParams({...params, selectedPeakPose: e.target.value})} className="w-full p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 text-sm text-teal-900 dark:text-teal-100 font-medium animate-in fade-in-up">
+                            {PEAK_POSES.map(p => <option key={p.id} value={p.id}>Peak: {p.name}</option>)}
                           </select>
                       )}
-                      
                       {params.method === SEQUENCE_METHODS.THEME && (
-                          <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                            {THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                          <select value={params.selectedTheme} onChange={(e) => setParams({...params, selectedTheme: e.target.value})} className="w-full p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 text-sm text-teal-900 dark:text-teal-100 font-medium animate-in fade-in-up">
+                            {THEMES.map(t => <option key={t.id} value={t.id}>Theme: {t.name}</option>)}
                           </select>
                       )}
-
                       {params.method === SEQUENCE_METHODS.TARGET && (
-                          <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-2 rounded border border-stone-200 dark:border-stone-600 text-sm bg-white dark:bg-stone-700 dark:text-stone-100">
-                            {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                          <select value={params.selectedTarget} onChange={(e) => setParams({...params, selectedTarget: e.target.value})} className="w-full p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 text-sm text-teal-900 dark:text-teal-100 font-medium animate-in fade-in-up">
+                            {TARGET_AREAS.map(t => <option key={t.id} value={t.id}>Focus: {t.name}</option>)}
                           </select>
                       )}
                     </div>
 
-                    <div className="space-y-3 pt-4 border-t border-stone-100 dark:border-stone-700">
-                      <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-bold uppercase text-xs tracking-widest"><Activity size={14} /> Filters</div>
+                    <div className="space-y-3 pt-4 border-t border-stone-100 dark:border-stone-800">
+                      <label className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest">Preferences</label>
                       {['noWrists', 'kneeFriendly', 'pregnancySafe'].map(f => (
-                        <label key={f} className="flex items-center gap-3 text-sm cursor-pointer hover:opacity-80 p-2 hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded text-stone-700 dark:text-stone-300 touch-manipulation">
-                          <input type="checkbox" checked={params.filters[f]} onChange={() => setParams(p => ({...p, filters: {...p.filters, [f]: !p.filters[f]}}))} className="accent-teal-600 w-4 h-4 rounded" />
-                          <span className="capitalize">{f.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <label key={f} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800 p-2 -mx-2 rounded-lg transition-colors">
+                          <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${params.filters[f] ? 'bg-teal-500 border-teal-500' : 'border-stone-300 dark:border-stone-600'}`}>
+                            {params.filters[f] && <Check size={14} className="text-white" />}
+                          </div>
+                          <input type="checkbox" checked={params.filters[f]} onChange={() => setParams(p => ({...p, filters: {...p.filters, [f]: !p.filters[f]}}))} className="hidden" />
+                          <span className="text-stone-600 dark:text-stone-300 capitalize font-medium">{f.replace(/([A-Z])/g, ' $1').trim()}</span>
                         </label>
                       ))}
                     </div>
                   </div>
                 )}
              </div>
-             {activeTab === 'generator' && <div className="p-6 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 pb-8 lg:pb-10"><button onClick={generateSequence} className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 touch-manipulation"><RefreshCw size={18} /> Generate Flow</button></div>}
-          </aside>
-        )}
-        <main className="flex-1 h-full overflow-y-auto bg-stone-50 dark:bg-stone-900 relative scrollbar-thin pb-safe">
-          {activeTab === 'library' && <PoseLibrary setSelectedPose={setSelectedPose} />}
-          {activeTab === 'settings' && <MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} spotifyToken={spotifyToken} getLoginUrl={getLoginUrl} isPremiumUser={isPremiumUser} tokenError={tokenError} />}
-          {activeTab === 'saved' && (
-             <div className="max-w-4xl mx-auto p-4 lg:p-8 pb-24">
-               <h2 className="text-3xl font-serif text-teal-900 dark:text-teal-100 mb-6">Saved & In-Progress</h2>
-               <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Pick up where you left off or revisit your favorite flows.</p>
+             
+             {activeTab === 'generator' && (
+               <div className="p-6 border-t border-stone-100 dark:border-stone-800 bg-white/50 dark:bg-stone-900/50 backdrop-blur-md">
+                 <button onClick={generateSequence} className="w-full py-4 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-2xl shadow-xl shadow-stone-900/10 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 font-bold text-sm tracking-wide flex items-center justify-center gap-2">
+                   <RefreshCw size={18} className={sequence.length === 0 ? "animate-spin-slow" : ""} /> Generate Flow
+                 </button>
+               </div>
+             )}
+        </aside>
 
-               {inProgress && (
-                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-6 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm mb-6 gap-4">
-                   <div>
-                     <div className="flex items-center gap-2 mb-1">
-                       <span className="px-2 py-0.5 bg-amber-200 text-amber-900 rounded text-[10px] font-bold uppercase tracking-wide">In Progress</span>
-                       <span className="text-xs text-amber-700 dark:text-amber-300">
-                         Pose { (inProgress.currentIndex || 0) + 1 } of {inProgress.poses.length} • Updated {new Date(inProgress.updatedAt).toLocaleTimeString()}
-                       </span>
+        {/* --- MAIN CONTENT AREA --- */}
+        <main className="flex-1 h-full overflow-y-auto relative scrollbar-thin pb-safe">
+          <div className="max-w-5xl mx-auto p-4 lg:p-8 pb-32">
+            
+            {activeTab === 'library' && <div className="animate-in fade-in-up"><PoseLibrary setSelectedPose={setSelectedPose} /></div>}
+            
+            {activeTab === 'settings' && <div className="animate-in fade-in-up"><MusicConfig themes={musicThemes} onUpdateTheme={updateMusicTheme} spotifyToken={spotifyToken} getLoginUrl={getLoginUrl} isPremiumUser={isPremiumUser} tokenError={tokenError} /></div>}
+            
+            {activeTab === 'saved' && (
+               <div className="animate-in fade-in-up space-y-8">
+                 <div className="mb-8">
+                   <h2 className="text-4xl font-serif text-stone-900 dark:text-white mb-2">Your Sanctuary</h2>
+                   <p className="text-stone-500 dark:text-stone-400">Resuming practice is an act of self-care.</p>
+                 </div>
+
+                 {inProgress && (
+                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10 border border-amber-100 dark:border-amber-800/50 p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-6 relative overflow-hidden group">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                     <div className="relative z-10">
+                       <span className="inline-block px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3">In Progress</span>
+                       <h3 className="font-bold text-xl text-stone-900 dark:text-stone-100 mb-1">{inProgress.name}</h3>
+                       <p className="text-sm text-stone-500 dark:text-stone-400 font-medium">Pose { (inProgress.currentIndex || 0) + 1 } of {inProgress.poses.length} • {inProgress.params.style}</p>
                      </div>
-                     <h3 className="font-bold text-lg text-stone-900 dark:text-stone-100">{inProgress.name}</h3>
-                     <p className="text-sm opacity-70 dark:text-stone-400">{inProgress.params.style} • {inProgress.params.duration} min</p>
+                     <div className="flex gap-3 w-full sm:w-auto relative z-10">
+                       <button onClick={() => resumePractice(inProgress)} className="flex-1 sm:flex-none px-6 py-3 bg-amber-900 dark:bg-amber-100 text-white dark:text-amber-900 rounded-xl font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all">Resume</button>
+                       <button onClick={clearInProgress} className="p-3 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-xl transition-colors"><Trash2 size={20} /></button>
+                     </div>
                    </div>
-                   <div className="flex gap-2 w-full sm:w-auto">
-                     <button onClick={() => resumePractice(inProgress)} className="flex-1 sm:flex-none px-3 py-2 bg-amber-500 text-white rounded-lg shadow font-bold touch-manipulation text-center">Resume</button>
-                     <button onClick={clearInProgress} className="p-2 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/50 rounded-lg touch-manipulation" title="Clear in-progress flow"><Trash2 size={18} /></button>
-                   </div>
-                 </div>
-               )}
+                 )}
 
-               <h3 className="text-xl font-bold text-teal-900 dark:text-teal-100 mb-4">Saved Flows</h3>
-               {savedSequences.length === 0 && <p className="text-sm text-stone-500 dark:text-stone-400">No saved flows yet. Create a sequence and tap the heart to store it.</p>}
-               {savedSequences.map(s => (
-                 <div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-xl flex justify-between items-center group shadow-sm mb-4 border border-stone-100 dark:border-stone-700">
-                   <div>
-                     <h3 className="font-bold text-lg dark:text-stone-100">{s.name}</h3>
-                     <p className="text-sm opacity-60 dark:text-stone-400">{s.params.style} • {s.params.duration} min</p>
-                   </div>
-                   <div className="flex gap-2">
-                     <button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 bg-teal-50 rounded-lg touch-manipulation"><Play size={18}/></button>
-                     <button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-600 bg-rose-50 rounded-lg touch-manipulation"><Trash2 size={18}/></button>
-                   </div>
+                 <div className="grid gap-4">
+                   {savedSequences.map(s => (
+                     <div key={s.id} className="bg-white dark:bg-stone-800 p-6 rounded-2xl border border-stone-100 dark:border-stone-700 flex justify-between items-center group hover:border-teal-200 dark:hover:border-teal-800 transition-colors">
+                       <div>
+                         <h3 className="font-bold text-lg dark:text-stone-100 mb-1">{s.name}</h3>
+                         <p className="text-sm text-stone-400 font-medium">{s.params.style} • {s.params.duration} min • {s.date}</p>
+                       </div>
+                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={() => { setParams(s.params); setSequence(s.poses); setActiveTab('generator'); }} className="p-2 text-teal-600 bg-teal-50 dark:bg-teal-900/20 rounded-lg"><Play size={18}/></button>
+                         <button onClick={() => deleteSaved(s.id)} className="p-2 text-rose-500 bg-rose-50 dark:bg-rose-900/20 rounded-lg"><Trash2 size={18}/></button>
+                       </div>
+                     </div>
+                   ))}
                  </div>
-               ))}
-             </div>
-          )}
-          {activeTab === 'generator' && (
-            <div className="max-w-5xl mx-auto p-4 lg:p-8 pb-24 print:p-0 print:max-w-none">
-              <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 p-6 mb-8 print:hidden">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-stone-100 dark:border-stone-700 pb-6 mb-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-[10px] font-bold uppercase tracking-wider">{params.style}</span>
-                      <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 text-[10px] font-bold uppercase tracking-wider">{params.difficulty}</span>
+               </div>
+            )}
+
+            {activeTab === 'generator' && (
+              <div className="animate-in fade-in-up">
+                {sequence.length > 0 && (
+                  <div className="bg-white/80 dark:bg-stone-800/80 backdrop-blur-xl rounded-3xl shadow-soft border border-white/20 dark:border-stone-700 p-6 md:p-8 mb-8 sticky top-4 z-20">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="px-3 py-1 rounded-full bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-200 text-[10px] font-bold uppercase tracking-widest">{params.style}</span>
+                          <span className="px-3 py-1 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 text-[10px] font-bold uppercase tracking-widest">{params.difficulty}</span>
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-serif text-stone-900 dark:text-white leading-tight">
+                            {params.method === SEQUENCE_METHODS.PEAK ? `Peak Focus: ${POSE_LIBRARY.find(p=>p.id===params.selectedPeakPose)?.name}` : 'Your Sequence'}
+                        </h2>
+                        <div className="flex gap-6 mt-4 text-sm text-stone-500 dark:text-stone-400 font-bold tracking-wide">
+                          <span className="flex items-center gap-2"><Wind size={16}/> {params.duration} Mins</span>
+                          <span className="flex items-center gap-2"><Activity size={16}/> {sequence.length} Poses</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-3">
+                        <button onClick={() => { if(sequence.length > 0) { setPracticeIndex(0); setTimerSeconds(sequence[0].timerVal); setActiveTab('practice'); }}} className="flex-1 md:flex-none px-8 py-4 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-teal-900/20 hover:-translate-y-1 transition-all duration-300">
+                          <PlayCircle size={20} /> Begin Practice
+                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => setIsTeacherMode(!isTeacherMode)} className={`p-4 rounded-2xl border transition-all ${isTeacherMode ? 'bg-teal-50 border-teal-200 text-teal-700' : 'bg-white border-stone-200 text-stone-400 hover:bg-stone-50'}`} title="Teacher Mode"><BookOpen size={20} /></button>
+                          <button onClick={() => { const name = prompt("Name flow:"); if(name) { const newSave = { id: Date.now(), name, date: new Date().toLocaleDateString(), params, poses: sequence }; setSavedSequences([newSave, ...savedSequences]); localStorage.setItem('yoga_saved_sequences', JSON.stringify([newSave, ...savedSequences])); } }} className="p-4 bg-white border border-stone-200 rounded-2xl text-stone-400 hover:text-rose-500 hover:border-rose-200 transition-colors"><Heart size={20} /></button>
+                          <button onClick={handlePrint} className="p-4 bg-white border border-stone-200 rounded-2xl text-stone-400 hover:text-stone-900 hover:border-stone-300 transition-colors"><Printer size={20} /></button>
+                        </div>
+                      </div>
                     </div>
-                    <h2 className="text-4xl font-serif text-stone-900 dark:text-white">
-                        {params.method === SEQUENCE_METHODS.PEAK ? `Peak: ${POSE_LIBRARY.find(p=>p.id===params.selectedPeakPose)?.name}` : 'Yoga Sequence'}
-                    </h2>
-                    <div className="flex gap-6 mt-3 text-sm text-stone-500 dark:text-stone-400 font-medium"><span className="flex items-center gap-1.5"><Wind size={16}/> {params.duration} mins</span><span className="flex items-center gap-1.5"><Activity size={16}/> {sequence.length} poses</span></div></div>
-                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => { if(sequence.length > 0) { setPracticeIndex(0); setTimerSeconds(sequence[0].timerVal); setActiveTab('practice'); }}} className="flex-1 sm:flex-none justify-center px-6 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 hover:opacity-90 rounded-xl font-bold flex items-center gap-2 shadow-lg touch-manipulation"><PlayCircle size={20} /> Start Practice</button>
-                    <button onClick={() => setIsTeacherMode(!isTeacherMode)} className={`p-3 rounded-xl border transition-colors touch-manipulation ${isTeacherMode ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-700 text-teal-700 dark:text-teal-400' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400'}`} title="Teacher Mode">
-                      <BookOpen size={20} />
-                    </button>
-                    <button onClick={() => { const name = prompt("Name flow:"); if(name) { const newSave = { id: Date.now(), name, date: new Date().toLocaleDateString(), params, poses: sequence }; setSavedSequences([newSave, ...savedSequences]); localStorage.setItem('yoga_saved_sequences', JSON.stringify([newSave, ...savedSequences])); } }} className="p-3 text-stone-500 border border-stone-200 rounded-xl touch-manipulation"><Heart size={20} /></button>
-                    <button onClick={handlePrint} className="p-3 text-stone-500 dark:text-stone-400 hover:text-teal-600 dark:hover:text-teal-400 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-xl transition-colors touch-manipulation"><Printer size={20} /></button>
+                    
+                    {/* Music Selector Inline */}
+                    {!isTeacherMode && (
+                      <div className="mt-8 pt-6 border-t border-stone-100 dark:border-stone-700 overflow-x-auto pb-2">
+                        <div className="flex gap-3 min-w-max">
+                          {musicThemes.map(theme => (
+                            <button key={theme.id} onClick={() => setSelectedMusicId(theme.id)} className={`px-4 py-2 rounded-xl flex items-center gap-3 transition-all border ${selectedMusicId === theme.id ? 'bg-teal-50 border-teal-200 text-teal-800 dark:bg-teal-900/40 dark:border-teal-700 dark:text-teal-100' : 'bg-transparent border-transparent hover:bg-stone-50 dark:hover:bg-stone-800'}`}>
+                              <div className={selectedMusicId === theme.id ? "text-teal-600" : "text-stone-400"}>{theme.icon}</div>
+                              <span className="text-xs font-bold whitespace-nowrap">{theme.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-                {!isTeacherMode && <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">{musicThemes.map(theme => (<button key={theme.id} onClick={() => setSelectedMusicId(theme.id)} className={`p-2 rounded-lg flex flex-col items-center text-center transition-all border touch-manipulation ${selectedMusicId === theme.id ? 'bg-teal-50 border-teal-200 text-teal-800 dark:bg-teal-900/40 dark:border-teal-700 dark:text-teal-200' : 'bg-stone-50 dark:bg-stone-800 border-transparent'}`}><div className="mb-1">{theme.icon}</div><span className="text-[10px] font-bold truncate w-full">{theme.name}</span></button>))}</div>}
-              </div>
-              
-              <div className="hidden print-only mb-8 text-center">
-                <h1 className="text-3xl font-serif font-bold mb-2">ZenFlow Sequence</h1>
-                <p className="text-sm text-gray-500">{params.style} • {params.difficulty} • {params.duration} mins</p>
-              </div>
-
-              <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : "space-y-1"}>
-                {sequence.length === 0 ? (
-                  <div className="text-center py-20 opacity-40 text-stone-600 dark:text-stone-400 px-4">
-                    <p className="text-lg font-serif">Ready to flow? Generate a sequence to begin.</p>
-                  </div>
-                ) : (
-                  sequence.map((pose, idx) => (<PoseCard key={pose.uniqueId} pose={pose} index={idx} onSwap={swapPose} onDelete={deletePose} setSelectedPose={setSelectedPose} isTeacherMode={isTeacherMode} isLast={idx === sequence.length - 1} isFirst={idx === 0} />))
                 )}
+
+                <div className={isTeacherMode ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0" : "space-y-0"}>
+                  {sequence.length === 0 ? (
+                    <div className="text-center py-32 px-4">
+                      <div className="w-24 h-24 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center mx-auto mb-6 text-stone-300 dark:text-stone-600 animate-pulse">
+                        <Wind size={40} />
+                      </div>
+                      <h3 className="text-2xl font-serif text-stone-400 dark:text-stone-500 mb-2">Your mat is ready.</h3>
+                      <p className="text-stone-400 text-sm">Configure your preferences and generate a flow to begin.</p>
+                    </div>
+                  ) : (
+                    sequence.map((pose, idx) => (<PoseCard key={pose.uniqueId} pose={pose} index={idx} onSwap={swapPose} onDelete={deletePose} setSelectedPose={setSelectedPose} isTeacherMode={isTeacherMode} isLast={idx === sequence.length - 1} isFirst={idx === 0} />))
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </main>
       </div>
     </div>
