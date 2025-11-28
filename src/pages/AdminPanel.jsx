@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -14,6 +15,7 @@ import {
   ClipboardList,
   SunMedium,
   MoonStar,
+  ArrowLeft,
 } from 'lucide-react';
 
 const emptyClass = {
@@ -86,6 +88,28 @@ const AdminPanel = () => {
     };
     if (isAdmin && currentUser) load();
   }, [currentUser, isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin || !isSupabaseConfigured || !supabase) return undefined;
+
+    const bookingsChannel = supabase.channel('admin-bookings-stream')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setBookings((prev) => [payload.new, ...prev]);
+        }
+        if (payload.eventType === 'UPDATE') {
+          setBookings((prev) => prev.map((item) => (item.id === payload.new.id ? payload.new : item)));
+        }
+        if (payload.eventType === 'DELETE') {
+          setBookings((prev) => prev.filter((item) => item.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(bookingsChannel);
+    };
+  }, [isAdmin]);
 
   const startEdit = (cls) => {
     setDraftClass({ ...cls });
@@ -189,20 +213,21 @@ const AdminPanel = () => {
               </p>
             )}
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={toggleTheme}
+          <div className="flex gap-3 items-center">
+            <Link
+              to="/"
               className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
             >
-              {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
-              Toggle {darkMode ? 'Light' : 'Dark'}
-            </button>
+              <ArrowLeft size={16} />
+              Back to Site
+            </Link>
             <button
               onClick={() => previewTheme(theme)}
               className="px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white shadow-lg shadow-teal-900/20 text-sm font-semibold flex items-center gap-2"
+              title="Reapply the current saved palette to the interface"
             >
               <Sparkles size={16} />
-              Refresh Palette
+              Reapply Palette
             </button>
           </div>
         </header>
@@ -433,6 +458,7 @@ const AdminPanel = () => {
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Theme Studio</p>
                 <h2 className="text-xl font-serif font-bold">Light & Dark Palettes</h2>
+                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to switch which palette you are editing.</p>
               </div>
             </div>
             <button
@@ -445,31 +471,48 @@ const AdminPanel = () => {
             </button>
           </div>
 
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-black/5 text-xs font-semibold text-[var(--color-muted)]">
+              <span className="flex items-center gap-2">
+                <SunMedium size={14} /> Light
+              </span>
+              <span className="text-[var(--color-muted)]">/</span>
+              <span className="flex items-center gap-2">
+                <MoonStar size={14} /> Dark
+              </span>
+            </div>
+            <button
+              onClick={toggleTheme}
+              className="px-4 py-2 rounded-xl border border-black/5 bg-white shadow-card text-sm font-semibold flex items-center gap-2"
+            >
+              {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
+              Editing {darkMode ? 'Dark' : 'Light'} Palette
+            </button>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-8">
-            {['light', 'dark'].map((mode) => (
-              <div key={mode} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-serif font-bold flex items-center gap-2">
-                    {mode === 'light' ? <SunMedium size={18} /> : <MoonStar size={18} />}
-                    {mode === 'light' ? 'Light mode' : 'Dark mode'}
-                  </h3>
-                  <span className="text-xs text-[var(--color-muted)] uppercase tracking-[0.2em]">{mode}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {themeFields.map((field) => (
-                    <label key={`${mode}-${field.key}`} className="text-xs text-[var(--color-muted)] font-semibold flex flex-col gap-1">
-                      {field.label}
-                      <input
-                        type="color"
-                        value={draftTheme?.[mode]?.[field.key] || '#000000'}
-                        onChange={(e) => updateThemeField(mode, field.key, e.target.value)}
-                        className="h-10 w-full rounded-lg border border-black/5"
-                      />
-                    </label>
-                  ))}
-                </div>
+            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-serif font-bold flex items-center gap-2">
+                  {darkMode ? <MoonStar size={18} /> : <SunMedium size={18} />}
+                  {darkMode ? 'Dark mode' : 'Light mode'}
+                </h3>
+                <span className="text-xs text-[var(--color-muted)] uppercase tracking-[0.2em]">{darkMode ? 'dark' : 'light'}</span>
               </div>
-            ))}
+              <div className="grid grid-cols-2 gap-3">
+                {themeFields.map((field) => (
+                  <label key={`${darkMode ? 'dark' : 'light'}-${field.key}`} className="text-xs text-[var(--color-muted)] font-semibold flex flex-col gap-1">
+                    {field.label}
+                    <input
+                      type="color"
+                      value={draftTheme?.[darkMode ? 'dark' : 'light']?.[field.key] || '#000000'}
+                      onChange={(e) => updateThemeField(darkMode ? 'dark' : 'light', field.key, e.target.value)}
+                      className="h-10 w-full rounded-lg border border-black/5"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="mt-6 grid md:grid-cols-3 gap-3">
