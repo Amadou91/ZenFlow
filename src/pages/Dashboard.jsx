@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../utils/supabase';
-import { Calendar, Clock, MapPin, LogOut, Trash2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, LogOut, Trash2, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -9,6 +9,8 @@ const Dashboard = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState(null);
   const navigate = useNavigate();
 
   const fetchBookings = useCallback(async () => {
@@ -34,103 +36,99 @@ const Dashboard = () => {
     fetchBookings();
   }, [fetchBookings]);
 
-  const handleCancelBooking = async (bookingId) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    
-    setDeletingId(bookingId);
+  const initiateCancel = (booking) => {
+    setBookingToCancel(booking);
+    setShowCancelModal(true);
+  };
+
+  const confirmCancel = async () => {
+    if (!bookingToCancel) return;
+    setDeletingId(bookingToCancel.id);
     try {
-      // 1. Perform Delete and ask for the deleted row back
       const { data, error } = await supabase
         .from('bookings')
         .delete()
-        .eq('id', bookingId)
-        .eq('user_id', currentUser.id) // Security check
+        .eq('id', bookingToCancel.id)
+        .eq('user_id', currentUser.id)
         .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Delete failed.");
 
-      // 2. Strict Verification: Did DB actually delete a row?
-      if (!data || data.length === 0) {
-        // If we get here, RLS is likely blocking the delete
-        throw new Error("Database permission denied. Unable to delete this booking.");
-      }
-
-      // 3. Success: Update UI
-      setBookings(prev => prev.filter(b => b.id !== bookingId));
-
+      setBookings(prev => prev.filter(b => b.id !== bookingToCancel.id));
+      setShowCancelModal(false);
     } catch (err) {
-      console.error("Delete failed:", err);
-      alert(`Could not cancel booking: ${err.message}\n\nPlease check your Supabase RLS policies.`);
-      
-      // Re-fetch to ensure UI shows the truth (the booking is likely still there)
+      alert(`Could not cancel: ${err.message}`);
       fetchBookings();
     } finally {
       setDeletingId(null);
+      setBookingToCancel(null);
     }
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (e) {
-      console.error('Failed to log out', e);
-    }
+    try { await logout(); navigate('/login'); } catch (e) { console.error('Failed to log out', e); }
   };
 
   const displayName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Yogi';
 
   return (
-    <div className="animate-in fade-in duration-500 pb-20">
-      <div className="bg-stone-100 dark:bg-stone-800 py-12 px-4">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <div className="animate-in fade-in-up pb-20 min-h-screen bg-stone-50 dark:bg-stone-900 relative">
+      <div className="bg-grain"></div>
+      
+      <div className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 py-16 px-4 relative z-10">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
           <div>
-            <h1 className="text-3xl font-serif font-bold text-stone-900 dark:text-white">Namaste, {displayName}</h1>
-            <p className="text-stone-600 dark:text-stone-300">Welcome to your personal space.</p>
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-stone-900 dark:text-white mb-2">Namaste, {displayName}</h1>
+            <p className="text-stone-500 dark:text-stone-400">Welcome to your personal sanctuary.</p>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-stone-900 text-rose-600 rounded-lg font-bold shadow-sm hover:bg-rose-50 transition-colors"><LogOut size={18} /> Sign Out</button>
+          <button onClick={handleLogout} className="flex items-center gap-2 px-5 py-2.5 bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:bg-rose-900/20 rounded-xl font-bold text-sm transition-colors">
+            <LogOut size={16} /> Sign Out
+          </button>
         </div>
       </div>
       
-      <div className="max-w-4xl mx-auto px-4 mt-8">
-        <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-6 border-b border-stone-200 dark:border-stone-700 pb-2">Your Upcoming Classes</h2>
+      <div className="max-w-4xl mx-auto px-4 mt-12 relative z-10">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 font-serif">Your Upcoming Classes</h2>
+          <span className="text-xs font-bold uppercase tracking-widest text-stone-400">{bookings.length} Booked</span>
+        </div>
         
         {loading ? (
-          <p className="text-stone-500 animate-pulse">Loading your schedule...</p>
+          <div className="p-12 text-center text-stone-400 animate-pulse">Loading your space...</div>
         ) : bookings.length === 0 ? (
-          <div className="bg-white dark:bg-stone-800 p-8 rounded-xl text-center border border-stone-200 dark:border-stone-700">
-            <p className="text-stone-500 dark:text-stone-400 mb-4">You haven't booked any classes yet.</p>
-            <button onClick={() => navigate('/schedule')} className="px-6 py-2 bg-teal-600 text-white rounded-lg font-bold">Browse Schedule</button>
+          <div className="bg-white dark:bg-stone-800 p-12 rounded-3xl text-center border border-stone-100 dark:border-stone-700 shadow-sm">
+            <div className="w-16 h-16 bg-stone-50 dark:bg-stone-700 rounded-full flex items-center justify-center mx-auto mb-4 text-stone-300">
+              <Calendar size={24} />
+            </div>
+            <p className="text-stone-500 dark:text-stone-400 mb-6 font-medium">Your schedule is currently empty.</p>
+            <button onClick={() => navigate('/schedule')} className="px-8 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold shadow-lg shadow-teal-900/20 transition-all hover:-translate-y-0.5">Browse Schedule</button>
           </div>
         ) : (
           <div className="space-y-4">
             {bookings.map(booking => (
-              <div key={booking.id} className="bg-white dark:bg-stone-900 p-5 rounded-xl shadow-sm border border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div key={booking.id} className="bg-white dark:bg-stone-800 p-6 rounded-2xl shadow-card border border-stone-100 dark:border-stone-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 hover:shadow-soft transition-shadow">
                 <div>
-                  <h3 className="font-bold text-lg text-stone-900 dark:text-white">{booking.class_name}</h3>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-500 dark:text-stone-400 mt-1">
-                    <span className="flex items-center gap-1"><Calendar size={14}/> {new Date(booking.class_date).toLocaleDateString()}</span>
-                    <span className="flex items-center gap-1"><Clock size={14}/> {new Date(booking.class_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    <span className="flex items-center gap-1"><MapPin size={14}/> {booking.location}</span>
+                  <h3 className="font-bold text-lg text-stone-900 dark:text-white font-serif mb-2">{booking.class_name}</h3>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-stone-500 dark:text-stone-400">
+                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-teal-500"/> {new Date(booking.class_date).toLocaleDateString()}</span>
+                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-teal-500"/> {new Date(booking.class_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-teal-500"/> {booking.location}</span>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex-1 sm:flex-none text-center">
+                <div className="flex items-center gap-3 w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-none border-stone-100 dark:border-stone-700">
+                  <span className="bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex-1 sm:flex-none text-center border border-teal-100 dark:border-teal-800">
                     Confirmed
-                  </div>
+                  </span>
                   
                   <button 
-                    onClick={() => handleCancelBooking(booking.id)}
+                    onClick={() => initiateCancel(booking)}
                     disabled={deletingId === booking.id}
-                    className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors border border-stone-200 dark:border-stone-700 hover:border-rose-200"
+                    className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors border border-transparent hover:border-rose-100"
                     title="Cancel Booking"
                   >
-                    {deletingId === booking.id ? (
-                      <div className="w-5 h-5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <Trash2 size={20} />
-                    )}
+                    {deletingId === booking.id ? <div className="w-5 h-5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div> : <Trash2 size={18} />}
                   </button>
                 </div>
               </div>
@@ -138,6 +136,25 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Cancel Modal (Consistent Style) */}
+      {showCancelModal && bookingToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCancelModal(false)}>
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-in-up" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-full flex items-center justify-center text-rose-500 mb-4 mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <h3 className="text-xl font-serif font-bold text-stone-900 dark:text-white text-center mb-2">Cancel Booking?</h3>
+            <p className="text-stone-500 dark:text-stone-400 text-sm text-center mb-6">
+              Are you sure you want to cancel <strong>{bookingToCancel.class_name}</strong>?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowCancelModal(false)} className="flex-1 py-3 rounded-xl font-bold text-stone-600 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:text-stone-300 transition-colors">Keep It</button>
+              <button onClick={confirmCancel} className="flex-1 py-3 bg-rose-600 text-white hover:bg-rose-700 rounded-xl font-bold transition-all shadow-lg shadow-rose-900/20">Yes, Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

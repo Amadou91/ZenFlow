@@ -3,8 +3,12 @@
 
 @layer base {
   body {
-    @apply font-sans text-stone-800 bg-stone-50 dark:bg-stone-900 dark:text-stone-100 antialiased selection:bg-teal-200 selection:text-teal-900 dark:selection:bg-teal-900 dark:selection:text-teal-100;
+    /* Explicitly setting background and text colors for both modes */
+    @apply font-sans text-stone-700 bg-stone-50 dark:bg-stone-900 dark:text-stone-200 antialiased selection:bg-teal-100 selection:text-teal-900;
     overflow-x: hidden;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -12,25 +16,18 @@
     letter-spacing: -0.02em;
   }
 
-  /* Elegant focus states */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-teal-400 ring-offset-2 ring-offset-stone-50 dark:ring-offset-stone-900;
+  button {
+    @apply duration-300 ease-out;
   }
 }
 
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  .glass-panel {
+    @apply bg-white/80 dark:bg-stone-800/80 backdrop-blur-xl border border-white/50 dark:border-stone-700/50;
+    /* Replaced shadow-soft utility with explicit value to fix build error */
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
   }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-stone-300 dark:bg-stone-700 rounded-full hover:bg-teal-400 transition-colors;
-  }
-
-  /* Text balance for better readability */
+  
   .text-balance {
     text-wrap: balance;
   }
@@ -66,41 +63,17 @@ button:active {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 50;
-  opacity: 0.03; /* Very subtle */
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  z-index: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* Ambient Gradient Background Animation */
-.ambient-bg {
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  right: -50%;
-  bottom: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at center, rgba(194, 221, 213, 0.15) 0%, rgba(253, 252, 248, 0) 50%);
-  z-index: -1;
-  animation: rotate 60s linear infinite;
-  pointer-events: none;
+/* Animations */
+.animate-in-up {
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.dark .ambient-bg {
-  background: radial-gradient(circle at center, rgba(49, 84, 77, 0.15) 0%, rgba(28, 25, 23, 0) 50%);
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Fade In Animation Helper */
-.animate-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
