@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { Calendar, Clock, MapPin, Check, Users, X, CheckCircle, Wallet, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 
 const INITIAL_CLASSES = [
@@ -13,6 +13,7 @@ const Schedule = () => {
   const [bookedClassIds, setBookedClassIds] = useState(new Set());
   const [bookingsMap, setBookingsMap] = useState(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [user, setUser] = useState(null);
   
@@ -24,34 +25,48 @@ const Schedule = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        const { data } = await supabase.from('bookings').select('id, class_id').eq('user_id', user.id);
-        if (data) {
-          setBookedClassIds(new Set(data.map(b => b.class_id)));
-          setBookingsMap(new Map(data.map(b => [b.class_id, b.id])));
+      try {
+        if (!isSupabaseConfigured || !supabase) {
+          setLoading(false);
+          return;
         }
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+        if (user) {
+          const { data, error } = await supabase.from('bookings').select('id, class_id').eq('user_id', user.id);
+          if (error) throw error;
+          if (data) {
+            setBookedClassIds(new Set(data.map(b => b.class_id)));
+            setBookingsMap(new Map(data.map(b => [b.class_id, b.id])));
+          }
+        }
+      } catch (err) {
+        console.error('Could not load schedule data', err);
+        setLoadError('We had trouble loading your bookings. You can still browse the schedule.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     loadData();
   }, []);
 
   const handleBookClick = (cls) => {
     if (!user) return alert("Please sign in to book a class.");
+    if (!isSupabaseConfigured || !supabase) return alert('Bookings are offline until Supabase is configured.');
     if (bookedClassIds.has(cls.id)) return alert("You have already booked this class.");
     setSelectedClass(cls);
     setShowConfirmModal(true);
   };
 
   const handleCancelClick = (cls) => {
+    if (!isSupabaseConfigured || !supabase) return alert('Bookings are offline until Supabase is configured.');
     setSelectedClass(cls);
     setShowCancelModal(true);
   };
 
   const confirmBooking = async () => {
     if (!selectedClass || !user) return;
+    if (!isSupabaseConfigured || !supabase) return alert('Bookings are offline until Supabase is configured.');
     setActionLoading(selectedClass.id);
     try {
       const { data, error } = await supabase.from('bookings').insert([{ user_id: user.id, class_id: selectedClass.id, class_name: selectedClass.title, class_date: selectedClass.date, location: selectedClass.location }]).select();
@@ -68,6 +83,7 @@ const Schedule = () => {
 
   const confirmCancel = async () => {
     if (!selectedClass) return;
+    if (!isSupabaseConfigured || !supabase) return alert('Bookings are offline until Supabase is configured.');
     setActionLoading(selectedClass.id);
     const bookingId = bookingsMap.get(selectedClass.id);
     try {
@@ -92,18 +108,23 @@ const Schedule = () => {
   );
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-900 relative">
+    <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text)] relative">
       <div className="bg-grain"></div>
       
       {/* Header */}
       <div className="relative pt-24 pb-12 px-4 text-center z-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 text-xs font-bold uppercase tracking-widest mb-6 shadow-sm">
-          <Sparkles size={12} className="text-teal-500" /> Weekly Classes
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-card)]/90 dark:bg-stone-800 border border-white/50 dark:border-stone-700 text-[var(--color-muted)] dark:text-stone-300 text-xs font-bold uppercase tracking-widest mb-6 shadow-sm shadow-[var(--color-primary)]/10">
+          <Sparkles size={12} className="text-[var(--color-primary)]" /> Weekly Classes
         </div>
-        <h1 className="text-5xl md:text-6xl font-serif font-medium text-stone-800 dark:text-stone-100 mb-6">Class Schedule</h1>
-        <p className="text-lg text-stone-500 dark:text-stone-400 max-w-xl mx-auto leading-relaxed">
+        <h1 className="text-5xl md:text-6xl font-serif font-medium text-stone-900 dark:text-stone-100 mb-6">Class Schedule</h1>
+        <p className="text-lg text-[var(--color-muted)] dark:text-stone-300 max-w-xl mx-auto leading-relaxed">
           Join us on the mat. Find a time that nurtures your body and mind.
         </p>
+        {loadError && (
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-white/50 dark:border-stone-700 text-xs text-[var(--color-muted)] shadow-card">
+            <AlertCircle size={14} /> {loadError}
+          </div>
+        )}
       </div>
 
       {/* Class List */}
@@ -118,8 +139,8 @@ const Schedule = () => {
             <div 
               key={cls.id} 
               className={`group relative rounded-3xl p-6 md:p-8 transition-all duration-300 border animate-in-up
-                ${isBooked 
-                  ? 'bg-teal-50/50 border-teal-100 dark:bg-teal-900/10 dark:border-teal-800/30' 
+                ${isBooked
+                  ? 'bg-[var(--color-card)]/90 border-white/60 dark:bg-stone-800 dark:border-stone-700'
                   : 'bg-white border-stone-100 shadow-card hover:shadow-soft hover:-translate-y-1 dark:bg-stone-800 dark:border-stone-700'
                 }`}
               style={{ animationDelay: `${idx * 0.1}s` }}
@@ -128,8 +149,8 @@ const Schedule = () => {
                 
                 {/* Date Badge */}
                 <div className={`flex flex-col items-center justify-center w-full md:w-20 h-20 rounded-2xl shrink-0 border transition-colors
-                  ${isBooked 
-                    ? 'bg-white border-teal-100 text-teal-700 dark:bg-teal-900/20 dark:border-teal-800 dark:text-teal-300' 
+                  ${isBooked
+                    ? 'bg-[var(--color-card)] border-white/60 text-[var(--color-primary)] dark:bg-stone-800 dark:border-stone-700 dark:text-[var(--color-primary)]'
                     : 'bg-stone-50 border-stone-100 text-stone-600 dark:bg-stone-700 dark:border-stone-600 dark:text-stone-300'
                   }`}>
                   <span className="text-[10px] font-bold uppercase tracking-widest">{dateObj.toLocaleDateString('en-US', { month: 'short' })}</span>
@@ -141,17 +162,17 @@ const Schedule = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
                     <h3 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">{cls.title}</h3>
                     {isBooked && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-[var(--color-primary)]/15 text-[var(--color-primary)] dark:bg-stone-700 dark:text-[var(--color-primary)]">
                         <Check size={12} strokeWidth={3} /> Booked
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-4 text-sm text-stone-500 dark:text-stone-400">
-                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-teal-500"/> {cls.time} • {cls.duration}</span>
-                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-teal-500"/> {cls.location}</span>
+                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-[var(--color-primary)]"/> {cls.time} • {cls.duration}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[var(--color-primary)]"/> {cls.location}</span>
                     <span className={`flex items-center gap-1.5 ${isFull && !isBooked ? 'text-rose-500 font-medium' : ''}`}>
-                      <Users size={14} className={isFull ? 'text-rose-500' : 'text-teal-500'}/> {isFull ? 'Waitlist Only' : `${spotsLeft} spots left`}
+                      <Users size={14} className={isFull ? 'text-rose-500' : 'text-[var(--color-primary)]'}/> {isFull ? 'Waitlist Only' : `${spotsLeft} spots left`}
                     </span>
                   </div>
                 </div>

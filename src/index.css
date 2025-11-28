@@ -3,27 +3,38 @@
 
 @layer base {
   :root {
-    --color-primary: #0f766e;
-    --color-secondary: #7c3aed;
-    --color-accent: #fbbf24;
-    --color-surface: #f9fafb;
-    --color-card: #ffffff;
-    --color-muted: #475569;
-    --color-text: #0f172a;
-    --color-gradientFrom: #99f6e4;
-    --color-gradientTo: #f0abfc;
-    --color-glow: #99f6e4;
+    --color-primary: #c8748f;
+    --color-secondary: #7f6c9f;
+    --color-accent: #f2d3c2;
+    --color-surface: #fdf6f3;
+    --color-card: #f9f1ed;
+    --color-muted: #6a5c5f;
+    --color-text: #2f2729;
+    --color-gradientFrom: #f7d4dd;
+    --color-gradientTo: #c8d8d0;
+    --color-glow: #f2c4cf;
   }
 
   body {
     /* Explicitly setting background and text colors for both modes */
     @apply font-sans antialiased;
-    background-color: var(--color-surface);
+    background: radial-gradient(circle at 20% 20%, #ffe9f0 0, #ffe9f0 18%, transparent 32%),
+      radial-gradient(circle at 80% 10%, #d7e6df 0, #d7e6df 14%, transparent 28%),
+      radial-gradient(circle at 50% 100%, #f7d4dd 0, #f7d4dd 16%, transparent 30%),
+      var(--color-surface);
     color: var(--color-text);
     overflow-x: hidden;
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 300ms;
+  }
+
+  .dark body {
+    background: radial-gradient(circle at 20% 30%, rgba(121, 135, 150, 0.25) 0, rgba(121, 135, 150, 0.25) 14%, transparent 32%),
+      radial-gradient(circle at 80% 0%, rgba(160, 134, 153, 0.25) 0, rgba(160, 134, 153, 0.25) 12%, transparent 30%),
+      radial-gradient(circle at 50% 100%, rgba(88, 110, 121, 0.3) 0, rgba(88, 110, 121, 0.3) 12%, transparent 28%),
+      var(--color-surface);
+    color: var(--color-text);
   }
 
   ::selection {
@@ -37,6 +48,25 @@
 
   .accent-gradient {
     background: linear-gradient(120deg, var(--color-gradientFrom), var(--color-gradientTo));
+  }
+
+  .ambient-bg {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(248, 220, 232, 0.6), transparent 45%),
+      radial-gradient(circle at 80% 10%, rgba(198, 216, 208, 0.5), transparent 42%),
+      radial-gradient(circle at 70% 75%, rgba(199, 179, 198, 0.35), transparent 40%);
+    filter: blur(40px);
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dark .ambient-bg {
+    background: radial-gradient(circle at 20% 30%, rgba(110, 128, 140, 0.28), transparent 45%),
+      radial-gradient(circle at 80% 10%, rgba(133, 112, 126, 0.28), transparent 42%),
+      radial-gradient(circle at 70% 75%, rgba(102, 127, 138, 0.25), transparent 40%);
+    opacity: 0.65;
   }
   
   h1, h2, h3, h4, h5, h6 {

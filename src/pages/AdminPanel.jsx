@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -59,6 +59,11 @@ const AdminPanel = () => {
 
   useEffect(() => {
     const load = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setMessage('Configure Supabase to manage classes and bookings.');
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const [{ data: classData, error: classError }, { data: bookingData, error: bookingError }] = await Promise.all([
@@ -97,6 +102,11 @@ const AdminPanel = () => {
   const saveClass = async (e) => {
     e.preventDefault();
     setSavingClass(true);
+    if (!isSupabaseConfigured || !supabase) {
+      setMessage('Supabase is not configured. Add credentials to save classes.');
+      setSavingClass(false);
+      return;
+    }
     const payload = { ...draftClass };
     if (!payload.id) payload.id = crypto.randomUUID();
     try {
@@ -122,6 +132,10 @@ const AdminPanel = () => {
   };
 
   const deleteBooking = async (bookingId) => {
+    if (!isSupabaseConfigured || !supabase) {
+      setMessage('Supabase is not configured.');
+      return;
+    }
     try {
       await supabase.from('bookings').delete().eq('id', bookingId);
       setBookings(prev => prev.filter(b => b.id !== bookingId));

@@ -1,33 +1,33 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 const ThemeContext = createContext();
 
 const DEFAULT_THEME = {
   light: {
-    primary: '#0f766e',
-    secondary: '#7c3aed',
-    accent: '#fbbf24',
-    surface: '#f9fafb',
-    card: '#ffffff',
-    muted: '#475569',
-    text: '#0f172a',
-    gradientFrom: '#99f6e4',
-    gradientTo: '#f0abfc',
-    glow: '#99f6e4',
+    primary: '#c8748f',
+    secondary: '#7f6c9f',
+    accent: '#f2d3c2',
+    surface: '#fdf6f3',
+    card: '#f9f1ed',
+    muted: '#6a5c5f',
+    text: '#2f2729',
+    gradientFrom: '#f7d4dd',
+    gradientTo: '#c8d8d0',
+    glow: '#f2c4cf',
   },
   dark: {
-    primary: '#5eead4',
-    secondary: '#c4b5fd',
-    accent: '#fb7185',
-    surface: '#0b101b',
-    card: '#111827',
-    muted: '#cbd5e1',
-    text: '#e5e7eb',
-    gradientFrom: '#0ea5e9',
-    gradientTo: '#6366f1',
-    glow: '#0ea5e9',
+    primary: '#f0b7c6',
+    secondary: '#b7accf',
+    accent: '#d4b7a6',
+    surface: '#14161b',
+    card: '#1d2027',
+    muted: '#b8b1ad',
+    text: '#ece8e4',
+    gradientFrom: '#7c8c9f',
+    gradientTo: '#c59aa8',
+    glow: '#9eb8c6',
   },
 };
 
@@ -83,6 +83,10 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchTheme = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setThemeLoading(false);
+        return;
+      }
       try {
         const { data, error } = await supabase
           .from('theme_settings')
@@ -116,6 +120,10 @@ export const ThemeProvider = ({ children }) => {
     setTheme(nextTheme);
     if (typeof window !== 'undefined') {
       localStorage.setItem('zenflow_theme_palette', JSON.stringify(nextTheme));
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase is not configured; please add Supabase environment variables to persist the theme.');
     }
 
     await supabase.from('theme_settings').upsert([

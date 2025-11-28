@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 const AuthContext = createContext();
 
@@ -13,14 +13,21 @@ export const AuthProvider = ({ children }) => {
 
   const adminEmail = useMemo(() => (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase(), []);
 
+  const ensureConfigured = () => {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    }
+  };
+
   const signup = async (email, password, name) => {
+    ensureConfigured();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } },
     });
     if (error) throw error;
-    
+
     if (data.user) {
       const adminFlag = data.user.email?.toLowerCase() === adminEmail;
       await supabase.from('profiles').upsert([
@@ -31,25 +38,33 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
+    ensureConfigured();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return data;
   };
 
   const logout = async () => {
+    ensureConfigured();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
   const loadProfile = async (userId) => {
     if (!userId) return null;
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (!isSupabaseConfigured || !supabase) return null;
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error) throw error;
     if (data) setProfile(data);
     return data;
   };
 
   useEffect(() => {
     const checkSession = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        setLoading(false);
+        return;
+      }
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
@@ -65,6 +80,8 @@ export const AuthProvider = ({ children }) => {
       }
     };
     checkSession();
+
+    if (!isSupabaseConfigured || !supabase) return undefined;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setCurrentUser(session?.user || null);

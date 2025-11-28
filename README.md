@@ -46,6 +46,16 @@ Key Spotify dashboard settings:
 - **Allowed front-end origin** should include `https://yoga.johnnyautomates.com/` (ensure the trailing slash if you use one when registering URIs).
 - Scopes required: `streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state`.
 
+## Admin access (teacher tools)
+
+The UI and protected routes use Supabase plus a simple environment flag to determine the single admin/teacher account. Configure it by setting the email address of the admin user in the frontend environment:
+
+```
+VITE_ADMIN_EMAIL=teacher@example.com
+```
+
+When a user signs up with this email address, their profile row is flagged as `is_admin` and the admin-only routes (`/admin` and `/tools/zenflow`) become available. Standard users will never see admin links or be allowed through those routes. You can also set `is_admin` manually in the Supabase `profiles` table for any existing account.
+
 ## Running locally
 1. Install dependencies with `npm install` (already vendored in this environment).
 2. Start the Spotify auth server:
