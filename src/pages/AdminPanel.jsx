@@ -46,6 +46,7 @@ const AdminPanel = () => {
 
   const activePaletteKey = darkMode ? 'dark' : 'light';
   const activePaletteLabel = darkMode ? 'Dark' : 'Light';
+  const activePalette = draftTheme?.[activePaletteKey] || {};
 
   const paletteGroups = useMemo(() => [
     {
@@ -198,6 +199,12 @@ const AdminPanel = () => {
     previewTheme(next);
   };
 
+  const restoreSavedTheme = () => {
+    setDraftTheme(theme);
+    previewTheme(theme);
+    setMessage('Restored the saved palette and preview.');
+  };
+
   const persistTheme = async () => {
     setSavingTheme(true);
     try {
@@ -285,7 +292,7 @@ const AdminPanel = () => {
                 type="text"
                 value={draftClass.title}
                 onChange={(e) => handleClassChange('title', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 required
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Date</label>
@@ -293,7 +300,7 @@ const AdminPanel = () => {
                 type="datetime-local"
                 value={draftClass.date}
                 onChange={(e) => handleClassChange('date', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 required
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Duration</label>
@@ -301,7 +308,7 @@ const AdminPanel = () => {
                 type="text"
                 value={draftClass.duration}
                 onChange={(e) => handleClassChange('duration', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 placeholder="75 min"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Location</label>
@@ -309,21 +316,21 @@ const AdminPanel = () => {
                 type="text"
                 value={draftClass.location}
                 onChange={(e) => handleClassChange('location', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Instructor</label>
               <input
                 type="text"
                 value={draftClass.instructor}
                 onChange={(e) => handleClassChange('instructor', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 placeholder="Jocelyn"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Description</label>
               <textarea
                 value={draftClass.description}
                 onChange={(e) => handleClassChange('description', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 rows={3}
               />
             </div>
@@ -334,7 +341,7 @@ const AdminPanel = () => {
                 type="text"
                 value={draftClass.time}
                 onChange={(e) => handleClassChange('time', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 placeholder="07:00 PM"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Price</label>
@@ -342,21 +349,21 @@ const AdminPanel = () => {
                 type="number"
                 value={draftClass.price}
                 onChange={(e) => handleClassChange('price', Number(e.target.value))}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Capacity</label>
               <input
                 type="number"
                 value={draftClass.capacity}
                 onChange={(e) => handleClassChange('capacity', Number(e.target.value))}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Waitlist Capacity</label>
               <input
                 type="number"
                 value={draftClass.waitlist_capacity}
                 onChange={(e) => handleClassChange('waitlist_capacity', Number(e.target.value))}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
 
               <div className="flex gap-3 mt-4">
@@ -389,7 +396,7 @@ const AdminPanel = () => {
             ) : (
               <div className="grid md:grid-cols-2 gap-3">
                 {classes.map((cls) => (
-                  <div key={cls.id} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+                  <div key={cls.id} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{new Date(cls.date).toLocaleDateString()}</p>
@@ -436,7 +443,7 @@ const AdminPanel = () => {
           ) : (
             <div className="space-y-3">
               {bookings.map((booking) => (
-                <div key={booking.id} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm flex items-center justify-between">
+                <div key={booking.id} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{new Date(booking.class_date).toLocaleDateString()}</p>
                     <p className="text-lg font-serif font-bold">{booking.class_name}</p>
@@ -476,12 +483,12 @@ const AdminPanel = () => {
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <button
-                onClick={() => previewTheme(theme)}
-                className="px-4 py-2 rounded-xl border border-black/5 bg-white shadow-card text-sm font-semibold flex items-center gap-2"
-                title="Reapply the current saved palette to the interface"
+                onClick={restoreSavedTheme}
+                className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
+                title="Reset the editor back to the saved palette"
               >
                 <Sparkles size={16} />
-                Reapply Palette
+                Restore Saved Theme
               </button>
               <button
                 onClick={persistTheme}
@@ -514,7 +521,7 @@ const AdminPanel = () => {
 
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paletteGroups.map((group) => (
-              <div key={group.title} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+              <div key={group.title} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-serif font-bold flex items-center gap-2">
                     {darkMode ? <MoonStar size={18} /> : <SunMedium size={18} />}
@@ -531,7 +538,7 @@ const AdminPanel = () => {
                         type="color"
                         value={draftTheme?.[activePaletteKey]?.[field.key] || '#000000'}
                         onChange={(e) => updateThemeField(activePaletteKey, field.key, e.target.value)}
-                        className="h-10 w-full rounded-lg border border-black/5"
+                        className="admin-input h-11 cursor-pointer p-1"
                       />
                     </label>
                   ))}
@@ -541,7 +548,7 @@ const AdminPanel = () => {
           </div>
 
           <div className="mt-6 grid md:grid-cols-3 gap-3">
-            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
               <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Live Preview</p>
               <h4 className="text-lg font-serif font-bold mb-2">Buttons & Badges</h4>
               <div className="flex flex-wrap gap-2">
@@ -550,20 +557,23 @@ const AdminPanel = () => {
                 <span className="px-3 py-2 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] text-sm font-semibold">Accent</span>
               </div>
             </div>
-            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
               <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Cards</p>
               <h4 className="text-lg font-serif font-bold mb-2">Surface & Glow</h4>
               <div
-                className="p-4 rounded-xl border border-black/5"
-                style={{ boxShadow: `0 10px 40px -10px ${draftTheme?.light?.glow || 'rgba(0,0,0,0.08)'}` }}
+                className="p-4 rounded-xl border border-black/5 bg-[var(--color-surface)]"
+                style={{ boxShadow: `0 20px 45px -18px ${activePalette.glow || 'rgba(0,0,0,0.12)'}` }}
               >
                 <p className="text-sm text-[var(--color-muted)]">This area follows the live palette.</p>
               </div>
             </div>
-            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
               <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Gradient</p>
               <h4 className="text-lg font-serif font-bold mb-2">Ambient</h4>
-              <div className="h-16 rounded-xl accent-gradient" />
+              <div
+                className="h-16 rounded-xl"
+                style={{ background: `linear-gradient(120deg, ${activePalette.gradientFrom || '#f7d4dd'}, ${activePalette.gradientTo || '#c8d8d0'})` }}
+              />
             </div>
           </div>
         </section>
