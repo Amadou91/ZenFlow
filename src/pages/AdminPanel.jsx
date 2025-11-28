@@ -22,7 +22,6 @@ const emptyClass = {
   id: '',
   title: '',
   date: '',
-  time: '',
   duration: '',
   location: '',
   instructor: '',
@@ -32,9 +31,20 @@ const emptyClass = {
   description: '',
 };
 
+const formatTimeLabel = (value) => {
+  const parsed = value ? new Date(value) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const normalizeClassRow = (row) => ({
+  ...row,
+  time: row?.time || formatTimeLabel(row?.date),
+});
+
 const AdminPanel = () => {
   const { currentUser, isAdmin } = useAuth();
-  const { theme, previewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
+  const { theme, previewTheme, resetPreviewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
   const [classes, setClasses] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,9 +53,11 @@ const AdminPanel = () => {
   const [draftClass, setDraftClass] = useState(emptyClass);
   const [draftTheme, setDraftTheme] = useState(theme);
   const [message, setMessage] = useState('');
+  const [notice, setNotice] = useState(null);
 
   const activePaletteKey = darkMode ? 'dark' : 'light';
   const activePaletteLabel = darkMode ? 'Dark' : 'Light';
+  const activePalette = draftTheme?.[activePaletteKey] || {};
 
   const paletteGroups = useMemo(() => [
     {
@@ -81,6 +93,10 @@ const AdminPanel = () => {
   useEffect(() => setDraftTheme(theme), [theme]);
 
   useEffect(() => {
+    previewTheme(draftTheme);
+  }, [darkMode, draftTheme, previewTheme]);
+
+  useEffect(() => {
     const load = async () => {
       if (!isSupabaseConfigured || !supabase) {
         setMessage('Configure Supabase to manage classes and bookings.');
@@ -96,16 +112,16 @@ const AdminPanel = () => {
 
         if (classError) throw classError;
         if (bookingError) throw bookingError;
-        setClasses(classData || []);
+        setClasses((classData || []).map(normalizeClassRow));
         setBookings(bookingData || []);
       } catch (err) {
         console.warn('Falling back to in-memory classes:', err.message);
         setClasses([]);
         setBookings([]);
-        setMessage('Supabase tables are not ready yet. Data will load once they exist.');
-      } finally {
-        setLoading(false);
-      }
+      setMessage('Supabase tables are not ready yet. Data will load once they exist.');
+    } finally {
+      setLoading(false);
+    }
     };
     if (isAdmin && currentUser) load();
   }, [currentUser, isAdmin]);
@@ -132,6 +148,12 @@ const AdminPanel = () => {
     };
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   const startEdit = (cls) => {
     setDraftClass({ ...cls });
   };
@@ -147,19 +169,41 @@ const AdminPanel = () => {
   const saveClass = async (e) => {
     e.preventDefault();
     setSavingClass(true);
-    if (!isSupabaseConfigured || !supabase) {
-      setMessage('Supabase is not configured. Add credentials to save classes.');
+
+    const requiredFields = ['title', 'date', 'duration', 'location', 'instructor'];
+    const missing = requiredFields.filter((key) => !draftClass[key]);
+    if (missing.length) {
+      setNotice({ type: 'error', text: `Please complete: ${missing.join(', ')}.` });
       setSavingClass(false);
       return;
     }
-    const payload = { ...draftClass };
-    if (!payload.id) payload.id = crypto.randomUUID();
+
+    const parsedDate = draftClass.date ? new Date(draftClass.date) : null;
+    if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
+      setNotice({ type: 'error', text: 'Provide a valid date & time for the class.' });
+      setSavingClass(false);
+      return;
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      setNotice({ type: 'error', text: 'Supabase is not configured. Add credentials to save classes.' });
+      setSavingClass(false);
+      return;
+    }
+
+    const payload = {
+      ...draftClass,
+      id: draftClass.id || crypto.randomUUID(),
+      date: parsedDate.toISOString(),
+      time: formatTimeLabel(parsedDate),
+    };
+
     try {
       const { data, error } = await supabase.from('classes').upsert([payload]).select();
       if (error) throw error;
-      const savedRow = data?.[0] || payload;
-      setClasses(prev => {
-        const existingIdx = prev.findIndex(c => c.id === savedRow.id);
+      const savedRow = normalizeClassRow(data?.[0] || payload);
+      setClasses((prev) => {
+        const existingIdx = prev.findIndex((c) => c.id === savedRow.id);
         if (existingIdx >= 0) {
           const clone = [...prev];
           clone[existingIdx] = savedRow;
@@ -167,10 +211,10 @@ const AdminPanel = () => {
         }
         return [savedRow, ...prev];
       });
-      setMessage('Class saved successfully.');
+      setNotice({ type: 'success', text: 'Class saved successfully.' });
       resetForm();
     } catch (err) {
-      setMessage(`Unable to save class: ${err.message}`);
+      setNotice({ type: 'error', text: `Unable to save class: ${err.message}` });
     } finally {
       setSavingClass(false);
     }
@@ -198,6 +242,12 @@ const AdminPanel = () => {
     previewTheme(next);
   };
 
+  const restoreSavedTheme = () => {
+    setDraftTheme(theme);
+    previewTheme(theme);
+    setMessage('Restored the saved palette and preview.');
+  };
+
   const persistTheme = async () => {
     setSavingTheme(true);
     try {
@@ -209,6 +259,8 @@ const AdminPanel = () => {
       setSavingTheme(false);
     }
   };
+
+  useEffect(() => () => resetPreviewTheme(), [resetPreviewTheme]);
 
   if (!isAdmin) return null;
 
@@ -244,6 +296,14 @@ const AdminPanel = () => {
             </Link>
           </div>
         </header>
+
+        {notice && (
+          <div
+            className={`fixed bottom-6 right-6 z-20 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold border ${notice.type === 'success' ? 'bg-[var(--color-card)] border-black/5 text-[var(--color-text)]' : 'bg-rose-50 border-rose-200 text-rose-700'}`}
+          >
+            {notice.text}
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-4">
           <div className="p-4 rounded-2xl bg-[var(--color-card)] border border-black/5 shadow-card">
@@ -285,15 +345,15 @@ const AdminPanel = () => {
                 type="text"
                 value={draftClass.title}
                 onChange={(e) => handleClassChange('title', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 required
               />
-              <label className="text-xs text-[var(--color-muted)] font-semibold">Date</label>
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Date & Time</label>
               <input
                 type="datetime-local"
                 value={draftClass.date}
                 onChange={(e) => handleClassChange('date', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 required
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Duration</label>
@@ -301,7 +361,7 @@ const AdminPanel = () => {
                 type="text"
                 value={draftClass.duration}
                 onChange={(e) => handleClassChange('duration', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 placeholder="75 min"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Location</label>
@@ -309,54 +369,46 @@ const AdminPanel = () => {
                 type="text"
                 value={draftClass.location}
                 onChange={(e) => handleClassChange('location', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Instructor</label>
               <input
                 type="text"
                 value={draftClass.instructor}
                 onChange={(e) => handleClassChange('instructor', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 placeholder="Jocelyn"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Description</label>
               <textarea
                 value={draftClass.description}
                 onChange={(e) => handleClassChange('description', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
                 rows={3}
               />
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs text-[var(--color-muted)] font-semibold">Time</label>
-              <input
-                type="text"
-                value={draftClass.time}
-                onChange={(e) => handleClassChange('time', e.target.value)}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                placeholder="07:00 PM"
-              />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Price</label>
               <input
                 type="number"
                 value={draftClass.price}
                 onChange={(e) => handleClassChange('price', Number(e.target.value))}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Capacity</label>
               <input
                 type="number"
                 value={draftClass.capacity}
                 onChange={(e) => handleClassChange('capacity', Number(e.target.value))}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Waitlist Capacity</label>
               <input
                 type="number"
                 value={draftClass.waitlist_capacity}
                 onChange={(e) => handleClassChange('waitlist_capacity', Number(e.target.value))}
-                className="w-full rounded-xl border border-black/5 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="admin-input"
               />
 
               <div className="flex gap-3 mt-4">
@@ -371,7 +423,7 @@ const AdminPanel = () => {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-3 rounded-xl border border-black/5 bg-white font-semibold text-[var(--color-muted)]"
+                  className="px-4 py-3 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] font-semibold shadow-card"
                 >
                   Clear
                 </button>
@@ -389,12 +441,12 @@ const AdminPanel = () => {
             ) : (
               <div className="grid md:grid-cols-2 gap-3">
                 {classes.map((cls) => (
-                  <div key={cls.id} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+                  <div key={cls.id} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{new Date(cls.date).toLocaleDateString()}</p>
+                        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{cls.date ? new Date(cls.date).toLocaleDateString() : 'Date TBA'}</p>
                         <h4 className="text-lg font-serif font-bold">{cls.title}</h4>
-                        <p className="text-sm text-[var(--color-muted)]">{cls.time} • {cls.location}</p>
+                        <p className="text-sm text-[var(--color-muted)]">{formatTimeLabel(cls.date) || 'Time TBA'} • {cls.location || 'Location TBA'}</p>
                       </div>
                       <button
                         onClick={() => startEdit(cls)}
@@ -436,7 +488,7 @@ const AdminPanel = () => {
           ) : (
             <div className="space-y-3">
               {bookings.map((booking) => (
-                <div key={booking.id} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm flex items-center justify-between">
+                <div key={booking.id} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{new Date(booking.class_date).toLocaleDateString()}</p>
                     <p className="text-lg font-serif font-bold">{booking.class_name}</p>
@@ -471,17 +523,17 @@ const AdminPanel = () => {
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Theme Studio</p>
                 <h2 className="text-xl font-serif font-bold">Light & Dark Palettes</h2>
-                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to jump between the two palettes.</p>
+                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to jump between the two palettes. Changes preview instantly here but only publish after you press Save.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <button
-                onClick={() => previewTheme(theme)}
-                className="px-4 py-2 rounded-xl border border-black/5 bg-white shadow-card text-sm font-semibold flex items-center gap-2"
-                title="Reapply the current saved palette to the interface"
+                onClick={restoreSavedTheme}
+                className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
+                title="Reset the editor back to the saved palette"
               >
                 <Sparkles size={16} />
-                Reapply Palette
+                Restore Saved Theme
               </button>
               <button
                 onClick={persistTheme}
@@ -504,8 +556,10 @@ const AdminPanel = () => {
               <span className="text-[var(--color-muted)]">Toggle to switch to the other mode</span>
             </div>
             <button
+              type="button"
               onClick={toggleTheme}
-              className="px-4 py-2 rounded-xl border border-black/5 bg-white shadow-card text-sm font-semibold flex items-center gap-2"
+              className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] shadow-card text-sm font-semibold flex items-center gap-2"
+              aria-pressed={darkMode}
             >
               {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
               Switch to {darkMode ? 'Light' : 'Dark'} Palette
@@ -514,7 +568,7 @@ const AdminPanel = () => {
 
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paletteGroups.map((group) => (
-              <div key={group.title} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+              <div key={group.title} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-serif font-bold flex items-center gap-2">
                     {darkMode ? <MoonStar size={18} /> : <SunMedium size={18} />}
@@ -531,7 +585,7 @@ const AdminPanel = () => {
                         type="color"
                         value={draftTheme?.[activePaletteKey]?.[field.key] || '#000000'}
                         onChange={(e) => updateThemeField(activePaletteKey, field.key, e.target.value)}
-                        className="h-10 w-full rounded-lg border border-black/5"
+                        className="admin-input h-11 cursor-pointer p-1"
                       />
                     </label>
                   ))}
@@ -541,7 +595,7 @@ const AdminPanel = () => {
           </div>
 
           <div className="mt-6 grid md:grid-cols-3 gap-3">
-            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
               <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Live Preview</p>
               <h4 className="text-lg font-serif font-bold mb-2">Buttons & Badges</h4>
               <div className="flex flex-wrap gap-2">
@@ -550,20 +604,23 @@ const AdminPanel = () => {
                 <span className="px-3 py-2 rounded-xl bg-[var(--color-accent)] text-[var(--color-text)] text-sm font-semibold">Accent</span>
               </div>
             </div>
-            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
               <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Cards</p>
               <h4 className="text-lg font-serif font-bold mb-2">Surface & Glow</h4>
               <div
-                className="p-4 rounded-xl border border-black/5"
-                style={{ boxShadow: `0 10px 40px -10px ${draftTheme?.light?.glow || 'rgba(0,0,0,0.08)'}` }}
+                className="p-4 rounded-xl border border-black/5 bg-[var(--color-surface)]"
+                style={{ boxShadow: `0 20px 45px -18px ${activePalette.glow || 'rgba(0,0,0,0.12)'}` }}
               >
                 <p className="text-sm text-[var(--color-muted)]">This area follows the live palette.</p>
               </div>
             </div>
-            <div className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm">
+            <div className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
               <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Gradient</p>
               <h4 className="text-lg font-serif font-bold mb-2">Ambient</h4>
-              <div className="h-16 rounded-xl accent-gradient" />
+              <div
+                className="h-16 rounded-xl"
+                style={{ background: `linear-gradient(120deg, ${activePalette.gradientFrom || '#f7d4dd'}, ${activePalette.gradientTo || '#c8d8d0'})` }}
+              />
             </div>
           </div>
         </section>
