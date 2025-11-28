@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_THEME, useTheme } from '../context/ThemeContext';
+import DateTimePicker from '../components/DateTimePicker';
+import { formatTimeLabel, parseDateTimeValue } from '../utils/dateTime';
+import { THEME_PRESETS } from '../constants/themePresets';
 import {
   ShieldCheck,
   CalendarRange,
@@ -22,6 +25,7 @@ import {
   X,
   Trash2,
   Upload,
+  Wand2,
 } from 'lucide-react';
 
 const emptyClass = {
@@ -60,18 +64,13 @@ const formatDateRange = (start, end) => {
   return `${startDate.toLocaleDateString()} – ${endDate.toLocaleDateString()}`;
 };
 
-const formatTimeLabel = (value) => {
-  const parsed = value ? new Date(value) : null;
-  if (!parsed || Number.isNaN(parsed.getTime())) return '';
-  return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
-
 const normalizeClassRow = (row) => ({
   ...row,
   time: row?.time || formatTimeLabel(row?.date),
 });
 
 const AdminPanel = () => {
+  const navigate = useNavigate();
   const { currentUser, isAdmin } = useAuth();
   const { theme, previewTheme, resetPreviewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
   const [classes, setClasses] = useState([]);
@@ -85,10 +84,20 @@ const AdminPanel = () => {
     });
     return counts;
   }, [retreatSignups]);
+  const retreatSignupMap = useMemo(() => {
+    const map = new Map();
+    retreatSignups.forEach((entry) => {
+      const existing = map.get(entry.retreat_id) || [];
+      existing.push(entry);
+      map.set(entry.retreat_id, existing);
+    });
+    return map;
+  }, [retreatSignups]);
   const [loading, setLoading] = useState(true);
   const [savingClass, setSavingClass] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
   const [draftClass, setDraftClass] = useState(emptyClass);
+  const [editClassDraft, setEditClassDraft] = useState(null);
   const [draftRetreat, setDraftRetreat] = useState(emptyRetreat);
   const [draftTheme, setDraftTheme] = useState(theme);
   const [toasts, setToasts] = useState([]);
@@ -96,6 +105,8 @@ const AdminPanel = () => {
   const [retreatToDelete, setRetreatToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [presetPreview, setPresetPreview] = useState('');
+  const [randomizing, setRandomizing] = useState(false);
   const toastRegionRef = useRef(null);
 
   const activePaletteKey = darkMode ? 'dark' : 'light';
@@ -260,11 +271,15 @@ const AdminPanel = () => {
   }, [isAdmin]);
 
   const startEdit = (cls) => {
-    setDraftClass({ ...cls });
+    setEditClassDraft({ ...cls });
   };
 
   const resetForm = () => {
     setDraftClass(emptyClass);
+  };
+
+  const closeEditModal = () => {
+    setEditClassDraft(null);
   };
 
   const startRetreatEdit = (retreat) => {
@@ -276,27 +291,30 @@ const AdminPanel = () => {
   };
 
   const handleClassChange = (field, value) => {
-    setDraftClass(prev => ({ ...prev, [field]: value }));
+    setDraftClass((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditClassChange = (field, value) => {
+    setEditClassDraft((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleRetreatChange = (field, value) => {
     setDraftRetreat((prev) => ({ ...prev, [field]: value }));
   };
 
-  const saveClass = async (e) => {
-    e.preventDefault();
+  const persistClassDraft = async (draft, onSuccess) => {
     setSavingClass(true);
 
     const requiredFields = ['title', 'date', 'duration', 'location', 'instructor'];
-    const missing = requiredFields.filter((key) => !draftClass[key]);
+    const missing = requiredFields.filter((key) => !draft?.[key]);
     if (missing.length) {
       addToast('error', `Please complete: ${missing.join(', ')}.`);
       setSavingClass(false);
       return;
     }
 
-    const parsedDate = draftClass.date ? new Date(draftClass.date) : null;
-    if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
+    const parsedDate = parseDateTimeValue(draft.date);
+    if (!parsedDate) {
       addToast('error', 'Provide a valid date & time for the class.');
       setSavingClass(false);
       return;
@@ -309,8 +327,8 @@ const AdminPanel = () => {
     }
 
     const payload = {
-      ...draftClass,
-      id: draftClass.id || crypto.randomUUID(),
+      ...draft,
+      id: draft.id || crypto.randomUUID(),
       date: parsedDate.toISOString(),
       time: formatTimeLabel(parsedDate),
     };
@@ -334,12 +352,21 @@ const AdminPanel = () => {
         return [savedRow, ...prev];
       });
       addToast('success', 'Class saved successfully.');
-      resetForm();
+      onSuccess?.();
     } catch (err) {
       addToast('error', `Unable to save class: ${err.message}`);
     } finally {
       setSavingClass(false);
     }
+  };
+
+  const saveClass = async (e) => {
+    e.preventDefault();
+    await persistClassDraft(draftClass, resetForm);
+  };
+
+  const saveEditedClass = async () => {
+    await persistClassDraft(editClassDraft, closeEditModal);
   };
 
   const uploadRetreatImage = async (retreatId, file) => {
@@ -484,9 +511,20 @@ const AdminPanel = () => {
     previewTheme(next);
   };
 
+  const applyThemeToEditor = (nextTheme) => {
+    const hydrated = {
+      light: { ...DEFAULT_THEME.light, ...(nextTheme?.light || {}) },
+      dark: { ...DEFAULT_THEME.dark, ...(nextTheme?.dark || {}) },
+    };
+    setPresetPreview('');
+    setDraftTheme(hydrated);
+    previewTheme(hydrated);
+  };
+
   const restoreSavedTheme = () => {
     setDraftTheme(theme);
     previewTheme(theme);
+    setPresetPreview('');
     addToast('success', 'Restored the saved palette and preview.');
   };
 
@@ -500,6 +538,57 @@ const AdminPanel = () => {
     } finally {
       setSavingTheme(false);
     }
+  };
+
+  const generateHarmoniousPalette = () => {
+    const baseHue = Math.floor(Math.random() * 360);
+    const offset = (delta) => (baseHue + delta + 360) % 360;
+
+    const light = {
+      primary: `hsl(${offset(12)} 58% 52%)`,
+      secondary: `hsl(${offset(220)} 32% 38%)`,
+      accent: `hsl(${offset(46)} 62% 78%)`,
+      surface: 'hsl(24 38% 96%)',
+      card: 'hsl(26 36% 92%)',
+      muted: 'hsl(20 14% 45%)',
+      text: 'hsl(18 20% 16%)',
+      gradientFrom: `hsl(${offset(25)} 52% 84%)`,
+      gradientTo: `hsl(${offset(190)} 36% 78%)`,
+      glow: `hsl(${offset(15)} 58% 72%)`,
+    };
+
+    const dark = {
+      primary: `hsl(${offset(10)} 65% 72%)`,
+      secondary: `hsl(${offset(215)} 34% 70%)`,
+      accent: `hsl(${offset(40)} 52% 64%)`,
+      surface: 'hsl(225 16% 11%)',
+      card: 'hsl(225 16% 16%)',
+      muted: 'hsl(220 14% 68%)',
+      text: 'hsl(210 30% 94%)',
+      gradientFrom: `hsl(${offset(210)} 32% 42%)`,
+      gradientTo: `hsl(${offset(25)} 44% 58%)`,
+      glow: `hsl(${offset(15)} 60% 52%)`,
+    };
+
+    return { light, dark };
+  };
+
+  const randomizeTheme = () => {
+    setRandomizing(true);
+    const palette = generateHarmoniousPalette();
+    applyThemeToEditor(palette);
+    addToast('info', 'Generated a new balanced palette. Save to keep it.');
+    setRandomizing(false);
+  };
+
+  const previewPreset = (palette, name) => {
+    setPresetPreview(name);
+    previewTheme(palette);
+  };
+
+  const stopPresetPreview = () => {
+    setPresetPreview('');
+    previewTheme(draftTheme);
   };
 
   useEffect(() => () => resetPreviewTheme(), [resetPreviewTheme]);
@@ -524,13 +613,14 @@ const AdminPanel = () => {
             <p className="text-sm text-[var(--color-muted)]">Signed in as {currentUser?.email}</p>
           </div>
           <div className="flex gap-3 items-center">
-            <Link
-              to="/"
+            <button
+              type="button"
+              onClick={() => navigate('/')}
               className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
             >
               <ArrowLeft size={16} />
               Back to Site
-            </Link>
+            </button>
           </div>
         </header>
 
@@ -621,12 +711,9 @@ const AdminPanel = () => {
                 className="admin-input"
                 required
               />
-              <label className="text-xs text-[var(--color-muted)] font-semibold">Date & Time</label>
-              <input
-                type="datetime-local"
+              <DateTimePicker
                 value={draftClass.date}
-                onChange={(e) => handleClassChange('date', e.target.value)}
-                className="admin-input"
+                onChange={(value) => handleClassChange('date', value)}
                 required
               />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Duration</label>
@@ -970,7 +1057,165 @@ const AdminPanel = () => {
               </div>
             )}
           </div>
+
+          <div className="mt-8 space-y-3">
+            <h3 className="text-lg font-serif font-bold flex items-center gap-2">
+              <Users size={18} className="text-[var(--color-primary)]" />
+              Retreat Signups & Waitlists
+            </h3>
+            {loading ? (
+              <p className="text-sm text-[var(--color-muted)]">Loading retreat signups...</p>
+            ) : (
+              <div className="space-y-3">
+                {retreats.map((retreat) => {
+                  const roster = retreatSignupMap.get(retreat.id) || [];
+                  return (
+                    <div key={`${retreat.id}-signups`} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{retreat.title}</p>
+                          <p className="text-sm text-[var(--color-muted)]">{retreat.location || 'Location TBA'}</p>
+                        </div>
+                        <div className="text-xs font-semibold text-[var(--color-muted)]">
+                          {roster.length} attendee{roster.length === 1 ? '' : 's'}
+                        </div>
+                      </div>
+                      {roster.length === 0 ? (
+                        <p className="text-sm text-[var(--color-muted)] mt-3">No signups yet for this retreat.</p>
+                      ) : (
+                        <div className="mt-3 space-y-2">
+                          {roster.map((entry) => {
+                            const displayName = entry?.profile?.full_name || entry?.name || entry?.profile?.email || entry?.email || 'Guest';
+                            const email = entry?.profile?.email || entry?.email || 'Email not provided';
+                            return (
+                              <div
+                                key={entry.id}
+                                className="flex items-center justify-between px-3 py-2 rounded-xl bg-[var(--color-surface)] border border-black/5"
+                              >
+                                <div>
+                                  <p className="text-sm font-semibold">{displayName}</p>
+                                  <p className="text-xs text-[var(--color-muted)]">{email}</p>
+                                </div>
+                                <span className="px-2 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-[10px] font-semibold uppercase tracking-[0.2em]">
+                                  Signup
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {retreats.length === 0 && (
+                  <div className="p-4 rounded-2xl border border-dashed border-black/10 text-[var(--color-muted)] text-sm">
+                    Add a retreat above to see attendance here.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </section>
+
+        {editClassDraft && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={closeEditModal}>
+            <div className="theme-card rounded-3xl max-w-3xl w-full p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Edit Class</p>
+                  <h3 className="text-xl font-serif font-bold">{editClassDraft.title || 'Update class'}</h3>
+                </div>
+                <button onClick={closeEditModal} className="p-2 rounded-full hover:bg-black/5" aria-label="Close">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Title</label>
+                  <input
+                    type="text"
+                    value={editClassDraft.title}
+                    onChange={(e) => handleEditClassChange('title', e.target.value)}
+                    className="admin-input"
+                  />
+                  <DateTimePicker
+                    value={editClassDraft.date}
+                    onChange={(value) => handleEditClassChange('date', value)}
+                    required
+                  />
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Duration</label>
+                  <input
+                    type="text"
+                    value={editClassDraft.duration}
+                    onChange={(e) => handleEditClassChange('duration', e.target.value)}
+                    className="admin-input"
+                  />
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Description</label>
+                  <textarea
+                    value={editClassDraft.description}
+                    onChange={(e) => handleEditClassChange('description', e.target.value)}
+                    className="admin-input"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Location</label>
+                  <input
+                    type="text"
+                    value={editClassDraft.location}
+                    onChange={(e) => handleEditClassChange('location', e.target.value)}
+                    className="admin-input"
+                  />
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Instructor</label>
+                  <input
+                    type="text"
+                    value={editClassDraft.instructor}
+                    onChange={(e) => handleEditClassChange('instructor', e.target.value)}
+                    className="admin-input"
+                  />
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Price</label>
+                  <input
+                    type="number"
+                    value={editClassDraft.price}
+                    onChange={(e) => handleEditClassChange('price', Number(e.target.value))}
+                    className="admin-input"
+                  />
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Capacity</label>
+                  <input
+                    type="number"
+                    value={editClassDraft.capacity}
+                    onChange={(e) => handleEditClassChange('capacity', Number(e.target.value))}
+                    className="admin-input"
+                  />
+                  <label className="text-xs text-[var(--color-muted)] font-semibold">Waitlist Capacity</label>
+                  <input
+                    type="number"
+                    value={editClassDraft.waitlist_capacity}
+                    onChange={(e) => handleEditClassChange('waitlist_capacity', Number(e.target.value))}
+                    className="admin-input"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="flex-1 px-4 py-3 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEditedClass}
+                  disabled={savingClass}
+                  className="flex-1 px-4 py-3 rounded-xl bg-[var(--color-primary)] text-white font-bold shadow-lg shadow-teal-900/20"
+                >
+                  {savingClass ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {classToDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setClassToDelete(null)}>
@@ -1044,6 +1289,19 @@ const AdminPanel = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
+              {presetPreview && (
+                <span className="px-3 py-2 rounded-xl bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] text-xs font-semibold">
+                  Previewing {presetPreview}
+                </span>
+              )}
+              <button
+                onClick={stopPresetPreview}
+                className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
+                title="Return to the editable palette"
+              >
+                <Sparkles size={16} />
+                Stop Preview
+              </button>
               <button
                 onClick={restoreSavedTheme}
                 className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
@@ -1051,6 +1309,14 @@ const AdminPanel = () => {
               >
                 <Sparkles size={16} />
                 Restore Saved Theme
+              </button>
+              <button
+                onClick={randomizeTheme}
+                disabled={randomizing}
+                className="px-4 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] shadow-card text-sm font-semibold flex items-center gap-2"
+              >
+                {randomizing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                Randomize Theme
               </button>
               <button
                 onClick={persistTheme}
@@ -1081,6 +1347,37 @@ const AdminPanel = () => {
               {darkMode ? <SunMedium size={16} /> : <MoonStar size={16} />}
               Switch to {darkMode ? 'Light' : 'Dark'} Palette
             </button>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-3 mb-4">
+            {THEME_PRESETS.map((preset) => (
+              <div key={preset.name} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Preset</p>
+                    <h4 className="text-lg font-serif font-bold">{preset.name}</h4>
+                    <p className="text-xs text-[var(--color-muted)]">{preset.description}</p>
+                  </div>
+                  <div className="h-12 w-16 rounded-xl overflow-hidden border border-black/5" style={{ background: `linear-gradient(120deg, ${preset.palette.light.gradientFrom}, ${preset.palette.light.gradientTo})` }} />
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => previewPreset(preset.palette, preset.name)}
+                    className="px-3 py-2 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] text-sm font-semibold"
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyThemeToEditor(preset.palette)}
+                    className="px-3 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-semibold shadow-card"
+                  >
+                    Load into Editor
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
