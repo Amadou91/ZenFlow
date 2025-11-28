@@ -53,10 +53,16 @@ export const AuthProvider = ({ children }) => {
   const loadProfile = async (userId) => {
     if (!userId) return null;
     if (!isSupabaseConfigured || !supabase) return null;
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (error) throw error;
-    if (data) setProfile(data);
-    return data;
+
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (error) throw error;
+      if (data) setProfile(data);
+      return data;
+    } catch (error) {
+      console.error('Failed to load profile', error);
+      return null;
+    }
   };
 
   useEffect(() => {
@@ -70,7 +76,7 @@ export const AuthProvider = ({ children }) => {
         if (error) throw error;
 
         setCurrentUser(session?.user || null);
-        if (session?.user) await loadProfile(session.user.id);
+        if (session?.user) loadProfile(session.user.id);
       } catch (err) {
         console.error('Failed to fetch auth session', err);
         setCurrentUser(null);
@@ -85,7 +91,7 @@ export const AuthProvider = ({ children }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setCurrentUser(session?.user || null);
-      if (session?.user) await loadProfile(session.user.id);
+      if (session?.user) loadProfile(session.user.id);
       else setProfile(null);
     });
     return () => subscription.unsubscribe();
