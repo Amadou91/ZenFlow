@@ -28,13 +28,21 @@ export const AuthProvider = ({ children }) => {
     });
     if (error) throw error;
 
+    // Check if session is null (implies email confirmation is required)
+    if (data.user && !data.session) {
+       // Do NOT log them in immediately. Return a specific flag so the UI can show a message.
+       return { user: data.user, session: null, confirmationRequired: true };
+    }
+
+    // If we got a session, create profile immediately
     if (data.user) {
       const adminFlag = data.user.email?.toLowerCase() === adminEmail;
       await supabase.from('profiles').upsert([
         { id: data.user.id, full_name: name, email, is_admin: adminFlag }
       ]);
     }
-    return data;
+    
+    return { ...data, confirmationRequired: false };
   };
 
   const login = async (email, password) => {
@@ -75,8 +83,14 @@ export const AuthProvider = ({ children }) => {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
 
-        setCurrentUser(session?.user || null);
-        if (session?.user) loadProfile(session.user.id);
+        // Only set user if session is valid (i.e., email confirmed if required)
+        if (session?.user) {
+            setCurrentUser(session.user);
+            loadProfile(session.user.id);
+        } else {
+            setCurrentUser(null);
+            setProfile(null);
+        }
       } catch (err) {
         console.error('Failed to fetch auth session', err);
         setCurrentUser(null);
@@ -90,9 +104,15 @@ export const AuthProvider = ({ children }) => {
     if (!isSupabaseConfigured || !supabase) return undefined;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setCurrentUser(session?.user || null);
-      if (session?.user) loadProfile(session.user.id);
-      else setProfile(null);
+      // onAuthStateChange handles the session update automatically
+      if (session?.user) {
+          setCurrentUser(session.user);
+          loadProfile(session.user.id);
+      } else {
+          setCurrentUser(null);
+          setProfile(null);
+      }
+      setLoading(false);
     });
     return () => subscription.unsubscribe();
   }, []);

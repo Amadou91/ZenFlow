@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Activity } from 'lucide-react';
+import { Activity, MailCheck } from 'lucide-react';
 
 const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false); // New state for success message
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
@@ -18,13 +19,42 @@ const Register = () => {
     try {
       setError('');
       setLoading(true);
-      await signup(email, password, name);
-      navigate('/dashboard');
+      const result = await signup(email, password, name);
+      
+      if (result.confirmationRequired) {
+        setSuccess(true); // Show "Check your email" message
+      } else {
+        // If auto-confirmed (e.g., disabled in Supabase), go to dashboard
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-900 px-4">
+        <div className="max-w-md w-full bg-white dark:bg-stone-800 rounded-2xl shadow-xl p-8 border border-stone-100 dark:border-stone-700 text-center animate-in fade-in">
+          <div className="inline-block p-4 bg-teal-50 dark:bg-teal-900/30 rounded-full text-teal-600 dark:text-teal-400 mb-4">
+            <MailCheck size={32} />
+          </div>
+          <h2 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mb-2">Check your inbox</h2>
+          <p className="text-stone-600 dark:text-stone-300 mb-6 leading-relaxed">
+            We've sent a confirmation link to <strong>{email}</strong>.<br/>
+            Please verify your email to complete your registration.
+          </p>
+          <div className="space-y-3">
+            <Link to="/login" className="block w-full py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-bold rounded-xl hover:opacity-90 transition-opacity">
+              Back to Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-900 px-4">
