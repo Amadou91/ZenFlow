@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Activity, Sun, Moon, Menu, X, Instagram, Mail, MapPin, UserCircle, Wind } from 'lucide-react';
+import { Sun, Moon, Menu, X, Instagram, Mail, MapPin, UserCircle } from 'lucide-react';
+import LogoMark from '../components/LogoMark';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -46,12 +47,7 @@ const WebsiteLayout = () => {
           <div className="flex justify-between items-center">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-teal-200/50 dark:bg-teal-500/20 rounded-full blur-md group-hover:blur-lg transition-all duration-500"></div>
-                <div className="relative bg-white dark:bg-stone-800 text-teal-600 dark:text-teal-400 p-2.5 rounded-full border border-teal-100 dark:border-stone-700 shadow-sm group-hover:scale-105 transition-transform duration-300">
-                  <Wind size={20} className="animate-spin-slow" />
-                </div>
-              </div>
+              <LogoMark size={52} className="group-hover:scale-[1.02] transition-transform duration-300" />
               <div className="flex flex-col">
                 <span className="text-xl font-bold font-serif tracking-tight text-stone-900 dark:text-stone-100 leading-none">ZenFlow</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400 mt-0.5">Sanctuary</span>
@@ -139,7 +135,7 @@ const WebsiteLayout = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-6">
-                <div className="bg-stone-900 dark:bg-white text-white dark:text-stone-900 p-2 rounded-lg"><Activity size={20} /></div>
+                <LogoMark size={48} />
                 <span className="text-2xl font-bold font-serif text-stone-900 dark:text-white">ZenFlow</span>
               </div>
               <p className="text-stone-500 dark:text-stone-400 text-lg leading-relaxed max-w-md">
@@ -152,7 +148,9 @@ const WebsiteLayout = () => {
               <ul className="space-y-4 text-stone-500 dark:text-stone-400 font-medium">
                 <li><Link to="/schedule" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">Class Schedule</Link></li>
                 <li><Link to="/retreats" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">Retreats</Link></li>
-                <li><Link to="/tools/zenflow" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">Sequence Builder</Link></li>
+                {isAdmin && (
+                  <li><Link to="/tools/zenflow" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">Sequence Builder</Link></li>
+                )}
               </ul>
             </div>
 
