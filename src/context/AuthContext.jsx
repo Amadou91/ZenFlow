@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = useMemo(() => {
     const email = currentUser?.email?.toLowerCase();
     const profileAdmin = profile?.is_admin;
-    // Update: Check against array of admin emals
+    // Update: Check against array of admin emails
     return (email && adminEmails.includes(email)) || Boolean(profileAdmin);
   }, [adminEmails, currentUser, profile]);
 
