@@ -22,7 +22,6 @@ const emptyClass = {
   id: '',
   title: '',
   date: '',
-  time: '',
   duration: '',
   location: '',
   instructor: '',
@@ -32,9 +31,20 @@ const emptyClass = {
   description: '',
 };
 
+const formatTimeLabel = (value) => {
+  const parsed = value ? new Date(value) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const normalizeClassRow = (row) => ({
+  ...row,
+  time: row?.time || formatTimeLabel(row?.date),
+});
+
 const AdminPanel = () => {
   const { currentUser, isAdmin } = useAuth();
-  const { theme, previewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
+  const { theme, previewTheme, resetPreviewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
   const [classes, setClasses] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +53,7 @@ const AdminPanel = () => {
   const [draftClass, setDraftClass] = useState(emptyClass);
   const [draftTheme, setDraftTheme] = useState(theme);
   const [message, setMessage] = useState('');
+  const [notice, setNotice] = useState(null);
 
   const activePaletteKey = darkMode ? 'dark' : 'light';
   const activePaletteLabel = darkMode ? 'Dark' : 'Light';
@@ -82,6 +93,10 @@ const AdminPanel = () => {
   useEffect(() => setDraftTheme(theme), [theme]);
 
   useEffect(() => {
+    previewTheme(draftTheme);
+  }, [darkMode, draftTheme, previewTheme]);
+
+  useEffect(() => {
     const load = async () => {
       if (!isSupabaseConfigured || !supabase) {
         setMessage('Configure Supabase to manage classes and bookings.');
@@ -97,16 +112,16 @@ const AdminPanel = () => {
 
         if (classError) throw classError;
         if (bookingError) throw bookingError;
-        setClasses(classData || []);
+        setClasses((classData || []).map(normalizeClassRow));
         setBookings(bookingData || []);
       } catch (err) {
         console.warn('Falling back to in-memory classes:', err.message);
         setClasses([]);
         setBookings([]);
-        setMessage('Supabase tables are not ready yet. Data will load once they exist.');
-      } finally {
-        setLoading(false);
-      }
+      setMessage('Supabase tables are not ready yet. Data will load once they exist.');
+    } finally {
+      setLoading(false);
+    }
     };
     if (isAdmin && currentUser) load();
   }, [currentUser, isAdmin]);
@@ -133,6 +148,12 @@ const AdminPanel = () => {
     };
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(null), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   const startEdit = (cls) => {
     setDraftClass({ ...cls });
   };
@@ -148,19 +169,41 @@ const AdminPanel = () => {
   const saveClass = async (e) => {
     e.preventDefault();
     setSavingClass(true);
-    if (!isSupabaseConfigured || !supabase) {
-      setMessage('Supabase is not configured. Add credentials to save classes.');
+
+    const requiredFields = ['title', 'date', 'duration', 'location', 'instructor'];
+    const missing = requiredFields.filter((key) => !draftClass[key]);
+    if (missing.length) {
+      setNotice({ type: 'error', text: `Please complete: ${missing.join(', ')}.` });
       setSavingClass(false);
       return;
     }
-    const payload = { ...draftClass };
-    if (!payload.id) payload.id = crypto.randomUUID();
+
+    const parsedDate = draftClass.date ? new Date(draftClass.date) : null;
+    if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
+      setNotice({ type: 'error', text: 'Provide a valid date & time for the class.' });
+      setSavingClass(false);
+      return;
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      setNotice({ type: 'error', text: 'Supabase is not configured. Add credentials to save classes.' });
+      setSavingClass(false);
+      return;
+    }
+
+    const payload = {
+      ...draftClass,
+      id: draftClass.id || crypto.randomUUID(),
+      date: parsedDate.toISOString(),
+      time: formatTimeLabel(parsedDate),
+    };
+
     try {
       const { data, error } = await supabase.from('classes').upsert([payload]).select();
       if (error) throw error;
-      const savedRow = data?.[0] || payload;
-      setClasses(prev => {
-        const existingIdx = prev.findIndex(c => c.id === savedRow.id);
+      const savedRow = normalizeClassRow(data?.[0] || payload);
+      setClasses((prev) => {
+        const existingIdx = prev.findIndex((c) => c.id === savedRow.id);
         if (existingIdx >= 0) {
           const clone = [...prev];
           clone[existingIdx] = savedRow;
@@ -168,10 +211,10 @@ const AdminPanel = () => {
         }
         return [savedRow, ...prev];
       });
-      setMessage('Class saved successfully.');
+      setNotice({ type: 'success', text: 'Class saved successfully.' });
       resetForm();
     } catch (err) {
-      setMessage(`Unable to save class: ${err.message}`);
+      setNotice({ type: 'error', text: `Unable to save class: ${err.message}` });
     } finally {
       setSavingClass(false);
     }
@@ -217,6 +260,8 @@ const AdminPanel = () => {
     }
   };
 
+  useEffect(() => () => resetPreviewTheme(), [resetPreviewTheme]);
+
   if (!isAdmin) return null;
 
   return (
@@ -251,6 +296,14 @@ const AdminPanel = () => {
             </Link>
           </div>
         </header>
+
+        {notice && (
+          <div
+            className={`fixed bottom-6 right-6 z-20 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold border ${notice.type === 'success' ? 'bg-[var(--color-card)] border-black/5 text-[var(--color-text)]' : 'bg-rose-50 border-rose-200 text-rose-700'}`}
+          >
+            {notice.text}
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-4">
           <div className="p-4 rounded-2xl bg-[var(--color-card)] border border-black/5 shadow-card">
@@ -295,7 +348,7 @@ const AdminPanel = () => {
                 className="admin-input"
                 required
               />
-              <label className="text-xs text-[var(--color-muted)] font-semibold">Date</label>
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Date & Time</label>
               <input
                 type="datetime-local"
                 value={draftClass.date}
@@ -336,14 +389,6 @@ const AdminPanel = () => {
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs text-[var(--color-muted)] font-semibold">Time</label>
-              <input
-                type="text"
-                value={draftClass.time}
-                onChange={(e) => handleClassChange('time', e.target.value)}
-                className="admin-input"
-                placeholder="07:00 PM"
-              />
               <label className="text-xs text-[var(--color-muted)] font-semibold">Price</label>
               <input
                 type="number"
@@ -399,9 +444,9 @@ const AdminPanel = () => {
                   <div key={cls.id} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{new Date(cls.date).toLocaleDateString()}</p>
+                        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{cls.date ? new Date(cls.date).toLocaleDateString() : 'Date TBA'}</p>
                         <h4 className="text-lg font-serif font-bold">{cls.title}</h4>
-                        <p className="text-sm text-[var(--color-muted)]">{cls.time} • {cls.location}</p>
+                        <p className="text-sm text-[var(--color-muted)]">{formatTimeLabel(cls.date) || 'Time TBA'} • {cls.location || 'Location TBA'}</p>
                       </div>
                       <button
                         onClick={() => startEdit(cls)}
@@ -478,7 +523,7 @@ const AdminPanel = () => {
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Theme Studio</p>
                 <h2 className="text-xl font-serif font-bold">Light & Dark Palettes</h2>
-                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to jump between the two palettes.</p>
+                <p className="text-xs text-[var(--color-muted)]">Use the toggle below to jump between the two palettes. Changes preview instantly here but only publish after you press Save.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
