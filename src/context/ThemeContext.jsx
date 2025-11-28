@@ -117,7 +117,10 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const saveTheme = async (nextTheme) => {
+    const appliedPalette = darkMode ? nextTheme.dark : nextTheme.light;
     setTheme(nextTheme);
+    applyPalette(appliedPalette);
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('zenflow_theme_palette', JSON.stringify(nextTheme));
     }
@@ -126,9 +129,23 @@ export const ThemeProvider = ({ children }) => {
       throw new Error('Supabase is not configured; please add Supabase environment variables to persist the theme.');
     }
 
-    await supabase.from('theme_settings').upsert([
-      { id: 'global', theme: nextTheme, updated_at: new Date().toISOString() },
-    ]);
+    const { data, error } = await supabase
+      .from('theme_settings')
+      .upsert([
+        { id: 'global', theme: nextTheme, updated_at: new Date().toISOString() },
+      ])
+      .select('theme')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data?.theme) {
+      setTheme(data.theme);
+      applyPalette(darkMode ? data.theme.dark : data.theme.light);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('zenflow_theme_palette', JSON.stringify(data.theme));
+      }
+    }
   };
 
   return (
