@@ -16,6 +16,9 @@ export const DEFAULT_THEME = {
     gradientFrom: '#f7d4dd',
     gradientTo: '#c8d8d0',
     glow: '#f2c4cf',
+    glowIntensity: 0.55,
+    glowSoftness: 42,
+    glowEnabled: true,
   },
   dark: {
     primary: '#f0b7c6',
@@ -28,6 +31,9 @@ export const DEFAULT_THEME = {
     gradientFrom: '#7c8c9f',
     gradientTo: '#c59aa8',
     glow: '#9eb8c6',
+    glowIntensity: 0.45,
+    glowSoftness: 46,
+    glowEnabled: true,
   },
 };
 
@@ -72,9 +78,27 @@ export const ThemeProvider = ({ children }) => {
   const applyPalette = (nextPalette) => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    Object.entries(nextPalette).forEach(([key, value]) => {
+    const { glowIntensity, glowSoftness, glowEnabled, ...colorPalette } = nextPalette || {};
+
+    Object.entries(colorPalette).forEach(([key, value]) => {
       root.style.setProperty(`--color-${key}`, value);
     });
+
+    const safeIntensity =
+      typeof glowIntensity === 'number'
+        ? glowIntensity
+        : (typeof DEFAULT_THEME?.light?.glowIntensity === 'number' && DEFAULT_THEME.light.glowIntensity) ||
+          DEFAULT_THEME.dark.glowIntensity;
+    const safeSoftness =
+      typeof glowSoftness === 'number'
+        ? glowSoftness
+        : (typeof DEFAULT_THEME?.light?.glowSoftness === 'number' && DEFAULT_THEME.light.glowSoftness) ||
+          DEFAULT_THEME.dark.glowSoftness;
+    const glowToggle = glowEnabled === false ? 0 : 1;
+
+    root.style.setProperty('--glow-strength', glowToggle ? safeIntensity : 0);
+    root.style.setProperty('--glow-softness', `${safeSoftness}px`);
+    root.style.setProperty('--glow-enabled', glowToggle);
   };
 
   useEffect(() => {
