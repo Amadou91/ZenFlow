@@ -20,6 +20,8 @@ import {
   AlertTriangle,
   Info,
   X,
+  Trash2,
+  Upload,
 } from 'lucide-react';
 
 const emptyClass = {
@@ -33,6 +35,29 @@ const emptyClass = {
   capacity: 10,
   waitlist_capacity: 5,
   description: '',
+};
+
+const emptyRetreat = {
+  id: '',
+  title: '',
+  start_date: '',
+  end_date: '',
+  location: '',
+  description: '',
+  price: 0,
+  capacity: 12,
+  waitlist_capacity: 6,
+  image_url: '',
+  date_label: '',
+};
+
+const formatDateRange = (start, end) => {
+  if (!start && !end) return '';
+  const startDate = start ? new Date(start) : null;
+  const endDate = end ? new Date(end) : null;
+  if (!startDate && endDate) return endDate.toLocaleDateString();
+  if (startDate && !endDate) return startDate.toLocaleDateString();
+  return `${startDate.toLocaleDateString()} – ${endDate.toLocaleDateString()}`;
 };
 
 const formatTimeLabel = (value) => {
@@ -51,12 +76,26 @@ const AdminPanel = () => {
   const { theme, previewTheme, resetPreviewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
   const [classes, setClasses] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [retreats, setRetreats] = useState([]);
+  const [retreatSignups, setRetreatSignups] = useState([]);
+  const retreatSignupCounts = useMemo(() => {
+    const counts = new Map();
+    retreatSignups.forEach((entry) => {
+      counts.set(entry.retreat_id, (counts.get(entry.retreat_id) || 0) + 1);
+    });
+    return counts;
+  }, [retreatSignups]);
   const [loading, setLoading] = useState(true);
   const [savingClass, setSavingClass] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
   const [draftClass, setDraftClass] = useState(emptyClass);
+  const [draftRetreat, setDraftRetreat] = useState(emptyRetreat);
   const [draftTheme, setDraftTheme] = useState(theme);
   const [toasts, setToasts] = useState([]);
+  const [classToDelete, setClassToDelete] = useState(null);
+  const [retreatToDelete, setRetreatToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const toastRegionRef = useRef(null);
 
   const activePaletteKey = darkMode ? 'dark' : 'light';
@@ -124,19 +163,52 @@ const AdminPanel = () => {
       }
       try {
         setLoading(true);
-        const [{ data: classData, error: classError }, { data: bookingData, error: bookingError }] = await Promise.all([
+        const [
+          { data: classData, error: classError },
+          { data: bookingData, error: bookingError },
+          { data: retreatData, error: retreatError },
+          { data: signupData, error: signupError },
+        ] = await Promise.all([
           supabase.from('classes').select('*').order('date', { ascending: true }),
           supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+          supabase.from('retreats').select('*').order('start_date', { ascending: true }),
+          supabase.from('retreat_signups').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (classError) throw classError;
         if (bookingError) throw bookingError;
-        setClasses((classData || []).map(normalizeClassRow));
-        setBookings(bookingData || []);
+        if (retreatError && !`${retreatError.message}`.includes('does not exist')) throw retreatError;
+        if (signupError && !`${signupError.message}`.includes('does not exist')) throw signupError;
+
+        const classRows = (classData || []).map(normalizeClassRow);
+        const bookingRows = bookingData || [];
+        const retreatRows = retreatData || [];
+        const signupRows = signupData || [];
+
+        const userIds = new Set([
+          ...bookingRows.map((row) => row.user_id).filter(Boolean),
+          ...signupRows.map((row) => row.user_id).filter(Boolean),
+        ]);
+
+        let profileMap = {};
+        if (userIds.size) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', Array.from(userIds));
+          profileMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+        }
+
+        setClasses(classRows);
+        setBookings(bookingRows.map((row) => ({ ...row, profile: profileMap[row.user_id] })));
+        setRetreats(retreatRows);
+        setRetreatSignups(signupRows.map((row) => ({ ...row, profile: profileMap[row.user_id] })));
       } catch (err) {
         console.warn('Falling back to in-memory classes:', err.message);
         setClasses([]);
         setBookings([]);
+        setRetreats([]);
+        setRetreatSignups([]);
         addToast('warning', 'Supabase tables are not ready yet. Data will load once they exist.');
       } finally {
         setLoading(false);
@@ -150,11 +222,21 @@ const AdminPanel = () => {
 
     const bookingsChannel = supabase.channel('admin-bookings-stream')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+        const mergeProfile = async (row) => {
+          if (!row?.user_id) return row;
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', row.user_id)
+            .maybeSingle();
+          return { ...row, profile: profile || null };
+        };
+
         if (payload.eventType === 'INSERT') {
-          setBookings((prev) => [payload.new, ...prev]);
+          mergeProfile(payload.new).then((row) => setBookings((prev) => [row, ...prev]));
         }
         if (payload.eventType === 'UPDATE') {
-          setBookings((prev) => prev.map((item) => (item.id === payload.new.id ? payload.new : item)));
+          mergeProfile(payload.new).then((row) => setBookings((prev) => prev.map((item) => (item.id === row.id ? row : item))));
         }
         if (payload.eventType === 'DELETE') {
           setBookings((prev) => prev.filter((item) => item.id !== payload.old.id));
@@ -162,8 +244,18 @@ const AdminPanel = () => {
       })
       .subscribe();
 
+    const retreatsChannel = supabase
+      .channel('admin-retreats-stream')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'retreats' }, (payload) => {
+        if (payload.eventType === 'INSERT') setRetreats((prev) => [payload.new, ...prev]);
+        if (payload.eventType === 'UPDATE') setRetreats((prev) => prev.map((r) => (r.id === payload.new.id ? payload.new : r)));
+        if (payload.eventType === 'DELETE') setRetreats((prev) => prev.filter((r) => r.id !== payload.old.id));
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(retreatsChannel);
     };
   }, [isAdmin]);
 
@@ -175,8 +267,20 @@ const AdminPanel = () => {
     setDraftClass(emptyClass);
   };
 
+  const startRetreatEdit = (retreat) => {
+    setDraftRetreat({ ...retreat });
+  };
+
+  const resetRetreatForm = () => {
+    setDraftRetreat(emptyRetreat);
+  };
+
   const handleClassChange = (field, value) => {
     setDraftClass(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRetreatChange = (field, value) => {
+    setDraftRetreat((prev) => ({ ...prev, [field]: value }));
   };
 
   const saveClass = async (e) => {
@@ -238,6 +342,83 @@ const AdminPanel = () => {
     }
   };
 
+  const uploadRetreatImage = async (retreatId, file) => {
+    if (!file) return null;
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `retreats/${retreatId}/${crypto.randomUUID()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('retreat-images').upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('retreat-images').getPublicUrl(filePath);
+      return data?.publicUrl || null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const saveRetreat = async (e) => {
+    e.preventDefault();
+    setSavingClass(true);
+
+    const required = ['title', 'location'];
+    const missing = required.filter((key) => !draftRetreat[key]);
+    if (missing.length) {
+      addToast('error', `Please complete: ${missing.join(', ')}`);
+      setSavingClass(false);
+      return;
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      addToast('error', 'Supabase is not configured. Add credentials to save retreats.');
+      setSavingClass(false);
+      return;
+    }
+
+    const retreatId = draftRetreat.id || crypto.randomUUID();
+    let imageUrl = draftRetreat.image_url;
+    const imageInput = document.getElementById('retreat-image-input');
+    const file = imageInput?.files?.[0];
+
+    try {
+      if (file) {
+        imageUrl = await uploadRetreatImage(retreatId, file);
+      }
+
+      const payload = {
+        ...draftRetreat,
+        id: retreatId,
+        image_url: imageUrl,
+        date_label: draftRetreat.date_label || formatDateRange(draftRetreat.start_date, draftRetreat.end_date),
+      };
+
+      const { data, error } = await supabase.from('retreats').upsert([payload]).select();
+      if (error) throw error;
+
+      const saved = data?.[0] || payload;
+      setRetreats((prev) => {
+        const exists = prev.findIndex((r) => r.id === saved.id);
+        if (exists >= 0) {
+          const copy = [...prev];
+          copy[exists] = saved;
+          return copy;
+        }
+        return [saved, ...prev];
+      });
+      addToast('success', 'Retreat saved successfully.');
+      resetRetreatForm();
+      if (imageInput) imageInput.value = '';
+    } catch (err) {
+      addToast('error', `Unable to save retreat: ${err.message}`);
+    } finally {
+      setSavingClass(false);
+    }
+  };
+
   const deleteBooking = async (bookingId) => {
     if (!isSupabaseConfigured || !supabase) {
       addToast('error', 'Supabase is not configured.');
@@ -248,6 +429,48 @@ const AdminPanel = () => {
       setBookings(prev => prev.filter(b => b.id !== bookingId));
     } catch (err) {
       addToast('error', `Unable to update booking: ${err.message}`);
+    }
+  };
+
+  const confirmDeleteClass = async () => {
+    if (!classToDelete) return;
+    if (!isSupabaseConfigured || !supabase) {
+      addToast('error', 'Supabase is not configured.');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await supabase.from('bookings').delete().eq('class_id', classToDelete.id);
+      await supabase.from('classes').delete().eq('id', classToDelete.id);
+      setClasses((prev) => prev.filter((c) => c.id !== classToDelete.id));
+      setBookings((prev) => prev.filter((b) => b.class_id !== classToDelete.id));
+      addToast('success', 'Class deleted and related bookings cleared.');
+    } catch (err) {
+      addToast('error', `Unable to delete class: ${err.message}`);
+    } finally {
+      setDeleting(false);
+      setClassToDelete(null);
+    }
+  };
+
+  const confirmDeleteRetreat = async () => {
+    if (!retreatToDelete) return;
+    if (!isSupabaseConfigured || !supabase) {
+      addToast('error', 'Supabase is not configured.');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await supabase.from('retreat_signups').delete().eq('retreat_id', retreatToDelete.id);
+      await supabase.from('retreats').delete().eq('id', retreatToDelete.id);
+      setRetreats((prev) => prev.filter((r) => r.id !== retreatToDelete.id));
+      setRetreatSignups((prev) => prev.filter((s) => s.retreat_id !== retreatToDelete.id));
+      addToast('success', 'Retreat deleted. Associated signups removed.');
+    } catch (err) {
+      addToast('error', `Unable to delete retreat: ${err.message}`);
+    } finally {
+      setDeleting(false);
+      setRetreatToDelete(null);
     }
   };
 
@@ -350,7 +573,7 @@ const AdminPanel = () => {
           })}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-4 gap-4">
           <div className="p-4 rounded-2xl bg-[var(--color-card)] border border-black/5 shadow-card">
             <p className="text-[var(--color-muted)] text-xs uppercase tracking-[0.3em]">Classes</p>
             <p className="text-3xl font-serif font-bold mt-1">{classes.length}</p>
@@ -360,6 +583,11 @@ const AdminPanel = () => {
             <p className="text-[var(--color-muted)] text-xs uppercase tracking-[0.3em]">Bookings</p>
             <p className="text-3xl font-serif font-bold mt-1">{bookings.length}</p>
             <p className="text-xs text-[var(--color-muted)]">Student reservations.</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-[var(--color-card)] border border-black/5 shadow-card">
+            <p className="text-[var(--color-muted)] text-xs uppercase tracking-[0.3em]">Retreats</p>
+            <p className="text-3xl font-serif font-bold mt-1">{retreats.length}</p>
+            <p className="text-xs text-[var(--color-muted)]">Immersive getaways.</p>
           </div>
           <div className="p-4 rounded-2xl bg-[var(--color-card)] border border-black/5 shadow-card">
             <p className="text-[var(--color-muted)] text-xs uppercase tracking-[0.3em]">Theme</p>
@@ -493,13 +721,22 @@ const AdminPanel = () => {
                         <h4 className="text-lg font-serif font-bold">{cls.title}</h4>
                         <p className="text-sm text-[var(--color-muted)]">{formatTimeLabel(cls.date) || 'Time TBA'} • {cls.location || 'Location TBA'}</p>
                       </div>
-                      <button
-                        onClick={() => startEdit(cls)}
-                        className="p-2 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20"
-                        title="Edit class"
-                      >
-                        <Pencil size={16} />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEdit(cls)}
+                          className="p-2 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20"
+                          title="Edit class"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => setClassToDelete(cls)}
+                          className="p-2 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100"
+                          title="Delete class"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between mt-3 text-sm text-[var(--color-muted)]">
                       <span className="inline-flex items-center gap-2"><Users size={14} /> {cls.capacity} seats</span>
@@ -537,7 +774,9 @@ const AdminPanel = () => {
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{new Date(booking.class_date).toLocaleDateString()}</p>
                     <p className="text-lg font-serif font-bold">{booking.class_name}</p>
-                    <p className="text-sm text-[var(--color-muted)]">User: {booking.user_id}</p>
+                    <p className="text-sm text-[var(--color-muted)]" title={`User ID: ${booking.user_id}`}>
+                      User: {booking?.profile?.full_name || booking?.profile?.email || booking.user_id}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -557,6 +796,239 @@ const AdminPanel = () => {
             </div>
           )}
         </section>
+
+        {/* Retreat tools */}
+        <section className="bg-[var(--color-card)] border border-black/5 rounded-3xl shadow-card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]">
+                <CalendarRange size={18} />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">Retreats</p>
+                <h2 className="text-xl font-serif font-bold">Immersive Getaways</h2>
+                <p className="text-xs text-[var(--color-muted)]">Create, update, or remove retreat offerings.</p>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={saveRetreat} className="grid md:grid-cols-3 gap-4 items-start">
+            <div className="md:col-span-2 grid md:grid-cols-2 gap-3">
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Title</label>
+              <input
+                type="text"
+                value={draftRetreat.title}
+                onChange={(e) => handleRetreatChange('title', e.target.value)}
+                className="admin-input md:col-span-2"
+                placeholder="Restorative Weekend"
+              />
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Location</label>
+              <input
+                type="text"
+                value={draftRetreat.location}
+                onChange={(e) => handleRetreatChange('location', e.target.value)}
+                className="admin-input"
+                placeholder="Lake Placid, NY"
+              />
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Date Range</label>
+              <div className="flex gap-3">
+                <input
+                  type="date"
+                  value={draftRetreat.start_date}
+                  onChange={(e) => handleRetreatChange('start_date', e.target.value)}
+                  className="admin-input flex-1"
+                />
+                <input
+                  type="date"
+                  value={draftRetreat.end_date}
+                  onChange={(e) => handleRetreatChange('end_date', e.target.value)}
+                  className="admin-input flex-1"
+                />
+              </div>
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Custom Date Label</label>
+              <input
+                type="text"
+                value={draftRetreat.date_label}
+                onChange={(e) => handleRetreatChange('date_label', e.target.value)}
+                className="admin-input"
+                placeholder="September 18-22, 2025"
+              />
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Description</label>
+              <textarea
+                value={draftRetreat.description}
+                onChange={(e) => handleRetreatChange('description', e.target.value)}
+                className="admin-input md:col-span-2"
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Price</label>
+              <input
+                type="number"
+                value={draftRetreat.price}
+                onChange={(e) => handleRetreatChange('price', Number(e.target.value))}
+                className="admin-input"
+              />
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Capacity</label>
+              <input
+                type="number"
+                value={draftRetreat.capacity}
+                onChange={(e) => handleRetreatChange('capacity', Number(e.target.value))}
+                className="admin-input"
+              />
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Waitlist Capacity</label>
+              <input
+                type="number"
+                value={draftRetreat.waitlist_capacity}
+                onChange={(e) => handleRetreatChange('waitlist_capacity', Number(e.target.value))}
+                className="admin-input"
+              />
+              <label className="text-xs text-[var(--color-muted)] font-semibold">Hero Image</label>
+              <label className="admin-input flex items-center gap-2 cursor-pointer">
+                <Upload size={16} />
+                <span className="text-sm font-semibold">Upload</span>
+                <input id="retreat-image-input" type="file" accept="image/*" className="hidden" />
+              </label>
+              <div className="text-xs text-[var(--color-muted)]">{uploadingImage ? 'Uploading...' : draftRetreat.image_url ? 'Existing image linked' : 'JPEG, PNG. Stored in Supabase storage.'}</div>
+
+              <div className="flex gap-3 mt-4">
+                <button
+                  type="submit"
+                  disabled={savingClass || uploadingImage}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-primary)] text-white font-bold shadow-lg shadow-teal-900/20"
+                >
+                  {savingClass ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                  {draftRetreat.id ? 'Update Retreat' : 'Create Retreat'}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetRetreatForm}
+                  className="px-4 py-3 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] font-semibold shadow-card"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div className="mt-8 space-y-3">
+            <h3 className="text-lg font-serif font-bold flex items-center gap-2">
+              <ClipboardList size={18} className="text-[var(--color-primary)]" />
+              Upcoming Retreats
+            </h3>
+            {loading ? (
+              <p className="text-sm text-[var(--color-muted)]">Loading retreats...</p>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-3">
+                {retreats.map((retreat) => {
+                  const reserved = retreatSignupCounts.get(retreat.id) || 0;
+                  const available = retreat.capacity ? Math.max(0, retreat.capacity - reserved) : null;
+                  return (
+                  <div key={retreat.id} className="p-4 rounded-2xl border border-black/5 bg-[var(--color-card)] shadow-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">{retreat.date_label || formatDateRange(retreat.start_date, retreat.end_date) || 'Date TBA'}</p>
+                        <h4 className="text-lg font-serif font-bold">{retreat.title}</h4>
+                        <p className="text-sm text-[var(--color-muted)]">{retreat.location || 'Location TBA'}</p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => startRetreatEdit(retreat)}
+                          className="p-2 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20"
+                          title="Edit retreat"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => setRetreatToDelete(retreat)}
+                          className="p-2 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100"
+                          title="Delete retreat"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-3 text-sm text-[var(--color-muted)]">
+                      <span className="inline-flex items-center gap-2"><Users size={14} /> {retreat.capacity || 0} spots</span>
+                      {available !== null && <span className="inline-flex items-center gap-2"><Sparkles size={14} /> {available} open</span>}
+                      <span className="inline-flex items-center gap-2"><Sparkles size={14} /> Waitlist {retreat.waitlist_capacity || 0}</span>
+                    </div>
+                    {retreat.image_url && (
+                      <div className="mt-3 aspect-video rounded-xl overflow-hidden border border-black/5 bg-[var(--color-surface)]">
+                        <img src={retreat.image_url} alt={retreat.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                  );
+                })}
+                {retreats.length === 0 && (
+                  <div className="p-4 rounded-2xl border border-dashed border-black/10 text-[var(--color-muted)] text-sm">
+                    No retreats yet. Create your first experience above.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {classToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setClassToDelete(null)}>
+            <div className="theme-card rounded-3xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-serif font-bold">Delete this class?</h3>
+                <button onClick={() => setClassToDelete(null)} className="p-2 rounded-full hover:bg-black/5" aria-label="Close">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="theme-muted text-sm mb-4">{classToDelete.title}</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setClassToDelete(null)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] font-semibold"
+                >
+                  Keep class
+                </button>
+                <button
+                  onClick={confirmDeleteClass}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-3 rounded-xl bg-rose-600 text-white font-bold shadow-lg shadow-rose-900/20"
+                >
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {retreatToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setRetreatToDelete(null)}>
+            <div className="theme-card rounded-3xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-serif font-bold">Delete this retreat?</h3>
+                <button onClick={() => setRetreatToDelete(null)} className="p-2 rounded-full hover:bg-black/5" aria-label="Close">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="theme-muted text-sm mb-4">{retreatToDelete.title}</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRetreatToDelete(null)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-black/5 bg-[var(--color-card)] text-[var(--color-text)] font-semibold"
+                >
+                  Keep retreat
+                </button>
+                <button
+                  onClick={confirmDeleteRetreat}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-3 rounded-xl bg-rose-600 text-white font-bold shadow-lg shadow-rose-900/20"
+                >
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Theme controls */}
         <section className="bg-[var(--color-card)] border border-black/5 rounded-3xl shadow-card p-6">
