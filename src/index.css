@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap');
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
 @layer base {
   body {
@@ -9,7 +9,7 @@
   
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Cinzel', serif;
-    @apply tracking-tight;
+    letter-spacing: -0.02em;
   }
 
   /* Elegant focus states */
@@ -41,7 +41,15 @@
   }
   
   .glass-panel {
-    @apply bg-white/70 dark:bg-stone-800/60 backdrop-blur-xl border border-white/20 dark:border-stone-700/30;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .dark .glass-panel {
+    background-color: rgba(41, 37, 36, 0.6);
+    border-color: rgba(68, 64, 60, 0.3);
   }
 }
 
