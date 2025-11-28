@@ -200,7 +200,12 @@ const AdminPanel = () => {
 
     try {
       const { data, error } = await supabase.from('classes').upsert([payload]).select();
-      if (error) throw error;
+      if (error) {
+        if (error?.message?.includes("Could not find the table 'public.classes'")) {
+          setNotice({ type: 'error', text: 'Classes table is missing. Apply supabase/schema/classes.sql to create it.' });
+        }
+        throw error;
+      }
       const savedRow = normalizeClassRow(data?.[0] || payload);
       setClasses((prev) => {
         const existingIdx = prev.findIndex((c) => c.id === savedRow.id);
