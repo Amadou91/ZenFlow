@@ -1,27 +1,20 @@
 import React from 'react';
-import { CalendarRange, Clock3 } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { toDateTimeLocalValue } from '../utils/dateTime';
 
 const DateTimePicker = ({ label = 'Date & Time', value, onChange, required }) => (
-  <div className="space-y-2">
-    <div className="flex items-center justify-between text-xs font-semibold text-[var(--color-muted)]">
+  <div className="flex flex-col gap-2 w-full">
+    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
+      <Calendar size={14} className="opacity-70" />
       <label>{label}</label>
-      <span className="uppercase tracking-[0.2em] text-[10px]">Local time</span>
     </div>
-    <div className="relative group">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-[var(--color-muted)] text-xs">
-        <CalendarRange size={14} />
-        <Clock3 size={14} />
-      </span>
-      <input
-        type="datetime-local"
-        value={toDateTimeLocalValue(value) || value || ''}
-        onChange={(e) => onChange?.(e.target.value)}
-        required={required}
-        className="admin-input pl-11"
-      />
-      <div className="pointer-events-none absolute inset-0 rounded-xl ring-0 ring-[var(--color-primary)]/30 opacity-0 group-focus-within:opacity-100 transition" />
-    </div>
+    <input
+      type="datetime-local"
+      value={toDateTimeLocalValue(value) || value || ''}
+      onChange={(e) => onChange?.(e.target.value)}
+      required={required}
+      className="w-full rounded-xl px-4 py-3 text-sm bg-[color-mix(in_srgb,var(--color-card)88%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-card)92%,transparent)] border border-[var(--color-text)]/10 text-[var(--color-text)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50 transition-all placeholder:text-[var(--color-muted)]/70 appearance-none min-h-[46px]"
+    />
   </div>
 );
 

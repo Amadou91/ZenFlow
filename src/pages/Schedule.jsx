@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { Calendar, Clock, MapPin, Check, Users, X, CheckCircle, Wallet, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
 
 const Schedule = () => {
   const [classes, setClasses] = useState([]);
@@ -10,7 +11,9 @@ const Schedule = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
-  const [user, setUser] = useState(null);
+  
+  // Use global auth context
+  const { currentUser: user, isAdmin } = useAuth();
   
   // Modals
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -29,19 +32,17 @@ const Schedule = () => {
       setLoading(true);
       try {
         if (!supabaseReady) {
-          setLoadError('Connect Supabase to load and book real classes.');
+          if (isAdmin) {
+             setLoadError('Connect Supabase to load and book real classes.');
+          }
           setClasses([]);
           return;
         }
 
-        const [authResult, classResult, bookingResult] = await Promise.all([
-          supabase.auth.getUser(),
+        const [classResult, bookingResult] = await Promise.all([
           supabase.from('classes').select('*').order('date', { ascending: true }),
           supabase.from('bookings').select('id, class_id, user_id, class_name, class_date, location'),
         ]);
-
-        const authUser = authResult?.data?.user || null;
-        setUser(authUser);
 
         if (classResult.error) throw classResult.error;
         if (bookingResult.error) throw bookingResult.error;
@@ -57,8 +58,8 @@ const Schedule = () => {
         });
         setBookingCounts(counts);
 
-        if (authUser) {
-          const userBookings = bookingRows.filter((row) => row.user_id === authUser.id);
+        if (user) {
+          const userBookings = bookingRows.filter((row) => row.user_id === user.id);
           setBookedClassIds(new Set(userBookings.map((b) => b.class_id)));
           setBookingsMap(new Map(userBookings.map((b) => [b.class_id, b.id])));
         } else {
@@ -68,14 +69,16 @@ const Schedule = () => {
         setLoadError('');
       } catch (err) {
         console.error('Could not load schedule data', err);
-        setLoadError('We had trouble loading live classes. Please try again shortly.');
+        if (isAdmin) {
+           setLoadError('We had trouble loading live classes. Please try again shortly.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [supabaseReady]);
+  }, [supabaseReady, user, isAdmin]);
 
   useEffect(() => {
     if (!supabaseReady) return undefined;
@@ -233,7 +236,7 @@ const Schedule = () => {
         <p className="text-lg text-[var(--color-muted)] dark:text-stone-300 max-w-xl mx-auto leading-relaxed">
           Join us on the mat. Find a time that nurtures your body and mind.
         </p>
-        {loadError && (
+        {loadError && isAdmin && (
           <div className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-card)] border border-white/50 dark:border-stone-700 text-xs text-[var(--color-muted)] shadow-card">
             <AlertCircle size={14} /> {loadError}
           </div>
@@ -242,9 +245,11 @@ const Schedule = () => {
 
       {/* Class List */}
       <div className="max-w-4xl mx-auto px-4 pb-24 space-y-6 relative z-10">
-        {classes.length === 0 && (
+        {classes.length === 0 && !loadError && (
           <div className="p-8 rounded-3xl border border-dashed border-stone-200 dark:border-stone-700 bg-white/70 dark:bg-stone-800/60 text-center text-sm text-[var(--color-muted)] shadow-card">
-            No classes are scheduled yet. New offerings created in the admin panel will appear here instantly.
+            {isAdmin 
+              ? "No classes are scheduled yet. New offerings created in the admin panel will appear here instantly." 
+              : "Our schedule is currently being updated. Please check back soon for upcoming classes."}
           </div>
         )}
 
