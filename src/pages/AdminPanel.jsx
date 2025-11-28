@@ -35,7 +35,7 @@ const AdminPanel = () => {
   const { currentUser, isAdmin } = useAuth();
   
   // We use "theme" (which might be a preview) and "savedTheme" (the committed state)
-  const { theme, savedTheme, previewTheme, resetPreviewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
+  const { theme, savedTheme, previewTheme, saveTheme, darkMode, toggleTheme } = useTheme();
   
   // --- DATA STATE ---
   const [classes, setClasses] = useState([]);
@@ -50,12 +50,6 @@ const AdminPanel = () => {
   const [editorSection, setEditorSection] = useState('brand'); 
   
   // Derived State for Retreats
-  const retreatSignupCounts = useMemo(() => {
-    const counts = new Map();
-    retreatSignups.forEach((entry) => { counts.set(entry.retreat_id, (counts.get(entry.retreat_id) || 0) + 1); });
-    return counts;
-  }, [retreatSignups]);
-
   const retreatSignupMap = useMemo(() => {
     const map = new Map();
     retreatSignups.forEach((entry) => {
@@ -252,7 +246,10 @@ const AdminPanel = () => {
       await supabase.from('bookings').delete().eq('id', id);
       setBookings(prev => prev.filter(b => b.id !== id));
       addToast('success', 'Booking cancelled.');
-    } catch (e) { addToast('error', 'Could not delete booking.'); }
+    } catch (error) { 
+      console.error(error);
+      addToast('error', 'Could not delete booking.'); 
+    }
   };
 
   const confirmDeleteClass = async () => {
@@ -262,7 +259,10 @@ const AdminPanel = () => {
       await supabase.from('classes').delete().eq('id', classToDelete.id);
       setClasses(prev => prev.filter(c => c.id !== classToDelete.id));
       addToast('success', 'Class deleted.');
-    } catch(e) { addToast('error', 'Delete failed.'); }
+    } catch(error) { 
+      console.error(error);
+      addToast('error', 'Delete failed.'); 
+    }
     finally { setDeleting(false); setClassToDelete(null); }
   };
 
@@ -273,7 +273,10 @@ const AdminPanel = () => {
       await supabase.from('retreats').delete().eq('id', retreatToDelete.id);
       setRetreats(prev => prev.filter(r => r.id !== retreatToDelete.id));
       addToast('success', 'Retreat deleted.');
-    } catch(e) { addToast('error', 'Delete failed.'); }
+    } catch(error) { 
+      console.error(error);
+      addToast('error', 'Delete failed.'); 
+    }
     finally { setDeleting(false); setRetreatToDelete(null); }
   };
 
@@ -421,19 +424,43 @@ const AdminPanel = () => {
             <div className="bg-[var(--color-card)] rounded-3xl p-6 border border-[var(--color-text)]/5 shadow-sm h-fit sticky top-6">
               <h3 className="text-lg font-serif font-bold mb-4">Create Class</h3>
               <form onSubmit={saveClass} className="space-y-4">
-                <input type="text" placeholder="Title" required value={draftClass.title} onChange={e => handleClassChange('title', e.target.value)} className="admin-input" />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Title</label>
+                  <input type="text" placeholder="Title" required value={draftClass.title} onChange={e => handleClassChange('title', e.target.value)} className="admin-input" />
+                </div>
                 <DateTimePicker value={draftClass.date} onChange={val => handleClassChange('date', val)} required />
                 <div className="grid grid-cols-2 gap-3">
-                  <input type="text" placeholder="Duration (e.g. 60m)" value={draftClass.duration} onChange={e => handleClassChange('duration', e.target.value)} className="admin-input" />
-                  <input type="number" placeholder="Price" value={draftClass.price} onChange={e => handleClassChange('price', Number(e.target.value))} className="admin-input" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Duration</label>
+                    <input type="text" placeholder="e.g. 60m" value={draftClass.duration} onChange={e => handleClassChange('duration', e.target.value)} className="admin-input" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Price</label>
+                    <input type="number" placeholder="Price" value={draftClass.price} onChange={e => handleClassChange('price', Number(e.target.value))} className="admin-input" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input type="number" placeholder="Cap." value={draftClass.capacity} onChange={e => handleClassChange('capacity', Number(e.target.value))} className="admin-input" />
-                  <input type="number" placeholder="Waitlist" value={draftClass.waitlist_capacity} onChange={e => handleClassChange('waitlist_capacity', Number(e.target.value))} className="admin-input" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Capacity</label>
+                    <input type="number" placeholder="Cap." value={draftClass.capacity} onChange={e => handleClassChange('capacity', Number(e.target.value))} className="admin-input" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Waitlist</label>
+                    <input type="number" placeholder="Waitlist" value={draftClass.waitlist_capacity} onChange={e => handleClassChange('waitlist_capacity', Number(e.target.value))} className="admin-input" />
+                  </div>
                 </div>
-                <input type="text" placeholder="Instructor" value={draftClass.instructor} onChange={e => handleClassChange('instructor', e.target.value)} className="admin-input" />
-                <input type="text" placeholder="Location" value={draftClass.location} onChange={e => handleClassChange('location', e.target.value)} className="admin-input" />
-                <textarea placeholder="Description (optional)" value={draftClass.description} onChange={e => handleClassChange('description', e.target.value)} className="admin-input" rows={2} />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Instructor</label>
+                  <input type="text" placeholder="Instructor" value={draftClass.instructor} onChange={e => handleClassChange('instructor', e.target.value)} className="admin-input" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Location</label>
+                  <input type="text" placeholder="Location" value={draftClass.location} onChange={e => handleClassChange('location', e.target.value)} className="admin-input" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Description</label>
+                  <textarea placeholder="Description (optional)" value={draftClass.description} onChange={e => handleClassChange('description', e.target.value)} className="admin-input" rows={2} />
+                </div>
                 
                 <button type="submit" disabled={savingClass} className="w-full py-3 bg-[var(--color-primary)] text-white font-bold rounded-xl shadow-lg hover:brightness-110 transition-all flex justify-center items-center gap-2">
                   {savingClass ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Add to Schedule
@@ -539,25 +566,46 @@ const AdminPanel = () => {
             <div className="bg-[var(--color-card)] rounded-3xl p-6 border border-[var(--color-text)]/5 shadow-sm h-fit sticky top-6">
               <h3 className="text-lg font-serif font-bold mb-4">Create Retreat</h3>
               <form onSubmit={saveRetreat} className="space-y-4">
-                <input type="text" placeholder="Retreat Title" required value={draftRetreat.title} onChange={e => handleRetreatChange('title', e.target.value)} className="admin-input" />
-                <input type="text" placeholder="Location" value={draftRetreat.location} onChange={e => handleRetreatChange('location', e.target.value)} className="admin-input" />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Title</label>
+                  <input type="text" placeholder="Retreat Title" required value={draftRetreat.title} onChange={e => handleRetreatChange('title', e.target.value)} className="admin-input" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Location</label>
+                  <input type="text" placeholder="Location" value={draftRetreat.location} onChange={e => handleRetreatChange('location', e.target.value)} className="admin-input" />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-[var(--color-muted)]">Start</label>
+                    <label className="text-[10px] font-bold uppercase text-[var(--color-muted)]">Start Date</label>
                     <input type="date" value={draftRetreat.start_date} onChange={e => handleRetreatChange('start_date', e.target.value)} className="admin-input" />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-[var(--color-muted)]">End</label>
+                    <label className="text-[10px] font-bold uppercase text-[var(--color-muted)]">End Date</label>
                     <input type="date" value={draftRetreat.end_date} onChange={e => handleRetreatChange('end_date', e.target.value)} className="admin-input" />
                   </div>
                 </div>
-                <input type="text" placeholder="Date Label (e.g. Sept 12-14)" value={draftRetreat.date_label} onChange={e => handleRetreatChange('date_label', e.target.value)} className="admin-input" />
-                <div className="grid grid-cols-2 gap-3">
-                  <input type="number" placeholder="Price" value={draftRetreat.price} onChange={e => handleRetreatChange('price', Number(e.target.value))} className="admin-input" />
-                  <input type="number" placeholder="Capacity" value={draftRetreat.capacity} onChange={e => handleRetreatChange('capacity', Number(e.target.value))} className="admin-input" />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Date Label</label>
+                  <input type="text" placeholder="e.g. Sept 12-14" value={draftRetreat.date_label} onChange={e => handleRetreatChange('date_label', e.target.value)} className="admin-input" />
                 </div>
-                <input type="text" placeholder="Image URL" value={draftRetreat.image_url} onChange={e => handleRetreatChange('image_url', e.target.value)} className="admin-input" />
-                <textarea placeholder="Description" value={draftRetreat.description} onChange={e => handleRetreatChange('description', e.target.value)} className="admin-input" rows={3} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Price</label>
+                    <input type="number" placeholder="Price" value={draftRetreat.price} onChange={e => handleRetreatChange('price', Number(e.target.value))} className="admin-input" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Capacity</label>
+                    <input type="number" placeholder="Capacity" value={draftRetreat.capacity} onChange={e => handleRetreatChange('capacity', Number(e.target.value))} className="admin-input" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Image URL</label>
+                  <input type="text" placeholder="https://..." value={draftRetreat.image_url} onChange={e => handleRetreatChange('image_url', e.target.value)} className="admin-input" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Description</label>
+                  <textarea placeholder="Description" value={draftRetreat.description} onChange={e => handleRetreatChange('description', e.target.value)} className="admin-input" rows={3} />
+                </div>
                 
                 <button type="submit" disabled={savingClass} className="w-full py-3 bg-[var(--color-primary)] text-white font-bold rounded-xl shadow-lg hover:brightness-110 transition-all flex justify-center items-center gap-2">
                   {savingClass ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Save Retreat
@@ -747,13 +795,25 @@ const AdminPanel = () => {
             <div className="bg-[var(--color-card)] rounded-3xl max-w-lg w-full p-6 shadow-2xl animate-in fade-in-up" onClick={e => e.stopPropagation()}>
               <h3 className="text-xl font-bold mb-4">Edit Class</h3>
               <div className="space-y-4">
-                <input value={editClassDraft.title} onChange={e => handleEditClassChange('title', e.target.value)} className="admin-input" placeholder="Title" />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Title</label>
+                  <input value={editClassDraft.title} onChange={e => handleEditClassChange('title', e.target.value)} className="admin-input" placeholder="Title" />
+                </div>
                 <DateTimePicker value={editClassDraft.date} onChange={val => handleEditClassChange('date', val)} />
                 <div className="grid grid-cols-2 gap-3">
-                  <input value={editClassDraft.duration} onChange={e => handleEditClassChange('duration', e.target.value)} className="admin-input" placeholder="Duration" />
-                  <input type="number" value={editClassDraft.price} onChange={e => handleEditClassChange('price', Number(e.target.value))} className="admin-input" placeholder="Price" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Duration</label>
+                    <input value={editClassDraft.duration} onChange={e => handleEditClassChange('duration', e.target.value)} className="admin-input" placeholder="Duration" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Price</label>
+                    <input type="number" value={editClassDraft.price} onChange={e => handleEditClassChange('price', Number(e.target.value))} className="admin-input" placeholder="Price" />
+                  </div>
                 </div>
-                <input value={editClassDraft.location} onChange={e => handleEditClassChange('location', e.target.value)} className="admin-input" placeholder="Location" />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">Location</label>
+                  <input value={editClassDraft.location} onChange={e => handleEditClassChange('location', e.target.value)} className="admin-input" placeholder="Location" />
+                </div>
                 <div className="flex gap-3 mt-4">
                   <button onClick={closeEditModal} className="flex-1 py-3 bg-[var(--color-surface)] font-bold rounded-xl border border-[var(--color-text)]/10">Cancel</button>
                   <button onClick={saveEditedClass} className="flex-1 py-3 bg-[var(--color-primary)] text-white font-bold rounded-xl shadow-lg hover:brightness-110">Save</button>
@@ -771,7 +831,9 @@ const AdminPanel = () => {
               <p className="text-sm text-[var(--color-muted)] mb-6">Are you sure you want to remove <strong>{classToDelete.title}</strong>?</p>
               <div className="flex gap-3">
                 <button onClick={() => setClassToDelete(null)} className="flex-1 py-3 bg-[var(--color-surface)] font-bold rounded-xl border border-[var(--color-text)]/10">Cancel</button>
-                <button onClick={confirmDeleteClass} className="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl shadow-lg hover:bg-rose-700">Delete</button>
+                <button onClick={confirmDeleteClass} disabled={deleting} className="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl shadow-lg hover:bg-rose-700 disabled:opacity-50">
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
             </div>
           </div>
@@ -785,7 +847,9 @@ const AdminPanel = () => {
               <p className="text-sm text-[var(--color-muted)] mb-6">Are you sure you want to remove <strong>{retreatToDelete.title}</strong>?</p>
               <div className="flex gap-3">
                 <button onClick={() => setRetreatToDelete(null)} className="flex-1 py-3 bg-[var(--color-surface)] font-bold rounded-xl border border-[var(--color-text)]/10">Cancel</button>
-                <button onClick={confirmDeleteRetreat} className="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl shadow-lg hover:bg-rose-700">Delete</button>
+                <button onClick={confirmDeleteRetreat} disabled={deleting} className="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl shadow-lg hover:bg-rose-700 disabled:opacity-50">
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
             </div>
           </div>
