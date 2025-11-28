@@ -11,7 +11,11 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const adminEmail = useMemo(() => (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase(), []);
+  // Update: Parse comma-separated list of admin emails
+  const adminEmails = useMemo(() => {
+    const envVar = import.meta.env.VITE_ADMIN_EMAIL || '';
+    return envVar.split(',').map(email => email.trim().toLowerCase()).filter(Boolean);
+  }, []);
 
   const ensureConfigured = () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -30,13 +34,13 @@ export const AuthProvider = ({ children }) => {
 
     // Check if session is null (implies email confirmation is required)
     if (data.user && !data.session) {
-       // Do NOT log them in immediately. Return a specific flag so the UI can show a message.
        return { user: data.user, session: null, confirmationRequired: true };
     }
 
     // If we got a session, create profile immediately
     if (data.user) {
-      const adminFlag = data.user.email?.toLowerCase() === adminEmail;
+      // Update: Check if email is in the list of admin emails
+      const adminFlag = adminEmails.includes(data.user.email?.toLowerCase());
       await supabase.from('profiles').upsert([
         { id: data.user.id, full_name: name, email, is_admin: adminFlag }
       ]);
@@ -83,7 +87,6 @@ export const AuthProvider = ({ children }) => {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
 
-        // Only set user if session is valid (i.e., email confirmed if required)
         if (session?.user) {
             setCurrentUser(session.user);
             loadProfile(session.user.id);
@@ -104,7 +107,6 @@ export const AuthProvider = ({ children }) => {
     if (!isSupabaseConfigured || !supabase) return undefined;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // onAuthStateChange handles the session update automatically
       if (session?.user) {
           setCurrentUser(session.user);
           loadProfile(session.user.id);
@@ -120,8 +122,9 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = useMemo(() => {
     const email = currentUser?.email?.toLowerCase();
     const profileAdmin = profile?.is_admin;
-    return Boolean(email && email === adminEmail) || Boolean(profileAdmin);
-  }, [adminEmail, currentUser, profile]);
+    // Update: Check against array of admin emails
+    return (email && adminEmails.includes(email)) || Boolean(profileAdmin);
+  }, [adminEmails, currentUser, profile]);
 
   const value = { currentUser, profile, signup, login, logout, isAdmin, authLoading: loading };
 
