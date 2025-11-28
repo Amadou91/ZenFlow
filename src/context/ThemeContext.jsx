@@ -4,7 +4,7 @@ import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 const ThemeContext = createContext();
 
-const DEFAULT_THEME = {
+export const DEFAULT_THEME = {
   light: {
     primary: '#c8748f',
     secondary: '#7f6c9f',
@@ -43,6 +43,11 @@ const getStoredTheme = () => {
   }
 };
 
+const sanitizeTheme = (incoming) => ({
+  light: { ...DEFAULT_THEME.light, ...(incoming?.light || {}) },
+  dark: { ...DEFAULT_THEME.dark, ...(incoming?.dark || {}) },
+});
+
 const getInitialDarkMode = () => {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('zenflow_theme');
@@ -55,10 +60,10 @@ const getInitialDarkMode = () => {
 export const ThemeProvider = ({ children }) => {
   const initialDarkMode = getInitialDarkMode();
   const [darkMode, setDarkMode] = useState(initialDarkMode);
-  const [theme, setTheme] = useState(() => getStoredTheme());
+  const [theme, setTheme] = useState(() => sanitizeTheme(getStoredTheme()));
   const [themeLoading, setThemeLoading] = useState(true);
   const [appliedPalette, setAppliedPalette] = useState(() => {
-    const stored = getStoredTheme();
+    const stored = sanitizeTheme(getStoredTheme());
     return initialDarkMode ? stored.dark : stored.light;
   });
 
@@ -110,8 +115,9 @@ export const ThemeProvider = ({ children }) => {
 
         if (error) throw error;
         if (data?.theme) {
-          setTheme(data.theme);
-          setAppliedPalette(darkMode ? data.theme.dark : data.theme.light);
+          const hydrated = sanitizeTheme(data.theme);
+          setTheme(hydrated);
+          setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
         }
       } catch (err) {
         console.warn('Using default theme palette:', err.message);
@@ -126,11 +132,13 @@ export const ThemeProvider = ({ children }) => {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   const previewTheme = (nextTheme) => {
-    setAppliedPalette(darkMode ? nextTheme.dark : nextTheme.light);
+    const hydrated = sanitizeTheme(nextTheme);
+    setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
   };
 
   const resetPreviewTheme = () => {
-    setAppliedPalette(darkMode ? theme.dark : theme.light);
+    const hydrated = sanitizeTheme(theme);
+    setAppliedPalette(darkMode ? hydrated.dark : hydrated.light);
   };
 
   const saveTheme = async (nextTheme) => {
@@ -138,10 +146,12 @@ export const ThemeProvider = ({ children }) => {
       throw new Error('Supabase is not configured; please add Supabase environment variables to persist the theme.');
     }
 
+    const hydrated = sanitizeTheme(nextTheme);
+
     const { data, error } = await supabase
       .from('theme_settings')
       .upsert([
-        { id: 'global', theme: nextTheme, updated_at: new Date().toISOString() },
+        { id: 'global', theme: hydrated, updated_at: new Date().toISOString() },
       ])
       .select('theme')
       .maybeSingle();
@@ -154,7 +164,7 @@ export const ThemeProvider = ({ children }) => {
       throw error;
     }
 
-    const persistedTheme = data?.theme || nextTheme;
+    const persistedTheme = sanitizeTheme(data?.theme || hydrated);
     setTheme(persistedTheme);
     setAppliedPalette(darkMode ? persistedTheme.dark : persistedTheme.light);
     if (typeof window !== 'undefined') {
