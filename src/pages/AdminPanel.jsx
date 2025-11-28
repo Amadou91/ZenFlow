@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { DEFAULT_THEME, useTheme } from '../context/ThemeContext';
 import {
   ShieldCheck,
   CalendarRange,
@@ -16,6 +16,10 @@ import {
   SunMedium,
   MoonStar,
   ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+  X,
 } from 'lucide-react';
 
 const emptyClass = {
@@ -52,8 +56,8 @@ const AdminPanel = () => {
   const [savingTheme, setSavingTheme] = useState(false);
   const [draftClass, setDraftClass] = useState(emptyClass);
   const [draftTheme, setDraftTheme] = useState(theme);
-  const [message, setMessage] = useState('');
-  const [notice, setNotice] = useState(null);
+  const [toasts, setToasts] = useState([]);
+  const toastRegionRef = useRef(null);
 
   const activePaletteKey = darkMode ? 'dark' : 'light';
   const activePaletteLabel = darkMode ? 'Dark' : 'Light';
@@ -96,10 +100,25 @@ const AdminPanel = () => {
     previewTheme(draftTheme);
   }, [darkMode, draftTheme, previewTheme]);
 
+  const addToast = useCallback((type, text) => {
+    if (!text) return;
+    const id = crypto.randomUUID();
+    const tone = type || 'info';
+    setToasts((prev) => [...prev, { id, type: tone, text }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 5200);
+  }, []);
+
+  useEffect(() => {
+    if (!toasts.length) return;
+    toastRegionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [toasts.length]);
+
   useEffect(() => {
     const load = async () => {
       if (!isSupabaseConfigured || !supabase) {
-        setMessage('Configure Supabase to manage classes and bookings.');
+        addToast('info', 'Configure Supabase to manage classes and bookings.');
         setLoading(false);
         return;
       }
@@ -118,13 +137,13 @@ const AdminPanel = () => {
         console.warn('Falling back to in-memory classes:', err.message);
         setClasses([]);
         setBookings([]);
-      setMessage('Supabase tables are not ready yet. Data will load once they exist.');
-    } finally {
-      setLoading(false);
-    }
+        addToast('warning', 'Supabase tables are not ready yet. Data will load once they exist.');
+      } finally {
+        setLoading(false);
+      }
     };
     if (isAdmin && currentUser) load();
-  }, [currentUser, isAdmin]);
+  }, [addToast, currentUser, isAdmin]);
 
   useEffect(() => {
     if (!isAdmin || !isSupabaseConfigured || !supabase) return undefined;
@@ -148,12 +167,6 @@ const AdminPanel = () => {
     };
   }, [isAdmin]);
 
-  useEffect(() => {
-    if (!notice) return undefined;
-    const timer = setTimeout(() => setNotice(null), 4500);
-    return () => clearTimeout(timer);
-  }, [notice]);
-
   const startEdit = (cls) => {
     setDraftClass({ ...cls });
   };
@@ -173,20 +186,20 @@ const AdminPanel = () => {
     const requiredFields = ['title', 'date', 'duration', 'location', 'instructor'];
     const missing = requiredFields.filter((key) => !draftClass[key]);
     if (missing.length) {
-      setNotice({ type: 'error', text: `Please complete: ${missing.join(', ')}.` });
+      addToast('error', `Please complete: ${missing.join(', ')}.`);
       setSavingClass(false);
       return;
     }
 
     const parsedDate = draftClass.date ? new Date(draftClass.date) : null;
     if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
-      setNotice({ type: 'error', text: 'Provide a valid date & time for the class.' });
+      addToast('error', 'Provide a valid date & time for the class.');
       setSavingClass(false);
       return;
     }
 
     if (!isSupabaseConfigured || !supabase) {
-      setNotice({ type: 'error', text: 'Supabase is not configured. Add credentials to save classes.' });
+      addToast('error', 'Supabase is not configured. Add credentials to save classes.');
       setSavingClass(false);
       return;
     }
@@ -202,7 +215,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('classes').upsert([payload]).select();
       if (error) {
         if (error?.message?.includes("Could not find the table 'public.classes'")) {
-          setNotice({ type: 'error', text: 'Classes table is missing. Apply supabase/schema/classes.sql to create it.' });
+          addToast('error', 'Classes table is missing. Apply supabase/schema/classes.sql to create it.');
         }
         throw error;
       }
@@ -216,10 +229,10 @@ const AdminPanel = () => {
         }
         return [savedRow, ...prev];
       });
-      setNotice({ type: 'success', text: 'Class saved successfully.' });
+      addToast('success', 'Class saved successfully.');
       resetForm();
     } catch (err) {
-      setNotice({ type: 'error', text: `Unable to save class: ${err.message}` });
+      addToast('error', `Unable to save class: ${err.message}`);
     } finally {
       setSavingClass(false);
     }
@@ -227,21 +240,22 @@ const AdminPanel = () => {
 
   const deleteBooking = async (bookingId) => {
     if (!isSupabaseConfigured || !supabase) {
-      setMessage('Supabase is not configured.');
+      addToast('error', 'Supabase is not configured.');
       return;
     }
     try {
       await supabase.from('bookings').delete().eq('id', bookingId);
       setBookings(prev => prev.filter(b => b.id !== bookingId));
     } catch (err) {
-      setMessage(`Unable to update booking: ${err.message}`);
+      addToast('error', `Unable to update booking: ${err.message}`);
     }
   };
 
   const updateThemeField = (mode, key, value) => {
     const next = {
+      ...DEFAULT_THEME,
       ...draftTheme,
-      [mode]: { ...draftTheme[mode], [key]: value },
+      [mode]: { ...DEFAULT_THEME[mode], ...(draftTheme?.[mode] || {}), [key]: value },
     };
     setDraftTheme(next);
     previewTheme(next);
@@ -250,16 +264,16 @@ const AdminPanel = () => {
   const restoreSavedTheme = () => {
     setDraftTheme(theme);
     previewTheme(theme);
-    setMessage('Restored the saved palette and preview.');
+    addToast('success', 'Restored the saved palette and preview.');
   };
 
   const persistTheme = async () => {
     setSavingTheme(true);
     try {
       await saveTheme(draftTheme);
-      setMessage('Theme saved and applied globally.');
+      addToast('success', 'Theme saved and applied globally.');
     } catch (err) {
-      setMessage(`Unable to save theme: ${err.message}`);
+      addToast('error', `Unable to save theme: ${err.message}`);
     } finally {
       setSavingTheme(false);
     }
@@ -285,11 +299,6 @@ const AdminPanel = () => {
               </div>
             </div>
             <p className="text-sm text-[var(--color-muted)]">Signed in as {currentUser?.email}</p>
-            {message && (
-              <p className="text-xs text-[var(--color-muted)] mt-2 bg-[var(--color-card)] border border-black/5 rounded-lg px-3 py-2 inline-block">
-                {message}
-              </p>
-            )}
           </div>
           <div className="flex gap-3 items-center">
             <Link
@@ -302,13 +311,44 @@ const AdminPanel = () => {
           </div>
         </header>
 
-        {notice && (
-          <div
-            className={`fixed bottom-6 right-6 z-20 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold border ${notice.type === 'success' ? 'bg-[var(--color-card)] border-black/5 text-[var(--color-text)]' : 'bg-rose-50 border-rose-200 text-rose-700'}`}
-          >
-            {notice.text}
-          </div>
-        )}
+        <div
+          ref={toastRegionRef}
+          className="fixed inset-x-4 bottom-5 md:bottom-8 md:right-6 md:left-auto z-50 flex flex-col gap-3 items-stretch md:items-end pointer-events-none"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {toasts.map((toast) => {
+            const tone = toast.type;
+            const toneStyles = {
+              success: 'bg-[var(--color-card)] text-[var(--color-text)] border-black/5',
+              error: 'bg-rose-100 text-rose-900 border-rose-200 dark:bg-rose-900/80 dark:text-rose-50 dark:border-rose-700',
+              warning: 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-900/70 dark:text-amber-50 dark:border-amber-700',
+              info: 'bg-[var(--color-card)] text-[var(--color-text)] border-black/5',
+            };
+            const Icon = tone === 'success' ? CheckCircle2 : tone === 'error' ? AlertTriangle : tone === 'warning' ? AlertTriangle : Info;
+
+            return (
+              <div
+                key={toast.id}
+                className={`pointer-events-auto w-full md:w-[360px] rounded-2xl border shadow-lg shadow-black/10 dark:shadow-black/40 px-4 py-3 flex items-start gap-3 backdrop-blur-xl ${toneStyles[tone] || toneStyles.info}`}
+              >
+                <div className="mt-0.5 shrink-0">
+                  <Icon size={18} />
+                </div>
+                <div className="flex-1 text-sm font-semibold leading-relaxed">{toast.text}</div>
+                <button
+                  type="button"
+                  onClick={() => setToasts((prev) => prev.filter((item) => item.id !== toast.id))}
+                  className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[var(--color-muted)]"
+                  aria-label="Dismiss notification"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
 
         <div className="grid md:grid-cols-3 gap-4">
           <div className="p-4 rounded-2xl bg-[var(--color-card)] border border-black/5 shadow-card">
@@ -588,7 +628,7 @@ const AdminPanel = () => {
                       {field.label}
                       <input
                         type="color"
-                        value={draftTheme?.[activePaletteKey]?.[field.key] || '#000000'}
+                        value={draftTheme?.[activePaletteKey]?.[field.key] || DEFAULT_THEME[activePaletteKey][field.key]}
                         onChange={(e) => updateThemeField(activePaletteKey, field.key, e.target.value)}
                         className="admin-input h-11 cursor-pointer p-1"
                       />
