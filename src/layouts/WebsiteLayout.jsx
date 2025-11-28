@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 const WebsiteLayout = () => {
   const { darkMode, toggleTheme } = useTheme();
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
@@ -77,9 +77,14 @@ const WebsiteLayout = () => {
               </div>
 
               {currentUser ? (
-                <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-stone-600 hover:text-teal-600 dark:text-stone-300 transition-colors">
-                  <UserCircle size={20} />
-                </Link>
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <Link to="/admin" className="px-4 py-2 rounded-full text-sm font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20">Admin</Link>
+                  )}
+                  <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-stone-600 hover:text-teal-600 dark:text-stone-300 transition-colors">
+                    <UserCircle size={20} />
+                  </Link>
+                </div>
               ) : (
                 <Link to="/login" className="px-5 py-2.5 text-sm font-bold text-stone-900 dark:text-white hover:opacity-70 transition-opacity">Log In</Link>
               )}
@@ -116,7 +121,12 @@ const WebsiteLayout = () => {
               ) : (
                 <Link to="/login" onClick={() => setIsMenuOpen(false)} className="block text-lg font-medium text-stone-600 dark:text-stone-300">Log In</Link>
               )}
-              <Link to="/tools/zenflow" onClick={() => setIsMenuOpen(false)} className="block py-3 px-4 mt-4 bg-stone-50 dark:bg-stone-800 rounded-xl text-center text-sm font-bold text-teal-700 dark:text-teal-400 uppercase tracking-widest border border-stone-100 dark:border-stone-700">Teacher Tools</Link>
+              {isAdmin && (
+                <>
+                  <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="block py-3 px-4 mt-4 bg-stone-50 dark:bg-stone-800 rounded-xl text-center text-sm font-bold text-[var(--color-primary)] uppercase tracking-widest border border-stone-100 dark:border-stone-700">Admin Panel</Link>
+                  <Link to="/tools/zenflow" onClick={() => setIsMenuOpen(false)} className="block py-3 px-4 mt-2 bg-stone-50 dark:bg-stone-800 rounded-xl text-center text-sm font-bold text-[var(--color-primary)] uppercase tracking-widest border border-stone-100 dark:border-stone-700">Teacher Tools</Link>
+                </>
+              )}
             </div>
           </div>
         )}
